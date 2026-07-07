@@ -36,8 +36,16 @@ App-Partitionen (`ota_0`/`ota_1`), keine Anpassung am Flash-Layout nötig.
 
 Umsetzung (Details folgen in Phase P5, Einstellungsseite): Gerät fragt
 periodisch `api.github.com/repos/.../releases/latest` ab und zeigt einen
-Hinweis an, wenn eine neuere Version verfügbar ist (zunächst nur Anzeige,
-kein automatisches Flashen). Die GitHub-API verlangt für private Repos einen
+Hinweis an, wenn eine neuere Version verfügbar ist. Zusätzlich gibt es dort
+einen Update-Button mit zwei Wegen, beide über `Update.h` (ESP32-OTA in die
+freie `ota_1`/`ota_0`-Partition, danach Reboot):
+- **Direkt aus dem GitHub-Release**: lädt das `.bin`-Asset der aktuellsten
+  Release herunter und flasht es.
+- **Lokaler Upload**: `.bin`-Datei manuell über ein Formular hochladen und
+  flashen (funktioniert auch ohne Internetzugang, z. B. bei
+  Eigenbau-Zwischenständen, die noch kein Release sind).
+
+Die GitHub-API verlangt für private Repos einen
 Zugangstoken, der sonst im Geräte-Flash läge und bei physischem Zugriff
 auslesbar wäre. Da echte Zugangsdaten (WLAN-PSK, Syslog-IP) ohnehin nie im
 Quellcode landen, sondern zur Laufzeit in `config.xml` auf LittleFS gespeichert
