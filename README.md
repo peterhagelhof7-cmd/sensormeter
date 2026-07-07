@@ -21,7 +21,7 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 ## Firmware
 
 `firmware/` ist ein PlatformIO-Projekt (Board `esp32dev`, Framework Arduino).
-Aktueller Stand: **P2 — Konfigurationspersistenz** (siehe
+Aktueller Stand: **P3 — Sensorik** (siehe
 [docs/implementierungsplan.html](docs/implementierungsplan.html)).
 
 ```
@@ -32,17 +32,22 @@ pio run --target upload   # flashen (Board am Debug-Port angeschlossen, siehe fl
 pio device monitor   # seriellen Log ansehen (115200 Baud)
 ```
 
-Enthalten (P0–P2):
-- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`
+Enthalten (P0–P3):
+- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
 - Ethernet (DHCP oder statisch) + optional WLAN parallel, korrigierte Pinbelegung v1.1 zentral in `include/pins.h`
 - Fallback-WLAN `installer`/`installer`, wenn nach 5 Minuten kein Interface eine IP hat
 - NTP-Sync (`de.pool.ntp.org`, CET/CEST), 60s nach Boot, alle 5h, sofort nach Link-Up
 - NTP-Fehlerkette: 5 Min. ohne Sync + statische IP konfiguriert → DHCP-Test → nach 3 Min. Konfiguration wiederherstellen
 - `config.xml` auf LittleFS: Laden/Speichern mit Default-Fallback, XML-Import/-Export (Persistenzschicht; Web-UI folgt in P5)
+- DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer
 
-Bewusst noch nicht enthalten (folgt in P3–P8, siehe Implementierungsplan):
-Sensor-Auslesung, Display, Webserver, SNMP v1, Syslog, OTA.
+⚠️ Beim externen DHT22 die DATA-Leitung auf **RJ45-Pin 5** auflegen, nicht
+Pin 3 wie in einer Abbildung von `verdrahtungsschema-v1.1.pdf` — Widerspruch
+im Dokument selbst, siehe `docs/entscheidungen.md`.
+
+Bewusst noch nicht enthalten (folgt in P4–P8, siehe Implementierungsplan):
+Display, Webserver, SNMP v1, Syslog, OTA.
 
 ## Stand der Verdrahtung
 

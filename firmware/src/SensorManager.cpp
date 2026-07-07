@@ -1,0 +1,102 @@
+#include "SensorManager.h"
+
+#include <DHT.h>
+#include "TimeUtils.h"
+#include "pins.h"
+
+static const unsigned long READ_INTERVAL_MS = 60UL * 1000UL;  // 1x je Minute (Lastenheft)
+
+// Plausibilitaetsgrenzen laut Datenblatt (siehe docs/pflichtenheft.txt /
+// neu 2.txt Sensorbeschreibung).
+static bool plausibleDht11(float t, float h) {
+  return t >= 0.0f && t <= 50.0f && h >= 20.0f && h <= 95.0f;
+}
+static bool plausibleDht22(float t, float h) {
+  return t >= -40.0f && t <= 80.0f && h >= 0.0f && h <= 100.0f;
+}
+
+static DHT dhtInternal(PIN_DHT_INTERNAL, DHT11);
+static DHT dhtExternal(PIN_DHT_EXTERNAL, DHT22);
+
+SensorManager::SensorManager(DataManager& dataManager, ConfigManager& configManager)
+    : _data(dataManager), _config(configManager) {}
+
+void SensorManager::begin() {
+  dhtInternal.begin();
+  dhtExternal.begin();
+  Serial.println("[SENSOR] DHT11 (intern) initialisiert, DHT22 (extern) bereit");
+}
+
+void SensorManager::readInternalSensor() {
+  float humidity = dhtInternal.readHumidity();
+  float temperature = dhtInternal.readTemperature();
+
+  SensorReading reading;
+  reading.lastReadMillis = millis();
+
+  if (isnan(humidity) || isnan(temperature)) {
+    Serial.println("[SENSOR] Fehler beim Lesen des internen DHT11");
+    _data.setSensor1(reading);  // reading.valid bleibt false
+    return;
+  }
+  if (!plausibleDht11(temperature, humidity)) {
+    Serial.printf("[SENSOR] Unplausibler DHT11-Wert verworfen: %.1f C / %.1f %%\n", temperature, humidity);
+    _data.setSensor1(reading);
+    return;
+  }
+
+  reading.temperature = temperature;
+  reading.humidity = humidity;
+  reading.valid = true;
+  _data.setSensor1(reading);
+
+  // Stuendliche Ringpuffer-Speicherung - nur wenn Zeit per NTP synchronisiert
+  // ist (Lastenheft 5.2 Graph / Pflichtenheft 4.1 Ringpuffer).
+  if (!isTimeSynced()) return;
+
+  time_t now = time(nullptr);
+  long hourIndex = now / 3600;
+  if (hourIndex != _lastRecordedHour) {
+    HourValue hv;
+    hv.timestamp = now;
+    hv.temperature = temperature;
+    hv.humidity = humidity;
+    _data.pushHourValue(hv);
+    _lastRecordedHour = hourIndex;
+  }
+}
+
+void SensorManager::readExternalSensorIfEnabled() {
+  if (!_config.getConfig().sensor2Enabled) return;
+
+  float humidity = dhtExternal.readHumidity();
+  float temperature = dhtExternal.readTemperature();
+
+  SensorReading reading;
+  reading.lastReadMillis = millis();
+
+  if (isnan(humidity) || isnan(temperature)) {
+    Serial.println("[SENSOR] Fehler beim Lesen des externen DHT22");
+    _data.setSensor2(reading);
+    return;
+  }
+  if (!plausibleDht22(temperature, humidity)) {
+    Serial.printf("[SENSOR] Unplausibler DHT22-Wert verworfen: %.1f C / %.1f %%\n", temperature, humidity);
+    _data.setSensor2(reading);
+    return;
+  }
+
+  reading.temperature = temperature;
+  reading.humidity = humidity;
+  reading.valid = true;
+  _data.setSensor2(reading);
+}
+
+void SensorManager::loop() {
+  // Erster Durchlauf (_lastReadMillis == 0): sofort lesen statt 60s zu warten.
+  if (_lastReadMillis != 0 && millis() - _lastReadMillis < READ_INTERVAL_MS) return;
+  _lastReadMillis = millis();
+
+  readInternalSensor();
+  readExternalSensorIfEnabled();
+}

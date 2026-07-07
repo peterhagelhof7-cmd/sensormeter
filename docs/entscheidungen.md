@@ -12,6 +12,22 @@ dem Ethernet-PHY). `verdrahtungsschema-v1.1.pdf` behebt beides (Display →
 IO32/IO33, RJ45 Pin 5 → IO15). Ab sofort einzige gültige Referenz; ältere
 Notizen wurden bewusst nicht ins Repo übernommen.
 
+## 2026-07-08 — Widerspruch im Verdrahtungsschema selbst gefunden: externer DHT22-Pin (P3)
+
+Auch `verdrahtungsschema-v1.1.pdf` (unser als "einzig gültig" erklärter Stand,
+siehe oben) enthält noch einen internen Widerspruch: Seite 4
+("Modul-Adapter") nennt RJ45-Pin 3 als DATA-Leitung für ein DHT-Modul; die
+verbindliche Pin-Zusammenfassung (Seite 6/7) legt Pin 3 aber dauerhaft auf
+IO32 = I²C-SCL fest (gemeinsamer Bus mit dem Display). Ein einzelner
+GPIO-Sensor kann nicht dieselbe Leitung wie ein ständig aktiver I²C-Bus
+nutzen. **Auflösung**: Der externe DHT22 (Sensor 2, PRO-Variante) wird
+stattdessen an **RJ45-Pin 5 / IO15** angeschlossen — laut demselben Dokument
+der einzige tatsächlich freie, nicht boot-kritische GPIO am
+RJ45-Anschluss. Siehe `include/pins.h` (`PIN_DHT_EXTERNAL`).
+
+**Praktisch wichtig:** Beim Bau des externen Sensor-Moduls (RJ45-Stecker,
+Modulseite) die DATA-Leitung des DHT22 auf **Pin 5**, nicht Pin 3 auflegen.
+
 ## 2026-07-08 — SNMP v1 (read-only), nicht v2c
 
 Das Lastenheft fordert explizit SNMP v1 read-only mit fester OID-Struktur

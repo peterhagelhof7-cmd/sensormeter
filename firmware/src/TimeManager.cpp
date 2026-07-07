@@ -1,6 +1,7 @@
 #include "TimeManager.h"
 
 #include <time.h>
+#include "TimeUtils.h"
 
 static const unsigned long FIRST_SYNC_DELAY_MS = 60UL * 1000UL;               // 60s nach Boot
 static const unsigned long RESYNC_INTERVAL_MS = 5UL * 60UL * 60UL * 1000UL;   // alle 5h
@@ -10,12 +11,6 @@ static const unsigned long DHCP_TEST_DURATION_MS = 3UL * 60UL * 1000UL;       //
 static const char* NTP_SERVER = "de.pool.ntp.org";
 // Europe/Berlin inkl. automatischer Sommerzeitumschaltung (POSIX-TZ-String)
 static const char* TZ_GERMANY = "CET-1CEST,M3.5.0,M10.5.0/3";
-
-// Heuristik "haben wir schon synchronisiert": ESP32-RTC startet nahe
-// Unix-Epoche 0, ein plausibles Datum liegt sicher nach dem 1.1.2001.
-static bool plausibleTimeSet() {
-  return time(nullptr) > 978307200;
-}
 
 TimeManager::TimeManager(DataManager& dataManager, NetworkManager& networkManager)
     : _data(dataManager), _network(networkManager) {}
@@ -62,13 +57,13 @@ void TimeManager::loop() {
 
   unsigned long now = millis();
 
-  if (!_synced && plausibleTimeSet()) {
+  if (!_synced && isTimeSynced()) {
     onSyncSuccess();
     return;
   }
 
   if (_dhcpTestActive) {
-    if (plausibleTimeSet()) {
+    if (isTimeSynced()) {
       onSyncSuccess();
       return;
     }

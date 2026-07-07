@@ -29,3 +29,14 @@
 #define PIN_RJ45_PIN6_RELAY_OUT 5
 #define PIN_RJ45_PIN7_RELAY_FB  14
 #define PIN_RJ45_PIN8_RESERVE   12  // Boot-Strapping-Pin: muss beim Boot LOW sein (Pull-down 10k -> GND)
+
+// --- Sensor 2 (extern, DHT22 ueber RJ45) -------------------------------------
+// docs/verdrahtungsschema-v1.1.pdf widerspricht sich an dieser Stelle selbst:
+// die Modul-Adapter-Seite (S.4) nennt RJ45-Pin 3 als DHT-DATA, die
+// verbindliche Pin-Zusammenfassung (S.6/7) legt Pin 3 aber dauerhaft auf
+// IO32 = I2C-SCL (gemeinsamer Bus mit dem Display) fest. Ein einzelner
+// GPIO-Sensor (DHT) kann nicht dieselbe Leitung wie ein staendig aktiver
+// I2C-Bus nutzen. Aufloesung (siehe docs/entscheidungen.md): DHT22 extern
+// nutzt stattdessen RJ45 Pin 5 / IO15 - das ist laut selbem Dokument der
+// einzige tatsaechlich freie, nicht boot-kritische GPIO am RJ45-Anschluss.
+#define PIN_DHT_EXTERNAL PIN_RJ45_PIN5_RESERVE
