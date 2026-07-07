@@ -1,0 +1,86 @@
+=================================================
+ESP32-ETH01 V1.4 PINOUT
+=================================================
+
+--- LINK / RJ45 (Ethernet) Seite (Rechts) ---
+(Befindet sich direkt neben der Ethernet-Buchse am Rand)
+
+1. GND
+2. 5V
+3. 3V3
+4. GND
+5. IO2
+6. IO4
+7. IO5
+8. IO13
+9. IO14
+10. IO15
+11. IO16
+12. IO17
+
+---
+--- Obere Reihe (von Links nach Rechts) ---
+
+EN      (Enable / Reset Pin)
+GND
+3V3
+EN      (Doppelter EN-Pin)
+CFG     (Meist GPIO0, zum Bootloader-Modus halten)
+485_EN  (RS485 Enable, falls verwendet)
+RXD     (UART RX / GPIO3)
+TXD     (UART TX / GPIO1)
+GND
+3V3
+GND
+5V      (5V Spannungseingang)
+LINK    (LINK-LED Signal / Meist GPIO27 oder GPIO21)
+
+---
+--- Untere Reihe (von Links nach Rechts) ---
+
+TXD     (UART TX / GPIO1 - Duplikat)
+RXD     (UART RX / GPIO3 - Duplikat)
+IO0     (GPIO0 - Wichtig: Low beim Start = Bootloader Mode)
+GND
+IO19    (GPIO19)
+IO18    (GPIO18)
+IO103   (GPIO103 / Meist als MOSI / SDO genutzt)
+IO101   (GPIO101 / Meist als MISO / SDI genutzt)
+IO102   (GPIO102 / Meist als SCK genutzt)
+IO23    (GPIO23)
+IO22    (GPIO22)
+IO21    (GPIO21)
+GND
+
+=================================================
+WICHTIGE HINWEISE FÜR DIE VERKABELUNG:
+=================================================
+
+1. Ethernet-Chip (LAN8720) Verbindungen:
+   Dieses Board nutzt meist den LAN8720 Chip. Die folgenden GPIOs sind 
+   intern fest verdrahtet und sollten NICHT für andere Zwecke genutzt werden:
+   - GPIO0 (Boot-Mode, Vorsicht!)
+   - GPIO12 (Power-On Reset, nicht auf Low ziehen)
+   - GPIO15
+   - GPIO16
+   - GPIO17
+   - GPIO18 (ETH_CLK)
+   - GPIO19 (ETH_TX0)
+   - GPIO21 (ETH_TX_EN)
+   - GPIO22 (ETH_TXD1)
+   - GPIO23 (ETH_RXD0)
+   - GPIO25 (ETH_RXD1)
+   - GPIO26 (ETH_CRS_DV)
+   - GPIO27 (ETH_RX_ER / oft auch "LINK" LED)
+
+2. Stromversorgung:
+   - 5V: Zum Betreiben des Boards über USB oder externe 5V Quelle.
+   - 3V3: Ausgang für externe Sensoren (max. ~500mA beachten).
+
+3. Pin 485_EN:
+   Dieser Pin ist meist nicht standardmäßig belegt. Er dient dazu, einen 
+   RS485-Treiberbaustein (falls nachgerüstet) ein- oder auszuschalten.
+
+4. CFG / IO0:
+   Wenn das Board nicht bootet oder im Download-Modus stecken bleibt, 
+   prüfe, ob IO0 auf GND liegt (z.B. durch einen Taster oder Jumper).

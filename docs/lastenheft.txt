@@ -1,0 +1,239 @@
+LASTENHEFT – SENSORMETER (WT32-ETH01)
+
+1. PROJEKT
+Projektname: Sensormeter
+
+2. SYSTEMBASIS
+Hardware:
+- WT32-ETH01 (ESP32 + Ethernet LAN8720)
+- OLED SSD1306 128x64 I2C
+- Temperatur-/Luftfeuchtesensor (intern) DHT-11
+- optional zweiter Sensor (extern) DHT-22
+
+------------------------------------------------------------
+
+3. ZIELSETZUNG
+Das System dient zur lokalen und netzwerkbasierten Erfassung, Speicherung und Darstellung von Umweltmesswerten (Temperatur, Luftfeuchte).
+Die Daten werden lokal angezeigt, über Webserver bereitgestellt, via SNMP abrufbar gemacht und per Syslog versendet.
+
+------------------------------------------------------------
+
+4. SYSTEMVARIANTEN
+
+4.1 Sensormeter
+- 1 interner Sensor
+
+4.2 Sensormeter PRO
+- 1 interner + 1 externer Sensor
+
+------------------------------------------------------------
+
+5. WEBSERVER
+
+5.1 Hauptseite
+Anzeige folgender Daten:
+
+System:
+- Systemzeit (NTP synchronisiert)
+- Systemname
+- Firmwareversion
+- Systemtyp
+- Uptime
+- freier Heap
+
+Netzwerk:
+- LAN IP
+- WLAN IP
+- Gateway LAN/WLAN
+- DNS LAN/WLAN
+- MAC LAN/WLAN
+- WLAN SSID
+- WLAN RSSI
+- LAN Linkstatus
+
+Sensoren:
+- Temperatur
+- Luftfeuchte
+- Sensornamen
+
+5.2 Graph (Chart.js)
+- 7 Tage Verlauf
+- Speicherung nur stündlicher Werte
+- Temperatur: rot
+- Luftfeuchte: blau
+- Y-Achse links: °C
+- Y-Achse rechts: %
+
+5.3 Syslog-Ansicht
+- letzte 5 Meldungen
+
+5.4 Download
+- values.csv Download
+
+------------------------------------------------------------
+
+6. EINSTELLUNGSSEITE (PASSWORTGESCHÜTZT)
+
+Standardpasswort: installer
+
+Funktionen:
+
+System:
+- Systemname
+- Passwort ändern
+- Reboot
+
+Netzwerk:
+- LAN DHCP / static IP
+- WLAN DHCP / static IP
+- SSID Scan + Auswahl
+- PSK Eingabe
+- Gateway / Netmask
+
+Sensoren:
+- Sensor2 aktivieren
+- Sensor2 Name
+
+Syslog:
+- Syslog Server IP
+
+Konfiguration:
+- XML Export
+- XML Import
+- Speichern in LittleFS
+
+------------------------------------------------------------
+
+7. SNMP (v1 READ ONLY)
+
+OID Struktur:
+
+.1.3.6.1.4.1.99999.1 System
+- 1.0 Systemname
+- 2.0 Firmwareversion
+- 3.0 Systemtyp
+
+.1.3.6.1.4.1.99999.2 Netzwerk
+- 1.0 LAN IP
+- 2.0 WLAN IP
+- 3.0 RSSI
+
+.1.3.6.1.4.1.99999.3 Sensor 1
+- 1.0 Name
+- 2.0 Temperatur
+- 3.0 Luftfeuchte
+
+.1.3.6.1.4.1.99999.4 Sensor 2 (optional)
+- 1.0 Name
+- 2.0 Temperatur
+- 3.0 Luftfeuchte
+
+.1.3.6.1.4.1.99999.5 Systemstatus
+- 1.0 Uptime
+- 2.0 Heap
+
+------------------------------------------------------------
+
+8. NETZWERKLOGIK
+
+Boot:
+- Ethernet DHCP (Standard)
+- WLAN connect falls konfiguriert
+
+Fallback:
+- nach 5 min: WLAN SSID "installer"
+- PSK "installer"
+
+NTP:
+- de.pool.ntp.org
+- 60s nach Boot
+- alle 5h
+- nach Link-Up Events
+
+Fehler:
+- nach 5 min ohne NTP → DHCP aktivieren
+- nach 3 min weiter Fehler → Restore static config
+
+------------------------------------------------------------
+
+9. SYSLOG
+
+UDP Port 514
+
+Format:
+Systemname | LAN IP | WLAN IP | RSSI | Sensorwerte | ISO Zeit | Uptime
+
+Fehler:
+- NTP fail
+- Link down LAN/WLAN
+- Sensor error
+
+------------------------------------------------------------
+
+10. DATEISYSTEM (LittleFS)
+
+10.1 config.xml
+
+<config>
+  <network>
+    <lan dhcp="true" ip="" mask="" gateway="" />
+    <wlan dhcp="true" ssid="" psk="" />
+  </network>
+
+  <system>
+    <name>Sensormeter</name>
+    <type>PRO</type>
+    <password>installer</password>
+  </system>
+
+  <syslog>
+    <server>0.0.0.0</server>
+  </syslog>
+
+  <sensors>
+    <sensor2 enabled="false" name="Extern"/>
+  </sensors>
+</config>
+
+10.2 values.csv
+- timestamp, temperature, humidity
+- stündliche Speicherung für 7 Tage
+
+------------------------------------------------------------
+
+11. DISPLAY (SSD1306)
+
+- Wechsel alle 10 Sekunden
+- größtmögliche Schrift
+
+Screens:
+- Systemname
+- IPs
+- Uhrzeit
+- Sensorwerte
+- Status LAN/WLAN
+
+Boot:
+- Countdown 100 → 0 bis Netzwerk bereit
+
+------------------------------------------------------------
+
+12. ZUSTANDSMODELL
+
+BOOT → INIT → NETWORK CHECK
+  ↓
+IF OK → RUN NORMAL MODE
+IF FAIL → FALLBACK MODE (installer WLAN)
+  ↓
+NTP OK → NORMAL OPERATION
+NTP FAIL → DHCP TEST → RESTORE → ERROR MODE
+
+------------------------------------------------------------
+
+13. NICHTFUNKTIONALE ANFORDERUNGEN
+- lokal betrieben
+- keine Cloud
+- robuste Netzwerkumschaltung
+- geringe Speicherlast
+- wartbar über Webinterface
+- erweiterbar (Sensor 2)

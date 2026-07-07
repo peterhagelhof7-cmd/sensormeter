@@ -1,0 +1,204 @@
+
+PFLICHTENHEFT – SENSORMETER (WT32-ETH01)
+
+1. SYSTEMARCHITEKTUR
+
+Das System basiert auf einem ESP32 (WT32-ETH01) mit folgenden Software-Komponenten:
+
+- FreeRTOS (ESP32 Standard)
+- AsyncWebServer (Web UI)
+- SNMP v1 Stack (Read Only)
+- Syslog Client (UDP 514)
+- NTP Client
+- LittleFS Dateisystem
+- Arduino Framework (empfohlen)
+
+------------------------------------------------------------
+
+2. SOFTWARESTRUKTUR
+
+2.1 Tasks (FreeRTOS)
+
+Task: SensorTask
+- Intervall: 60 Sekunden
+- Funktion:
+  - Sensorwerte lesen (Temperatur, Luftfeuchte)
+  - Plausibilitätsprüfung
+  - Übergabe an DataManager
+  - Trigger: Syslog Sendung
+
+Task: NetworkTask
+- Verwaltung Ethernet & WLAN
+- DHCP / Static IP Handling
+- Link Status Monitoring
+
+Task: NTPTask
+- Initial nach 60s
+- danach alle 5h
+- Sync via de.pool.ntp.org
+- Fehlerhandling + fallback logic
+
+Task: WebServerTask
+- Async HTTP Server
+- REST API + HTML UI
+- Chart.js Datenbereitstellung
+
+Task: DisplayTask
+- OLED Update alle 10 Sekunden
+- Rotation der Informationsseiten
+
+Task: SyslogTask
+- UDP Versand bei jedem Sensorzyklus
+- Fehler-Events sofort senden
+
+------------------------------------------------------------
+
+3. SOFTWAREMODULE
+
+3.1 DataManager
+Zentrale Datenhaltung:
+
+- Sensorwerte
+- Systemstatus
+- Netzwerkstatus
+- Zeitstempel
+- Ringbuffer für 7 Tage Stundenwerte
+
+3.2 ConfigManager
+- Laden config.xml aus LittleFS
+- Speichern config.xml
+- XML Parser
+- Default-Werte fallback
+
+3.3 NetworkManager
+- Ethernet Init
+- WLAN Init
+- Fallback WLAN "installer"
+- DHCP/static switching logic
+
+3.4 TimeManager
+- NTP Sync
+- Sommer/Winterzeit (CET/CEST)
+- Uptime tracking
+
+3.5 StorageManager
+- LittleFS Zugriff
+- values.csv write
+- JSON buffer für Graph
+
+------------------------------------------------------------
+
+4. DATENSPEICHERUNG
+
+4.1 Ringbuffer (7 Tage)
+- 168 Stundenwerte pro Sensor
+- Struktur:
+
+struct HourValue {
+  timestamp;
+  temperature;
+  humidity;
+}
+
+4.2 values.csv
+- Logging aller Stundenwerte
+- Export für Web UI
+
+4.3 config.xml
+- Systemkonfiguration
+- Netzwerkparameter
+- Sensorparameter
+
+------------------------------------------------------------
+
+5. WEBARCHITEKTUR
+
+5.1 Backend (ESP32)
+- JSON API endpoints:
+  /api/status
+  /api/sensors
+  /api/network
+  /api/logs
+  /api/config
+
+5.2 Frontend
+- HTML + CSS (dark mode)
+- Chart.js integration
+- auto-refresh via JS
+
+------------------------------------------------------------
+
+6. FEHLERBEHANDLUNG
+
+6.1 Netzwerkfehler
+- WLAN reconnect
+- fallback SSID installer
+- DHCP recovery
+
+6.2 NTP Fehler
+- retry after 5 min
+- temporary DHCP mode
+- restore static config if failure persists
+
+6.3 Sensorfehler
+- syslog event
+- mark invalid values
+
+------------------------------------------------------------
+
+7. SNMP IMPLEMENTATION
+
+- SNMP v1 Agent
+- read-only community configurable
+- polling optimized (no continuous refresh)
+
+------------------------------------------------------------
+
+8. PERFORMANCE DESIGN
+
+Zielwerte:
+- CPU load < 40%
+- RAM usage < 60%
+- Sensor polling minimal (60s)
+- Webserver non-blocking (Async)
+
+------------------------------------------------------------
+
+9. MEMORY LAYOUT (EMPFOHLEN)
+
+Flash:
+- Firmware: ~1.2–1.5 MB
+- LittleFS: ~1 MB
+- OTA optional disabled
+
+RAM:
+- Heap reserve: >150 kB minimum
+
+------------------------------------------------------------
+
+10. STARTUP FLOW
+
+BOOT →
+  Init Hardware →
+  Load Config →
+  Init Network →
+  Start Services →
+  Wait 60s →
+  NTP Sync →
+  Normal Operation
+
+Fallback:
+  installer WLAN →
+  DHCP mode →
+  retry logic
+
+------------------------------------------------------------
+
+11. ERWEITERBARKEIT
+
+- Sensor 3+ möglich
+- MQTT optional
+- OTA optional später aktivierbar
+- Cloud Integration bewusst ausgeschlossen
+
+------------------------------------------------------------
