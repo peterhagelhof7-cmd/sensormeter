@@ -18,6 +18,30 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 | [docs/stueckliste.md](docs/stueckliste.md) | Bauteile pro Gerät + einmaliges Flash-Werkzeug |
 | [docs/entscheidungen.md](docs/entscheidungen.md) | Entscheidungsprotokoll: Verkabelungsstand, SNMP-Version, Zabbix-Scope, Repo-Kuration |
 
+## Firmware
+
+`firmware/` ist ein PlatformIO-Projekt (Board `esp32dev`, Framework Arduino).
+Aktueller Stand: **P0 — Grundgerüst & Zustandsmodell** (siehe
+[docs/implementierungsplan.html](docs/implementierungsplan.html)).
+
+```
+cd firmware
+cp include/config.h.example include/config.h
+pio run              # bauen
+pio run --target upload   # flashen (Board am Debug-Port angeschlossen, siehe flash-vorbereitung.pdf)
+pio device monitor   # seriellen Log ansehen (115200 Baud)
+```
+
+Enthalten in P0:
+- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`
+- Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
+- Ethernet-Bring-up per DHCP (treibt den Zustandsautomaten mit echten Link-/IP-Events)
+- Korrigierte Pinbelegung v1.1 zentral in `include/pins.h`
+
+Bewusst noch nicht enthalten (folgt in P1–P8, siehe Implementierungsplan):
+statische IP, WLAN-Fallback "installer", NTP, `config.xml`-Persistenz,
+Sensor-Auslesung, Display, Webserver, SNMP v1, Syslog.
+
 ## Stand der Verdrahtung
 
 **`docs/verdrahtungsschema-v1.1.pdf` ist der einzig gültige Verdrahtungsstand.**

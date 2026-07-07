@@ -4,7 +4,8 @@
 compile_commands.json
 
 # Geraetespezifische Konfiguration (enthaelt Zugangsdaten: WLAN-PSK, Syslog-IP, SNMP-Community)
-include/config.h
+# "**/" noetig, da das Firmware-Projekt in firmware/include/ liegt, nicht im Repo-Root
+**/include/config.h
 
 # OS
 Thumbs.db
