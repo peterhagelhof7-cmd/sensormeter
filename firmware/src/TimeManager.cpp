@@ -71,7 +71,7 @@ void TimeManager::loop() {
       _network.restoreConfiguredAddresses();
       _dhcpTestActive = false;
       _attemptActive = false;
-      Serial.println("[TIME] NTP weiterhin nicht erreichbar -> ERROR_MODE, Konfiguration wiederhergestellt");
+      _data.pushLogEntry("NTP: weiterhin nicht erreichbar, Konfiguration wiederhergestellt");
       _data.setSystemState(SystemState::ERROR_MODE);
       _nextAttemptDueMillis = now + RESYNC_INTERVAL_MS;
     }
@@ -81,13 +81,13 @@ void TimeManager::loop() {
   if (_attemptActive) {
     if (now - _attemptStartedMillis > SYNC_FAIL_TIMEOUT_MS) {
       if (_network.hasStaticConfig()) {
-        Serial.println("[TIME] NTP 5 Minuten nicht erreichbar, statische IP konfiguriert -> DHCP-Test");
+        _data.pushLogEntry("NTP: 5 Minuten nicht erreichbar, DHCP-Test gestartet");
         _network.beginDhcpFallbackTest();
         _dhcpTestActive = true;
         _dhcpTestStartedMillis = now;
         _data.setSystemState(SystemState::DHCP_TEST);
       } else {
-        Serial.println("[TIME] NTP weiterhin nicht erreichbar (DHCP aktiv) -> spaeter erneut versuchen");
+        _data.pushLogEntry("NTP: nicht erreichbar (DHCP aktiv), spaeter erneut versuchen");
         _attemptActive = false;
         _nextAttemptDueMillis = now + SYNC_FAIL_TIMEOUT_MS;
       }

@@ -25,6 +25,7 @@ class NetworkManager {
   void loop();
 
   bool isLanUp() const { return _ethGotIp; }
+  bool isLanLinkUp() const { return _ethConnected; }
   bool isWlanUp() const { return _wlanGotIp; }
   bool isUsingFallbackWlan() const { return _inFallbackWlan && _wlanGotIp; }
 
@@ -32,6 +33,14 @@ class NetworkManager {
   // Header nicht <ETH.h> einbinden muss (Makro-Reihenfolge, siehe .cpp).
   IPAddress getLanIp() const;
   IPAddress getWlanIp() const;
+  IPAddress getLanGateway() const;
+  IPAddress getWlanGateway() const;
+  IPAddress getLanDns() const;
+  IPAddress getWlanDns() const;
+  String getLanMac() const;
+  String getWlanMac() const;
+  String getWlanSsid() const;
+  int getWlanRssi() const;
 
   // Fuer TimeManager (Lastenheft: "nach 5 min ohne NTP -> DHCP aktivieren,
   // nach weiteren 3 min -> gesetzte IP-Einstellungen wiederherstellen").

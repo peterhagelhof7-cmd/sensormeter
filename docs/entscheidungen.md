@@ -3,6 +3,45 @@
 Kurzes Log für Design-/Scope-Entscheidungen inkl. Begründung, damit sie
 nachvollziehbar bleiben.
 
+## 2026-07-08 — Webserver-Designentscheidungen (P5)
+
+Mehrere kleinere, aber wichtige Entscheidungen beim Umsetzen der Webserver-Phase:
+
+- **Systemtyp nicht mehr manuell einstellbar**: Lastenheft 5.1 sagt "Systemtyp
+  wird definiert, sobald 2. Sensor aktiv ist" - das ist ein abgeleiteter
+  Wert, kein Formularfeld (Abschnitt 6, die Einstellungsseite, listet
+  "Systemtyp" auch konsequent nicht auf). `ConfigManager` berechnet
+  `systemType` jetzt immer aus `sensor2Enabled` (`"Sensormeter"` /
+  `"Sensormeter PRO"`), unabhaengig davon was im XML-Import steht.
+- **HTTP-Auth mit festem Benutzernamen "admin"**: Das Lastenheft definiert nur
+  ein Passwort fuer die Einstellungsseite, keinen Benutzernamen. Die
+  Browser-Login-Abfrage verlangt technisch trotzdem einen (beliebigen)
+  Benutzernamen - fest auf "admin" gesetzt und als Hinweistext im
+  Auth-Dialog (Realm) angezeigt.
+- **TLS-Zertifikatspruefung deaktiviert fuer OTA/GitHub** (`setInsecure()`):
+  Root-CA-Pins muessten bei Zertifikatsrotation gepflegt werden, was fuer
+  ein selten aktualisiertes Hobby-Geraet leicht bricht. Ausgleich: alle
+  OTA-Endpunkte sind hinter demselben Passwort wie die Einstellungsseite -
+  ein Angreifer muesste den Admin-Zugang bereits haben, um ueberhaupt ein
+  Update auszuloesen.
+- **WLAN-Scan und OTA-Flash sind bewusst blockierend**, obwohl der
+  Webserver sonst asynchron ist (Pflichtenheft 8: "non-blocking"). Beides
+  sind admin-ausgeloeste Einzelaktionen, keine Dauerbetrieb-Anfragen - ein
+  kurzzeitiges Blockieren waehrend eines WLAN-Scans oder eines Firmware-
+  Downloads ist unkritisch, das Geraet macht ohnehin nichts anderes
+  Sinnvolles waehrend eines Reboots.
+- **Chart.js wird per CDN geladen**, nicht in den Flash eingebettet - betrifft
+  nur den Browser des Admins, nicht das Geraet selbst, und faellt damit
+  nicht unter das "keine Cloud"-Prinzip (das sich auf die Datenverarbeitung
+  des Geraets bezieht).
+- **Flash-Budget wird eng**: Nach P5 (ESPAsyncWebServer + AsyncTCP +
+  ArduinoJson + WiFiClientSecure/HTTPClient fuer OTA) liegt der
+  Flash-Verbrauch bei 89,1 % (1.167.525 / 1.310.720 Byte), RAM bei 15,7 %.
+  Für P6 (SNMP v1) und P7 (Syslog) bleiben nur noch ca. 140 KB. SNMP v1 ist
+  ein kleiner Read-Only-Agent, sollte passen - falls nicht, muesste ggf. eine
+  OTA-Komponente (z. B. der direkte GitHub-Fetch, der lokale Upload allein
+  wuerde reichen) wieder entfernt werden.
+
 ## 2026-07-08 — Display-Auslegung: Boot-Countdown-Tempo & automatische Schriftgröße (P4)
 
 Zwei Stellen im Lastenheft sind für die Umsetzung zu knapp spezifiziert:

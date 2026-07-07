@@ -9,4 +9,9 @@
 // Kompilierzeit feststehen muessen.
 // ============================================================================
 
-#define DEVICE_FIRMWARE_VERSION "0.1.0-p0"
+#define DEVICE_FIRMWARE_VERSION "0.1.0-p5"
+
+// GitHub-Repo fuer den OTA-Versionscheck (siehe OtaManager). Kein Geheimnis,
+// nur zur Kompilierzeit fix, weil es sich praktisch nie aendert.
+#define OTA_GITHUB_OWNER "peterhagelhof7-cmd"
+#define OTA_GITHUB_REPO "sensormeter"

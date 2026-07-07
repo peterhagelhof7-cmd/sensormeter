@@ -21,7 +21,7 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 ## Firmware
 
 `firmware/` ist ein PlatformIO-Projekt (Board `esp32dev`, Framework Arduino).
-Aktueller Stand: **P4 — Display** (siehe
+Aktueller Stand: **P5 — Webserver** (siehe
 [docs/implementierungsplan.html](docs/implementierungsplan.html)).
 
 ```
@@ -32,19 +32,23 @@ pio run --target upload   # flashen (Board am Debug-Port angeschlossen, siehe fl
 pio device monitor   # seriellen Log ansehen (115200 Baud)
 ```
 
-Enthalten (P0–P4):
-- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`
+Enthalten (P0–P5):
+- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
 - Ethernet (DHCP oder statisch) + optional WLAN parallel, korrigierte Pinbelegung v1.2 zentral in `include/pins.h`
 - Fallback-WLAN `installer`/`installer`, wenn nach 5 Minuten kein Interface eine IP hat
 - NTP-Sync (`de.pool.ntp.org`, CET/CEST), 60s nach Boot, alle 5h, sofort nach Link-Up
 - NTP-Fehlerkette: 5 Min. ohne Sync + statische IP konfiguriert → DHCP-Test → nach 3 Min. Konfiguration wiederherstellen
-- `config.xml` auf LittleFS: Laden/Speichern mit Default-Fallback, XML-Import/-Export (Persistenzschicht; Web-UI folgt in P5)
+- `config.xml` auf LittleFS: Laden/Speichern mit Default-Fallback, XML-Import/-Export
 - DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer
 - OLED SSD1306 (I2C 0x3C): Boot-Screen mit Countdown, danach rotierende Seiten (Systemname/IPs/Uhrzeit/Sensorwerte/Status) im 10s-Takt
+- Webserver (async, Port 80): Hauptseite mit Chart.js-Graph und Syslog-Tabelle, `/values.csv`-Download, passwortgeschützte Einstellungsseite (Benutzername `admin`, Passwort aus der Config), REST-API (`/api/status`, `/api/sensors`, `/api/network`, `/api/logs`, `/api/config`), XML-Import/-Export, WLAN-Scan, Reboot
+- OTA-Update: Versionscheck gegen GitHub Releases, Update direkt aus dem Release oder per lokalem `.bin`-Upload
 
-Bewusst noch nicht enthalten (folgt in P5–P8, siehe Implementierungsplan):
-Webserver, SNMP v1, Syslog, OTA.
+⚠️ Flash-Budget ist nach P5 eng (89 % belegt) — siehe `docs/entscheidungen.md`.
+
+Bewusst noch nicht enthalten (folgt in P6–P7, siehe Implementierungsplan):
+SNMP v1, Syslog (UDP-Versand der bereits vorhandenen Log-Einträge).
 
 ## Stand der Verdrahtung
 
@@ -72,3 +76,13 @@ früher Code-Prototyp (`wt32-eth01-dht11`, PlatformIO). Der Prototyp deckt das
 Lastenheft/Pflichtenheft noch nicht ab (kein OLED, kein NTP, kein
 `config.xml`/LittleFS, kein zweiter Sensor, kein WLAN-Fallback, SNMP v2c statt
 v1) und dient aktuell nur als Referenz, nicht als Basis.
+
+## Über dieses Projekt
+
+Repo-Struktur, Firmware und Dokumentation entstehen in Zusammenarbeit mit
+[Claude](https://claude.com/claude-code) (Anthropic) als KI-Coding-Assistent —
+von der Sichtung der ursprünglichen Materialsammlung über den
+Implementierungsplan bis zur Firmware selbst, inklusive Build-Verifikation vor
+jedem Commit. Fachliche Entscheidungen und deren Begründung stehen in
+[docs/entscheidungen.md](docs/entscheidungen.md); Commits, an denen Claude
+mitgewirkt hat, sind per `Co-Authored-By`-Trailer gekennzeichnet.

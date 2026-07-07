@@ -69,3 +69,26 @@ size_t DataManager::getRingbuffer(HourValue* out, size_t maxCount) {
   xSemaphoreGive(_mutex);
   return count;
 }
+
+void DataManager::pushLogEntry(const String& message) {
+  xSemaphoreTake(_mutex, portMAX_DELAY);
+  _log[_logNextIndex].timestamp = time(nullptr);
+  _log[_logNextIndex].message = message;
+  _logNextIndex = (_logNextIndex + 1) % LOG_CAPACITY;
+  if (_logCount < LOG_CAPACITY) _logCount++;
+  xSemaphoreGive(_mutex);
+  Serial.printf("[LOG] %s\n", message.c_str());
+}
+
+size_t DataManager::getLogEntries(LogEntry* out, size_t maxCount) {
+  size_t count;
+  xSemaphoreTake(_mutex, portMAX_DELAY);
+  count = min(_logCount, maxCount);
+  // Neueste zuerst: rueckwaerts ab dem zuletzt geschriebenen Eintrag lesen.
+  for (size_t i = 0; i < count; i++) {
+    size_t index = (_logNextIndex + LOG_CAPACITY - 1 - i) % LOG_CAPACITY;
+    out[i] = _log[index];
+  }
+  xSemaphoreGive(_mutex);
+  return count;
+}

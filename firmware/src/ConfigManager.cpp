@@ -28,12 +28,21 @@ String textOr(const XMLElement* parent, const char* childName, const String& fal
   return String(child->GetText());
 }
 
+// Lastenheft 5.1: "Systemtyp (wird definiert, sobald 2. Sensor aktiv ist:
+// Sensormeter PRO, mit nur internem Sensor: Sensormeter)" - kein
+// eigenstaendiges Einstellungsfeld, sondern immer aus sensor2Enabled
+// abgeleitet.
+String deriveSystemType(bool sensor2Enabled) {
+  return sensor2Enabled ? "Sensormeter PRO" : "Sensormeter";
+}
+
 }  // namespace
 
 void ConfigManager::begin() {
   if (!load()) {
     Serial.println("[CONFIG] Keine gueltige config.xml gefunden -> Defaults werden angelegt");
     _config = DeviceConfig();
+    _config.systemType = deriveSystemType(_config.sensor2Enabled);
     save();
   }
 }
@@ -88,7 +97,6 @@ bool ConfigManager::importXml(const String& xml) {
 
   const XMLElement* system = root->FirstChildElement("system");
   cfg.systemName = textOr(system, "name", cfg.systemName);
-  cfg.systemType = textOr(system, "type", cfg.systemType);
   cfg.settingsPassword = textOr(system, "password", cfg.settingsPassword);
 
   const XMLElement* syslog = root->FirstChildElement("syslog");
@@ -104,6 +112,7 @@ bool ConfigManager::importXml(const String& xml) {
     }
   }
 
+  cfg.systemType = deriveSystemType(cfg.sensor2Enabled);
   _config = cfg;
   return true;
 }
@@ -194,5 +203,6 @@ bool ConfigManager::save() {
 
 void ConfigManager::setConfig(const DeviceConfig& config) {
   _config = config;
+  _config.systemType = deriveSystemType(_config.sensor2Enabled);
   save();
 }

@@ -139,7 +139,7 @@ void NetworkManager::loop() {
     if (networkOk()) {
       _data.setSystemState(SystemState::RUN_NORMAL);
     } else if (millis() - _networkCheckStartedMillis > NETWORK_CHECK_TIMEOUT_MS) {
-      Serial.println("[NET] Kein Netzwerk nach 5 Minuten -> FALLBACK_MODE (Recovery-WLAN \"installer\")");
+      _data.pushLogEntry("Netzwerk: kein Link nach 5 Minuten, wechsle auf Recovery-WLAN \"installer\"");
       WiFi.mode(WIFI_MODE_STA);
       WiFi.disconnect();
       WiFi.begin(FALLBACK_WLAN_SSID, FALLBACK_WLAN_PSK);
@@ -155,7 +155,7 @@ void NetworkManager::loop() {
       _lastFallbackJoinAttemptMillis = millis();
     }
   } else if (state == SystemState::RUN_NORMAL && !networkOk()) {
-    Serial.println("[NET] Verbindung verloren -> NETWORK_CHECK");
+    _data.pushLogEntry("Netzwerk: Verbindung verloren (LAN+WLAN down)");
     _inFallbackWlan = false;
     _data.setSystemState(SystemState::NETWORK_CHECK);
     _networkCheckStartedMillis = millis();
@@ -168,4 +168,36 @@ IPAddress NetworkManager::getLanIp() const {
 
 IPAddress NetworkManager::getWlanIp() const {
   return _wlanGotIp ? WiFi.localIP() : IPAddress(0, 0, 0, 0);
+}
+
+IPAddress NetworkManager::getLanGateway() const {
+  return _ethGotIp ? ETH.gatewayIP() : IPAddress(0, 0, 0, 0);
+}
+
+IPAddress NetworkManager::getWlanGateway() const {
+  return _wlanGotIp ? WiFi.gatewayIP() : IPAddress(0, 0, 0, 0);
+}
+
+IPAddress NetworkManager::getLanDns() const {
+  return _ethGotIp ? ETH.dnsIP() : IPAddress(0, 0, 0, 0);
+}
+
+IPAddress NetworkManager::getWlanDns() const {
+  return _wlanGotIp ? WiFi.dnsIP() : IPAddress(0, 0, 0, 0);
+}
+
+String NetworkManager::getLanMac() const {
+  return ETH.macAddress();
+}
+
+String NetworkManager::getWlanMac() const {
+  return WiFi.macAddress();
+}
+
+String NetworkManager::getWlanSsid() const {
+  return _wlanGotIp ? WiFi.SSID() : String("");
+}
+
+int NetworkManager::getWlanRssi() const {
+  return _wlanGotIp ? WiFi.RSSI() : 0;
 }
