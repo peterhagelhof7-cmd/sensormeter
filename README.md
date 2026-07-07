@@ -17,6 +17,8 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 | [docs/implementierungsplan.html](docs/implementierungsplan.html) | Visueller Implementierungsplan: Reihenfolge P0–P8 vom Prototyp zur vollständigen Firmware (lokal im Browser öffnen) |
 | [docs/stueckliste.md](docs/stueckliste.md) | Bauteile pro Gerät + einmaliges Flash-Werkzeug |
 | [docs/entscheidungen.md](docs/entscheidungen.md) | Entscheidungsprotokoll: Verkabelungsstand, SNMP-Version, Zabbix-Scope, Repo-Kuration |
+| [docs/ZABBIX.md](docs/ZABBIX.md) | Zabbix-Integration: OIDs, Template-Import, Host-Einrichtung, Trigger |
+| [docs/zabbix-template-sensormeter.yaml](docs/zabbix-template-sensormeter.yaml) | Fertiges Zabbix-Template (optional, zusätzlich zu SNMP v1) |
 
 ## Firmware
 

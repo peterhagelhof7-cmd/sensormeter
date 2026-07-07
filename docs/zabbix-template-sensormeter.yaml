@@ -1,0 +1,231 @@
+zabbix_export:
+  version: '6.4'
+  templates:
+    - uuid: 1a7aee5aed544e61a8287bda0dfa519c
+      template: 'Sensormeter (WT32-ETH01)'
+      name: 'Sensormeter (WT32-ETH01)'
+      description: |
+        Template fuer das Sensormeter-Projekt (WT32-ETH01, DHT11 intern +
+        optional DHT22 extern). Fragt alle Werte per SNMP v1/v2c ab (das
+        Geraet antwortet in der Version der Anfrage, siehe
+        docs/entscheidungen.md).
+
+        Temperatur/Luftfeuchte werden vom Geraet als Ganzzahl *10 uebertragen
+        und hier per Zabbix-Preprocessing (Multiplikator 0.1) wieder in
+        Dezimalwerte umgerechnet.
+
+        sensor2.* liefert nur bei aktivem Sensor 2 (Sensormeter PRO,
+        Einstellungsseite "Sensor 2 aktiv") sinnvolle Werte - sonst 0.
+
+        Vor dem Einsatz:
+        1. Dieses Template importieren
+        2. Neuen Host anlegen, dieses Template zuweisen
+        3. SNMP-Interface des Hosts auf die Board-IP setzen, Port 161
+        4. Host-Makro {$SNMP_COMMUNITY} anpassen, falls die Community auf
+           der Einstellungsseite des Geraets von "public" abweicht
+      groups:
+        - name: 'IoT Sensoren'
+      macros:
+        - macro: '{$SNMP_COMMUNITY}'
+          value: public
+          description: 'SNMP Community (muss mit der Einstellungsseite des Geraets uebereinstimmen)'
+        - macro: '{$TEMP_MAX_C}'
+          value: '30'
+          description: 'Schwellwert fuer Hoch-Temperatur-Warnung (Sensor 1 + 2)'
+        - macro: '{$HUMIDITY_MAX_PERCENT}'
+          value: '70'
+          description: 'Schwellwert fuer Hoch-Luftfeuchtigkeit-Warnung (Sensor 1 + 2)'
+        - macro: '{$HEAP_MIN_BYTES}'
+          value: '20000'
+          description: 'Schwellwert fuer Warnung bei niedrigem freien Heap'
+      items:
+        - uuid: 1befcecf5d4b425f83556aa83deebdbd
+          name: 'System: Name'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.1.1.0'
+          key: 'system.name'
+          delay: 1h
+          value_type: CHAR
+          tags:
+            - tag: component
+              value: system
+        - uuid: da30424daf7c4c70945f1f30e2d02adb
+          name: 'System: Firmwareversion'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.1.2.0'
+          key: 'system.firmware'
+          delay: 1h
+          value_type: CHAR
+          tags:
+            - tag: component
+              value: system
+        - uuid: fc750d365c9c45f5b9aeadcc3e9177aa
+          name: 'System: Systemtyp'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.1.3.0'
+          key: 'system.type'
+          delay: 1h
+          value_type: CHAR
+          tags:
+            - tag: component
+              value: system
+        - uuid: 56dcdb56222e4b079fc217d10b987a46
+          name: 'Netzwerk: LAN-IP'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.2.1.0'
+          key: 'network.lanip'
+          delay: 5m
+          value_type: CHAR
+          tags:
+            - tag: component
+              value: network
+        - uuid: 61e185426ab540aeb1fa108319ccf548
+          name: 'Netzwerk: WLAN-IP'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.2.2.0'
+          key: 'network.wlanip'
+          delay: 5m
+          value_type: CHAR
+          tags:
+            - tag: component
+              value: network
+        - uuid: 96f4df8f38a646e5bd0505efc85aa843
+          name: 'Netzwerk: WLAN-Signalstaerke'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.2.3.0'
+          key: 'network.wlanrssi'
+          delay: 5m
+          value_type: FLOAT
+          units: dBm
+          tags:
+            - tag: component
+              value: network
+        - uuid: 826c35470830409a8cf1bc29346bc5ee
+          name: 'Sensor 1: Name'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.3.1.0'
+          key: 'sensor1.name'
+          delay: 1h
+          value_type: CHAR
+          tags:
+            - tag: component
+              value: sensor1
+        - uuid: 5af2d51653f541e1895594f4646b52b9
+          name: 'Sensor 1: Temperatur'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.3.2.0'
+          key: 'sensor1.temperature'
+          delay: 1m
+          value_type: FLOAT
+          units: °C
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.1'
+          tags:
+            - tag: component
+              value: sensor1
+        - uuid: eff663aa54ef480db7d8c561c047c6e4
+          name: 'Sensor 1: Luftfeuchtigkeit'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.3.3.0'
+          key: 'sensor1.humidity'
+          delay: 1m
+          value_type: FLOAT
+          units: '%'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.1'
+          tags:
+            - tag: component
+              value: sensor1
+        - uuid: dd9f8f202e4243b6a6f9f1b846f0da98
+          name: 'Sensor 2: Name'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.4.1.0'
+          key: 'sensor2.name'
+          delay: 1h
+          value_type: CHAR
+          tags:
+            - tag: component
+              value: sensor2
+        - uuid: 73e654c083864f39bc1e87b673ecaacf
+          name: 'Sensor 2: Temperatur'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.4.2.0'
+          key: 'sensor2.temperature'
+          delay: 1m
+          value_type: FLOAT
+          units: °C
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.1'
+          tags:
+            - tag: component
+              value: sensor2
+        - uuid: 3292ac8e6d8344bba5cc573a14258f2f
+          name: 'Sensor 2: Luftfeuchtigkeit'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.4.3.0'
+          key: 'sensor2.humidity'
+          delay: 1m
+          value_type: FLOAT
+          units: '%'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.1'
+          tags:
+            - tag: component
+              value: sensor2
+        - uuid: 588c4503708647c180fac24dceb437be
+          name: 'Status: Uptime'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.5.1.0'
+          key: 'status.uptime'
+          delay: 5m
+          value_type: TEXT
+          description: 'SNMP-TimeTicks (Zentisekunden), Zabbix zeigt sie als formatierte Zeitspanne an.'
+          tags:
+            - tag: component
+              value: status
+        - uuid: e9a7844e48a14e48b3e8f44313547150
+          name: 'Status: Freier Heap'
+          type: SNMP_AGENT
+          snmp_oid: '.1.3.6.1.4.1.99999.5.2.0'
+          key: 'status.freeheap'
+          delay: 5m
+          value_type: UNSIGNED
+          units: B
+          tags:
+            - tag: component
+              value: status
+      triggers:
+        - uuid: 099ef4382c984549aca860e4638e3092
+          name: 'Temperatur (Sensor 1) zu hoch auf {HOST.NAME}'
+          expression: 'last(/Sensormeter (WT32-ETH01)/sensor1.temperature)>{$TEMP_MAX_C}'
+          priority: WARNING
+        - uuid: 56e253bca87a4c1f90198b0d63dd4852
+          name: 'Luftfeuchtigkeit (Sensor 1) zu hoch auf {HOST.NAME}'
+          expression: 'last(/Sensormeter (WT32-ETH01)/sensor1.humidity)>{$HUMIDITY_MAX_PERCENT}'
+          priority: WARNING
+        - uuid: 7d9bad06b06f4193b2c068830c98d3fe
+          name: 'Temperatur (Sensor 2) zu hoch auf {HOST.NAME}'
+          expression: 'last(/Sensormeter (WT32-ETH01)/sensor2.temperature)>{$TEMP_MAX_C}'
+          priority: WARNING
+          description: 'Nur relevant, wenn Sensor 2 (Sensormeter PRO) aktiv ist.'
+        - uuid: 331f074f154148e9b737dc3fd353ebe1
+          name: 'Luftfeuchtigkeit (Sensor 2) zu hoch auf {HOST.NAME}'
+          expression: 'last(/Sensormeter (WT32-ETH01)/sensor2.humidity)>{$HUMIDITY_MAX_PERCENT}'
+          priority: WARNING
+          description: 'Nur relevant, wenn Sensor 2 (Sensormeter PRO) aktiv ist.'
+        - uuid: 3d0e41bec17b4018a804f26dd4ee5f3e
+          name: 'Keine SNMP-Daten von {HOST.NAME} seit 10 Minuten'
+          expression: 'nodata(/Sensormeter (WT32-ETH01)/sensor1.temperature,10m)=1'
+          priority: HIGH
+        - uuid: fb53b4ae15f84f7398f00fd367b7a896
+          name: 'Freier Heap niedrig auf {HOST.NAME}'
+          expression: 'last(/Sensormeter (WT32-ETH01)/status.freeheap)<{$HEAP_MIN_BYTES}'
+          priority: WARNING

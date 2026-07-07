@@ -3,6 +3,18 @@
 Kurzes Log für Design-/Scope-Entscheidungen inkl. Begründung, damit sie
 nachvollziehbar bleiben.
 
+## 2026-07-08 — Zabbix-Template auf neue OIDs aktualisiert
+
+Der Prototyp-Template (`zabbix-template-wt32-eth01-dht11.yaml`, lokal, nicht
+im Repo) nutzte die alten SNMPv2c-OIDs (`.1.3.6.1.4.1.55555.x`) und deckte
+nur einen einzelnen DHT11 ab. Neues Template
+(`docs/zabbix-template-sensormeter.yaml`) auf die in P6 implementierte
+OID-Struktur (`.1.3.6.1.4.1.99999.x`) umgestellt und um Sensor 2, Netzwerk-
+Felder (LAN/WLAN-IP, RSSI) und einen "freier Heap niedrig"-Trigger erweitert.
+`status.uptime` ist als Zabbix-`TEXT`-Item angelegt (nicht `UNSIGNED`), da
+der Wert ein echtes SNMP-TimeTicks ist (Zentisekunden, `addTimestampHandler`)
+und Zabbix das als formatierte Zeitspanne anzeigt, nicht als Rohsekunden.
+
 ## 2026-07-08 — SNMP-Designentscheidungen (P6)
 
 - **SNMP Community fehlte als Konfigurationsfeld**: `neu 2.txt` listet
