@@ -1,0 +1,547 @@
+<title>Sensormeter — Implementierungsplan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --paper: #E7E4DA;
+    --paper-raised: #FBFAF6;
+    --paper-sunken: #DEDACE;
+    --ink: #1E2530;
+    --ink-muted: #5B6472;
+    --line: #C7C2B4;
+    --copper: #B5622A;
+    --copper-strong: #8F4A1E;
+    --copper-wash: rgba(181, 98, 42, 0.12);
+    --patina: #3F6E63;
+    --patina-wash: rgba(63, 110, 99, 0.12);
+    --rust: #A63D2E;
+    --rust-wash: rgba(166, 61, 46, 0.1);
+    --shadow: 0 1px 2px rgba(30, 37, 48, 0.06), 0 6px 20px -8px rgba(30, 37, 48, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #141A22;
+      --paper-raised: #1B222C;
+      --paper-sunken: #0F141A;
+      --ink: #E9E4D8;
+      --ink-muted: #8E97A3;
+      --line: #313A46;
+      --copper: #E08A4C;
+      --copper-strong: #F2A268;
+      --copper-wash: rgba(224, 138, 76, 0.14);
+      --patina: #74B7A6;
+      --patina-wash: rgba(116, 183, 166, 0.13);
+      --rust: #E38A78;
+      --rust-wash: rgba(227, 138, 120, 0.12);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -10px rgba(0, 0, 0, 0.55);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141A22;
+    --paper-raised: #1B222C;
+    --paper-sunken: #0F141A;
+    --ink: #E9E4D8;
+    --ink-muted: #8E97A3;
+    --line: #313A46;
+    --copper: #E08A4C;
+    --copper-strong: #F2A268;
+    --copper-wash: rgba(224, 138, 76, 0.14);
+    --patina: #74B7A6;
+    --patina-wash: rgba(116, 183, 166, 0.13);
+    --rust: #E38A78;
+    --rust-wash: rgba(227, 138, 120, 0.12);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -10px rgba(0, 0, 0, 0.55);
+  }
+  :root[data-theme="light"] {
+    --paper: #E7E4DA;
+    --paper-raised: #FBFAF6;
+    --paper-sunken: #DEDACE;
+    --ink: #1E2530;
+    --ink-muted: #5B6472;
+    --line: #C7C2B4;
+    --copper: #B5622A;
+    --copper-strong: #8F4A1E;
+    --copper-wash: rgba(181, 98, 42, 0.12);
+    --patina: #3F6E63;
+    --patina-wash: rgba(63, 110, 99, 0.12);
+    --rust: #A63D2E;
+    --rust-wash: rgba(166, 61, 46, 0.1);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono {
+    font-family: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3 {
+    font-family: "Iowan Old Style", "Sitka Text", Georgia, serif;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 56px 24px 88px;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: inherit;
+    font: 600 12px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--copper);
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 600;
+    margin-top: 10px;
+    color: var(--ink);
+  }
+  .lede {
+    max-width: 62ch;
+    color: var(--ink-muted);
+    font-size: 15.5px;
+    margin-top: 12px;
+  }
+  .lede .mono { color: var(--ink); }
+
+  /* ---------- Legend ---------- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    margin-top: 22px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+
+  /* ---------- Roadmap skeleton ---------- */
+  .roadmap { position: relative; }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    column-gap: 18px;
+  }
+
+  .gutter {
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+  .gutter::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: var(--line);
+    transform: translateX(-50%);
+  }
+  .stage:first-child .gutter::before { top: 22px; }
+  .stage:last-child .gutter::before { bottom: calc(100% - 22px); }
+
+  .node {
+    position: relative;
+    z-index: 1;
+    width: 15px;
+    height: 15px;
+    margin-top: 16px;
+    border-radius: 50%;
+    background: var(--paper-raised);
+    border: 2px solid var(--copper);
+  }
+  .node.baseline { border-color: var(--ink-muted); border-style: dashed; }
+  .node.terminal { background: var(--copper); }
+
+  .stage-body { padding-bottom: 40px; }
+  .stage:last-child .stage-body { padding-bottom: 0; }
+
+  .stage-label {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+  .stage-num {
+    font: 600 12px/1 ui-monospace, Consolas, monospace;
+    color: var(--ink-muted);
+    letter-spacing: 0.08em;
+  }
+  .stage-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .stage-note {
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+  }
+
+  /* single-card stages: cap width so they don't stretch full-bleed */
+  .cards.single { grid-template-columns: minmax(230px, 1fr); max-width: 460px; }
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--copper);
+    border-radius: 5px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card { transition: none; }
+  }
+  .card:hover { transform: translateY(-1px); }
+
+  .card.baseline-card {
+    border-left-color: var(--ink-muted);
+    background: var(--paper-sunken);
+    box-shadow: none;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .card-code {
+    font: 600 12px/1 ui-monospace, Consolas, monospace;
+    color: var(--copper);
+    background: var(--copper-wash);
+    padding: 3px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.03em;
+  }
+  .card h3 { font-size: 16.5px; font-weight: 600; margin-bottom: 2px; }
+  .card-modules {
+    font: 500 10.5px/1.4 ui-monospace, Consolas, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted);
+    margin-bottom: 10px;
+  }
+
+  .card ul {
+    margin: 0 0 10px;
+    padding-left: 18px;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .card li { margin-bottom: 3px; }
+  .card li::marker { color: var(--ink-muted); }
+
+  .card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .dep {
+    font-size: 11.5px;
+    color: var(--ink-muted);
+  }
+  .dep .mono { color: var(--ink); }
+
+  .pill {
+    font: 600 10.5px/1 ui-monospace, Consolas, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 4px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .pill.neu { background: var(--copper-wash); color: var(--copper-strong); }
+  .pill.baut { background: var(--patina-wash); color: var(--patina); }
+  .pill.ersetzt { background: var(--rust-wash); color: var(--rust); }
+
+  /* ---------- Footer ---------- */
+  footer {
+    margin-top: 48px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+  footer .mono { color: var(--ink); }
+
+  @media (max-width: 520px) {
+    .stage { grid-template-columns: 30px 1fr; column-gap: 10px; }
+    .wrap { padding: 40px 16px 64px; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Sensormeter · WT32-ETH01</div>
+    <h1>Implementierungsplan</h1>
+    <p class="lede">
+      Reihenfolge vom bestehenden Prototyp (<span class="mono">v0.2.0</span>) zur
+      vollständigen Firmware gemäß <span class="mono">lastenheft.txt</span> /
+      <span class="mono">pflichtenheft.txt</span>. Parallele Karten innerhalb einer
+      Stufe können gleichzeitig bearbeitet werden, sobald ihre Voraussetzungen stehen.
+    </p>
+    <div class="legend">
+      <span class="legend-item"><span class="swatch" style="background:var(--copper)"></span>Neu — existiert im Prototyp nicht</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--patina)"></span>Baut auf Prototyp auf</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--rust)"></span>Ersetzt Prototyp-Ansatz</span>
+    </div>
+  </header>
+
+  <div class="roadmap">
+
+    <!-- Baseline -->
+    <div class="stage">
+      <div class="gutter"><div class="node baseline"></div></div>
+      <div class="stage-body">
+        <div class="stage-label">
+          <span class="stage-num">HEUTE</span>
+          <span class="stage-title">Ausgangspunkt</span>
+        </div>
+        <div class="cards single">
+          <div class="card baseline-card">
+            <div class="card-head">
+              <h3 style="font-size:15px">Prototyp <span class="mono" style="font-weight:400">v0.2.0</span></h3>
+            </div>
+            <div class="card-modules">wt32-eth01-dht11 · platformio</div>
+            <ul>
+              <li>Ethernet-Verbindung (LAN8720), ein DHT11</li>
+              <li>Einfacher Webserver (<span class="mono">/</span>, <span class="mono">/json</span>)</li>
+              <li>Syslog (RFC 5424), SNMPv2c + Zabbix-Template</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 1 -->
+    <div class="stage">
+      <div class="gutter"><div class="node"></div></div>
+      <div class="stage-body">
+        <div class="stage-label">
+          <span class="stage-num">STUFE 1</span>
+          <span class="stage-title">Grundgerüst & Zustandsmodell</span>
+        </div>
+        <div class="cards single">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-code">P0</span>
+            </div>
+            <h3>Projektstruktur & Boot-Zustandsautomat</h3>
+            <div class="card-modules">Alle Module (Gerüst)</div>
+            <ul>
+              <li>PlatformIO-Projekt gegliedert nach DataManager / ConfigManager / NetworkManager / TimeManager / StorageManager</li>
+              <li>Zustandsmodell: Boot → Init → Network Check → Run / Fallback</li>
+              <li>Korrigierte Pinbelegung v1.1 übernehmen (IO32/IO33 I²C, IO15, IO4 DHT11)</li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Voraussetzung: <span class="mono">—</span></span>
+              <span class="pill ersetzt">Ersetzt Prototyp</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 2 -->
+    <div class="stage">
+      <div class="gutter"><div class="node"></div></div>
+      <div class="stage-body">
+        <div class="stage-label">
+          <span class="stage-num">STUFE 2</span>
+          <span class="stage-title">Parallel — Netzwerk/Zeit & Konfiguration</span>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <div class="card-head"><span class="card-code">P1</span></div>
+            <h3>Netzwerk & Zeit</h3>
+            <div class="card-modules">NetworkManager · TimeManager</div>
+            <ul>
+              <li>Ethernet DHCP/statisch, WLAN-Fallback „installer“ nach 5 Min</li>
+              <li>NTP-Sync (de.pool.ntp.org): 60s nach Boot, alle 5h, nach Link-Up</li>
+              <li>Fehlerkette: NTP-Fail → DHCP nach 5 Min → Restore nach 3 Min</li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Voraussetzung: <span class="mono">P0</span></span>
+              <span class="pill neu">Neu</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-code">P2</span></div>
+            <h3>Konfigurationspersistenz</h3>
+            <div class="card-modules">ConfigManager · LittleFS</div>
+            <ul>
+              <li><span class="mono">config.xml</span> laden/speichern, Default-Fallback</li>
+              <li>XML-Import/-Export, Settings-Passwort (Default „installer“)</li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Voraussetzung: <span class="mono">P0</span></span>
+              <span class="pill neu">Neu</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 3 -->
+    <div class="stage">
+      <div class="gutter"><div class="node"></div></div>
+      <div class="stage-body">
+        <div class="stage-label">
+          <span class="stage-num">STUFE 3</span>
+          <span class="stage-title">Sensorik</span>
+        </div>
+        <div class="cards single">
+          <div class="card">
+            <div class="card-head"><span class="card-code">P3</span></div>
+            <h3>Sensor-Datenerfassung</h3>
+            <div class="card-modules">DataManager · SensorTask</div>
+            <ul>
+              <li>DHT11 intern (60s-Takt), DHT22 extern optional (Sensor 2, PRO-Variante)</li>
+              <li>Plausibilitätsprüfung, Ringpuffer 168 Stundenwerte / 7 Tage</li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Voraussetzung: <span class="mono">P0</span>, Sensor-2-Flag aus <span class="mono">P2</span></span>
+              <span class="pill baut">Baut auf Prototyp auf</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 4 -->
+    <div class="stage">
+      <div class="gutter"><div class="node"></div></div>
+      <div class="stage-body">
+        <div class="stage-label">
+          <span class="stage-num">STUFE 4</span>
+          <span class="stage-title">Parallel — Ausgabe- und Schnittstellen-Module</span>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <div class="card-head"><span class="card-code">P4</span></div>
+            <h3>Display</h3>
+            <div class="card-modules">DisplayTask · SSD1306</div>
+            <ul>
+              <li>I²C auf IO32/IO33, Seitenwechsel alle 10s</li>
+              <li>Boot-Countdown 100→0 bis Netzwerk bereit</li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Vor.: <span class="mono">P1, P3</span></span>
+              <span class="pill neu">Neu</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-code">P5</span></div>
+            <h3>Webserver</h3>
+            <div class="card-modules">WebServerTask · StorageManager</div>
+            <ul>
+              <li>Hauptseite: Status, Chart.js-Graph, Syslog-Tabelle, CSV-Download</li>
+              <li>Einstellungsseite (passwortgeschützt), REST-API</li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Vor.: <span class="mono">P1, P2, P3</span></span>
+              <span class="pill ersetzt">Ersetzt Prototyp</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-code">P6</span></div>
+            <h3>SNMP v1</h3>
+            <div class="card-modules">SNMP-Agent (read-only)</div>
+            <ul>
+              <li>Umbau von v2c auf v1</li>
+              <li>Spezifizierte OID-Struktur <span class="mono">.1.3.6.1.4.1.99999.x</span></li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Vor.: <span class="mono">P1, P2, P3</span></span>
+              <span class="pill ersetzt">Ersetzt Prototyp</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-code">P7</span></div>
+            <h3>Syslog</h3>
+            <div class="card-modules">SyslogTask · UDP 514</div>
+            <ul>
+              <li>Format an Spezifikation anpassen (Name│IPs│RSSI│Werte│Zeit│Uptime)</li>
+              <li>Sofortversand bei Netzwerk-/NTP-/Sensorfehlern</li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Vor.: <span class="mono">P1, P3</span></span>
+              <span class="pill baut">Baut auf Prototyp auf</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 5 -->
+    <div class="stage">
+      <div class="gutter"><div class="node terminal"></div></div>
+      <div class="stage-body">
+        <div class="stage-label">
+          <span class="stage-num">STUFE 5</span>
+          <span class="stage-title">Integration & Inbetriebnahme</span>
+        </div>
+        <div class="cards single">
+          <div class="card">
+            <div class="card-head"><span class="card-code">P8</span></div>
+            <h3>Flash, Verkabelung & End-to-End-Test</h3>
+            <div class="card-modules">Hardware · Test</div>
+            <ul>
+              <li>Verkabelung nach <span class="mono">verdrahtungsschema-v1.1.pdf</span>, Flash nach <span class="mono">flash-vorbereitung.pdf</span></li>
+              <li>Test: Boot-Verhalten, Netzwerk-Fallback, Display, Webserver, SNMP, Syslog</li>
+              <li>Mehrgeräte-Rollout (mehrere Boards, je eigener Gerätename)</li>
+            </ul>
+            <div class="card-foot">
+              <span class="dep">Voraussetzung: <span class="mono">P1–P7</span></span>
+              <span class="pill neu">Neu</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    Quelle: <span class="mono">docs/lastenheft.txt</span>, <span class="mono">docs/pflichtenheft.txt</span>,
+    <span class="mono">docs/verdrahtungsschema-v1.1.pdf</span> im Repo
+    <span class="mono">peterhagelhof7-cmd/sensormeter</span>.
+  </footer>
+</div>
