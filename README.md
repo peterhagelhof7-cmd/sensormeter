@@ -21,7 +21,7 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 ## Firmware
 
 `firmware/` ist ein PlatformIO-Projekt (Board `esp32dev`, Framework Arduino).
-Aktueller Stand: **P0 — Grundgerüst & Zustandsmodell** (siehe
+Aktueller Stand: **P1 — Netzwerk & Zeit** (siehe
 [docs/implementierungsplan.html](docs/implementierungsplan.html)).
 
 ```
@@ -32,15 +32,17 @@ pio run --target upload   # flashen (Board am Debug-Port angeschlossen, siehe fl
 pio device monitor   # seriellen Log ansehen (115200 Baud)
 ```
 
-Enthalten in P0:
+Enthalten (P0 + P1):
 - Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
-- Ethernet-Bring-up per DHCP (treibt den Zustandsautomaten mit echten Link-/IP-Events)
-- Korrigierte Pinbelegung v1.1 zentral in `include/pins.h`
+- Ethernet (DHCP oder statisch) + optional WLAN parallel, korrigierte Pinbelegung v1.1 zentral in `include/pins.h`
+- Fallback-WLAN `installer`/`installer`, wenn nach 5 Minuten kein Interface eine IP hat
+- NTP-Sync (`de.pool.ntp.org`, CET/CEST), 60s nach Boot, alle 5h, sofort nach Link-Up
+- NTP-Fehlerkette: 5 Min. ohne Sync + statische IP konfiguriert → DHCP-Test → nach 3 Min. Konfiguration wiederherstellen
 
-Bewusst noch nicht enthalten (folgt in P1–P8, siehe Implementierungsplan):
-statische IP, WLAN-Fallback "installer", NTP, `config.xml`-Persistenz,
-Sensor-Auslesung, Display, Webserver, SNMP v1, Syslog.
+Bewusst noch nicht enthalten (folgt in P2–P8, siehe Implementierungsplan):
+`config.xml`-Persistenz (aktuell nur Compile-Defaults in `ConfigManager`),
+Sensor-Auslesung, Display, Webserver, SNMP v1, Syslog, OTA.
 
 ## Stand der Verdrahtung
 

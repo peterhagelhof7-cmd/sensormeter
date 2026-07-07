@@ -1,13 +1,14 @@
 // ============================================================================
-// Sensormeter (WT32-ETH01) - Phase P0: Grundgeruest & Zustandsmodell
+// Sensormeter (WT32-ETH01) - Phase P1: Netzwerk & Zeit
 //
 // Verdrahtet die Module (DataManager/ConfigManager/StorageManager/
-// TimeManager/NetworkManager) und bringt Ethernet per DHCP hoch, um den
-// Boot-Zustandsautomaten aus docs/lastenheft.txt Abschnitt 12 real anzutreiben.
+// NetworkManager/TimeManager). NetworkManager bringt Ethernet (DHCP/statisch)
+// und optional WLAN hoch und treibt den Boot-Zustandsautomaten aus
+// docs/lastenheft.txt Abschnitt 12 an; TimeManager haengt sich mit der
+// NTP-Sync- und Fehlerkette (DHCP-Test/Restore) daran.
 //
 // Was hier bewusst noch fehlt (siehe docs/implementierungsplan.html):
-//   P1 Netzwerk/Zeit (WLAN-Fallback, statische IP, NTP)
-//   P2 Konfigurationspersistenz (LittleFS/config.xml)
+//   P2 Konfigurationspersistenz (LittleFS/config.xml statt Compile-Defaults)
 //   P3 Sensorik (DHT11/DHT22, Ringpuffer-Befuellung)
 //   P4-P7 Display, Webserver, SNMP v1, Syslog
 // ============================================================================
@@ -30,8 +31,8 @@
 DataManager dataManager;
 ConfigManager configManager;
 StorageManager storageManager;
-TimeManager timeManager;
-NetworkManager networkManager(dataManager);
+NetworkManager networkManager(dataManager, configManager);
+TimeManager timeManager(dataManager, networkManager);
 
 void setup() {
   Serial.begin(115200);

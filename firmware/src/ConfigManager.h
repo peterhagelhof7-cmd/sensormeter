@@ -17,6 +17,9 @@ struct DeviceConfig {
   String lanGateway;
 
   bool wlanDhcp = true;
+  String wlanIp;
+  String wlanMask;
+  String wlanGateway;
   String wlanSsid;
   String wlanPsk;
 

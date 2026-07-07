@@ -53,6 +53,31 @@ werden (siehe `.gitignore`-Kommentar), spricht nichts dagegen, das Repo
 öffentlich zu machen — das Repo wurde daher auf **öffentlich** gestellt, ein
 Token ist damit nicht nötig.
 
+## 2026-07-08 — Auslegung "Fallback-WLAN installer" (P1)
+
+Das Lastenheft beschreibt den Fallback nur knapp ("nach 5 Minuten nach der
+SSID installer mit dem PSK installer suchen"). Auslegung für die Umsetzung:
+LAN (DHCP oder statisch) und ein konfiguriertes WLAN laufen parallel als
+gleichwertige Interfaces. Nur wenn **keines** von beiden innerhalb von
+5 Minuten eine IP bekommt, wechselt der WLAN-Client (STA) auf das
+Recovery-Netz `installer`/`installer` — d. h. das Gerät joint ein vom
+Nutzer bereitgestelltes Netz mit diesem Namen (z. B. Hotspot vom Handy), um
+per DHCP wieder erreichbar zu sein, nicht umgekehrt ein eigener Access
+Point. Sobald irgendein Interface wieder eine IP hat (auch das
+Recovery-Netz), gilt der Netzwerk-Zustand als „OK".
+
+## 2026-07-08 — Kooperatives Single-Loop-Scheduling statt separater FreeRTOS-Tasks
+
+Pflichtenheft Abschnitt 2.1 listet sechs FreeRTOS-Tasks (Sensor/Network/
+NTP/WebServer/Display/Syslog). P0/P1 setzen das stattdessen als
+kooperative Module um: ein gemeinsamer `loop()` ruft `networkManager.loop()`
+und `timeManager.loop()` im 50-ms-Takt auf. Bei den hier relevanten
+Zeitskalen (Sekunden bis Stunden) ist das ausreichend und deutlich
+einfacher zu synchronisieren (ein DataManager-Mutex statt sechs
+nebenläufiger Tasks). Falls Display/Webserver/Sensorik in späteren Phasen
+blockierende Wartezeiten mit sich bringen, die den gemeinsamen Loop spürbar
+verzögern, wird das an der Stelle auf echte FreeRTOS-Tasks umgestellt.
+
 ## 2026-07-08 — Repo-Kuration
 
 In diesem Repo wird nur die Kern-Dokumentation versioniert (Lastenheft,
