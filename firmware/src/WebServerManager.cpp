@@ -13,6 +13,11 @@
 #define DEVICE_FIRMWARE_VERSION "0.0.0"
 #endif
 
+// Nur ein statischer Link fuer den Admin-Browser, kein Geraet-seitiger
+// Netzwerkzugriff - daher unproblematisch ohne HTTPS-Client (siehe
+// docs/entscheidungen.md zum Wegfall des GitHub-Versionschecks).
+#define GITHUB_REPO_SLUG "peterhagelhof7-cmd/sensormeter"
+
 WebServerManager::WebServerManager(DataManager& dataManager, ConfigManager& configManager,
                                     NetworkManager& networkManager, OtaManager& otaManager)
     : _data(dataManager), _config(configManager), _network(networkManager), _ota(otaManager), _server(80) {}
@@ -168,6 +173,10 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "<label>Syslog-Server-IP<input type=\"text\" name=\"syslogServer\" value=\"" + cfg.syslogServer + "\"></label>";
   html += "</div>";
 
+  html += "<div class=\"block\"><h2>SNMP</h2>";
+  html += "<label>Community<input type=\"text\" name=\"snmpCommunity\" value=\"" + cfg.snmpCommunity + "\"></label>";
+  html += "</div>";
+
   html += "<div class=\"block\"><input type=\"submit\" value=\"Speichern (LittleFS)\"></div>";
   html += "</form>";
 
@@ -180,7 +189,9 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "<div class=\"block\"><h2>Firmware</h2>";
   html += "<form method=\"POST\" action=\"/api/ota/upload\" enctype=\"multipart/form-data\">";
   html += "<input type=\"file\" name=\"file\" accept=\".bin\"><input type=\"submit\" value=\".bin hochladen\">";
-  html += "</form></div>";
+  html += "</form>";
+  html += "<a href=\"https://github.com/" GITHUB_REPO_SLUG "/releases\" target=\"_blank\"><button type=\"button\">Releases auf GitHub</button></a>";
+  html += "</div>";
 
   html += "<div class=\"block\"><form method=\"POST\" action=\"/api/reboot\" onsubmit=\"return confirm('Wirklich neu starten?')\">";
   html += "<input type=\"submit\" value=\"Reboot\"></form></div>";
@@ -354,6 +365,7 @@ void WebServerManager::handleApiConfigGet(AsyncWebServerRequest* request) {
   doc["sensor2Enabled"] = cfg.sensor2Enabled;
   doc["sensor2Name"] = cfg.sensor2Name;
   doc["syslogServer"] = cfg.syslogServer;
+  doc["snmpCommunity"] = cfg.snmpCommunity;
 
   String out;
   serializeJson(doc, out);
@@ -388,8 +400,13 @@ void WebServerManager::handleApiConfigPost(AsyncWebServerRequest* request) {
 
   if (request->hasParam("syslogServer", true)) cfg.syslogServer = request->getParam("syslogServer", true)->value();
 
+  if (request->hasParam("snmpCommunity", true)) {
+    String community = request->getParam("snmpCommunity", true)->value();
+    if (community.length() > 0) cfg.snmpCommunity = community;
+  }
+
   _config.setConfig(cfg);
-  _data.pushLogEntry("Einstellungen gespeichert (Reboot noetig fuer Netzwerkaenderungen)");
+  _data.pushLogEntry("Einstellungen gespeichert (Reboot noetig fuer Netzwerk-/SNMP-Aenderungen)");
 
   request->redirect("/settings");
 }

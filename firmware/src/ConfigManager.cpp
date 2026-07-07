@@ -112,6 +112,12 @@ bool ConfigManager::importXml(const String& xml) {
     }
   }
 
+  const XMLElement* snmp = root->FirstChildElement("snmp");
+  if (snmp) {
+    String community = attrOrEmpty(snmp, "community");
+    if (community.length() > 0) cfg.snmpCommunity = community;
+  }
+
   cfg.systemType = deriveSystemType(cfg.sensor2Enabled);
   _config = cfg;
   return true;
@@ -165,6 +171,10 @@ String ConfigManager::exportXml() const {
   sensor2->SetAttribute("enabled", _config.sensor2Enabled ? "true" : "false");
   sensor2->SetAttribute("name", _config.sensor2Name.c_str());
   sensors->InsertEndChild(sensor2);
+
+  XMLElement* snmp = doc.NewElement("snmp");
+  snmp->SetAttribute("community", _config.snmpCommunity.c_str());
+  root->InsertEndChild(snmp);
 
   XMLPrinter printer;
   doc.Print(&printer);

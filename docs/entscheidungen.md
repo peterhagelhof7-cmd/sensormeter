@@ -3,6 +3,32 @@
 Kurzes Log für Design-/Scope-Entscheidungen inkl. Begründung, damit sie
 nachvollziehbar bleiben.
 
+## 2026-07-08 — SNMP-Designentscheidungen (P6)
+
+- **SNMP Community fehlte als Konfigurationsfeld**: `neu 2.txt` listet
+  "SNMP Community" explizit als config.xml-Feld, das war in `ConfigManager`
+  bisher nicht abgebildet. Ergänzt: `snmpCommunity` (Default `"public"`),
+  persistiert als `<snmp community=".../>`, einstellbar auf der
+  Einstellungsseite.
+- **"Read-only" ist durch Konstruktion erzwungen, nicht nur Konvention**:
+  Die Bibliothek (`0neblock/SNMP_Agent`, schon im Prototyp bewaehrt)
+  unterstuetzt grundsaetzlich auch SET-Requests. Da im Code nirgends
+  `isSettable=true` gesetzt wird, lehnt der Agent jeden SET strukturell ab -
+  unabhaengig von der Community. Erfuellt "SNMP v1 READ ONLY" robuster als
+  ein reiner Community-Vergleich.
+- **Version wird nicht erzwungen, sondern spiegelt die Anfrage**: Die
+  Bibliothek antwortet automatisch in der Version des eingehenden Requests
+  (v1 oder v2c) statt eine feste Version zu erzwingen. Das erfuellt "SNMP
+  v1" fuer v1-Clients, ohne v2c-Clients (z. B. die meisten Monitoring-Tools)
+  auszuschliessen.
+- **Werte werden alle 5s aktualisiert, nicht pro GET neu berechnet**
+  (Pflichtenheft 7: "polling optimized, no continuous refresh") - die
+  Bibliothek liest bei jedem GET live von einem Zeiger, der periodisch in
+  `SNMPManager::loop()` aufgefrischt wird.
+- **Uptime als SNMP-TimeTicks** (Hundertstelsekunden) statt Sekunden - das
+  ist die SNMP-uebliche Konvention (`sysUpTime`), damit Standard-Tools wie
+  Zabbix den Wert korrekt interpretieren.
+
 ## 2026-07-08 — Webserver-Designentscheidungen (P5)
 
 Mehrere kleinere, aber wichtige Entscheidungen beim Umsetzen der Webserver-Phase:

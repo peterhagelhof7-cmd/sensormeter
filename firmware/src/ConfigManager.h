@@ -26,6 +26,7 @@
 //   <sensors>
 //     <sensor2 enabled="false" name="Extern"/>
 //   </sensors>
+//   <snmp community="public"/>
 // </config>
 
 struct DeviceConfig {
@@ -49,6 +50,8 @@ struct DeviceConfig {
 
   bool sensor2Enabled = false;
   String sensor2Name = "Extern";
+
+  String snmpCommunity = "public";
 };
 
 class ConfigManager {
