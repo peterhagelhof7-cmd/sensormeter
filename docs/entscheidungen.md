@@ -18,29 +18,30 @@ Mehrere kleinere, aber wichtige Entscheidungen beim Umsetzen der Webserver-Phase
   Browser-Login-Abfrage verlangt technisch trotzdem einen (beliebigen)
   Benutzernamen - fest auf "admin" gesetzt und als Hinweistext im
   Auth-Dialog (Realm) angezeigt.
-- **TLS-Zertifikatspruefung deaktiviert fuer OTA/GitHub** (`setInsecure()`):
-  Root-CA-Pins muessten bei Zertifikatsrotation gepflegt werden, was fuer
-  ein selten aktualisiertes Hobby-Geraet leicht bricht. Ausgleich: alle
-  OTA-Endpunkte sind hinter demselben Passwort wie die Einstellungsseite -
-  ein Angreifer muesste den Admin-Zugang bereits haben, um ueberhaupt ein
-  Update auszuloesen.
-- **WLAN-Scan und OTA-Flash sind bewusst blockierend**, obwohl der
-  Webserver sonst asynchron ist (Pflichtenheft 8: "non-blocking"). Beides
-  sind admin-ausgeloeste Einzelaktionen, keine Dauerbetrieb-Anfragen - ein
-  kurzzeitiges Blockieren waehrend eines WLAN-Scans oder eines Firmware-
-  Downloads ist unkritisch, das Geraet macht ohnehin nichts anderes
-  Sinnvolles waehrend eines Reboots.
+- **WLAN-Scan ist bewusst blockierend**, obwohl der Webserver sonst
+  asynchron ist (Pflichtenheft 8: "non-blocking"). Das ist eine
+  admin-ausgeloeste Einzelaktion, keine Dauerbetrieb-Anfrage - ein
+  kurzzeitiges Blockieren waehrend eines WLAN-Scans ist unkritisch.
 - **Chart.js wird per CDN geladen**, nicht in den Flash eingebettet - betrifft
   nur den Browser des Admins, nicht das Geraet selbst, und faellt damit
   nicht unter das "keine Cloud"-Prinzip (das sich auf die Datenverarbeitung
   des Geraets bezieht).
-- **Flash-Budget wird eng**: Nach P5 (ESPAsyncWebServer + AsyncTCP +
-  ArduinoJson + WiFiClientSecure/HTTPClient fuer OTA) liegt der
-  Flash-Verbrauch bei 89,1 % (1.167.525 / 1.310.720 Byte), RAM bei 15,7 %.
-  Für P6 (SNMP v1) und P7 (Syslog) bleiben nur noch ca. 140 KB. SNMP v1 ist
-  ein kleiner Read-Only-Agent, sollte passen - falls nicht, muesste ggf. eine
-  OTA-Komponente (z. B. der direkte GitHub-Fetch, der lokale Upload allein
-  wuerde reichen) wieder entfernt werden.
+
+## 2026-07-08 — OTA-Versionscheck/GitHub-Direktinstall wieder entfernt (P5-Korrektur)
+
+Direkt nach dem ersten P5-Build stellte sich heraus, dass der HTTPS-Client
+(`WiFiClientSecure`/`HTTPClient`, fuer den GitHub-Versionscheck und den
+Direktinstall aus einem Release) allein rund 168 KB Flash kostet
+(89,1 % → 76,2 % nach Entfernen). Bei nur noch ~140 KB Reserve fuer P6
+(SNMP v1) und P7 (Syslog) war das Risiko zu hoch, dass eine der beiden
+letzten Phasen nicht mehr passt. Entscheidung: GitHub-Versionscheck und
+Direktinstall komplett entfernt (`OtaManager` hat jetzt nur noch die
+lokalen `Update.h`-Funktionen fuer den `.bin`-Upload). Update-Weg ist damit
+ausschliesslich der Upload-Button auf der Einstellungsseite - das war ohnehin
+schon vorgesehen (siehe OTA-Eintrag weiter unten), nur die
+GitHub-Variante entfaellt. Der damit gegenstandslose "Repo oeffentlich
+machen"-Grund (kein Auth-Token fuer die GitHub-API noetig) bleibt als
+Randnotiz bestehen, das Repo muss deswegen nicht wieder privat werden.
 
 ## 2026-07-08 — Display-Auslegung: Boot-Countdown-Tempo & automatische Schriftgröße (P4)
 

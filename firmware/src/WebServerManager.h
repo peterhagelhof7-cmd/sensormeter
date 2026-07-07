@@ -10,7 +10,8 @@
 // Webserver (Pflichtenheft "WebServerTask"): Hauptseite (Status, Graph,
 // Syslog-Tabelle, CSV-Download), passwortgeschuetzte Einstellungsseite,
 // REST-API (/api/status, /api/sensors, /api/network, /api/logs,
-// /api/config), OTA-Update (Versionscheck + GitHub-Release/lokaler Upload).
+// /api/config), OTA-Update per lokalem .bin-Upload (kein HTTPS-Client,
+// siehe docs/entscheidungen.md fuer den Flash-Budget-Hintergrund).
 // Async (non-blocking) per AsyncWebServer, siehe Pflichtenheft Abschnitt 5+8
 // - Ausnahmen: WLAN-Scan und OTA-Flash sind admin-ausgeloeste Einzelaktionen
 // und blockieren kurzzeitig (siehe docs/entscheidungen.md).
@@ -58,9 +59,6 @@ class WebServerManager {
 
   void handleApiReboot(AsyncWebServerRequest* request);
   void handleApiWifiScan(AsyncWebServerRequest* request);
-
-  void handleApiOtaCheck(AsyncWebServerRequest* request);
-  void handleApiOtaGithub(AsyncWebServerRequest* request);
 
   String buildPageShell(const String& title, const String& bodyContent) const;
   String buildMainPageBody() const;

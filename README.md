@@ -43,9 +43,7 @@ Enthalten (P0–P5):
 - DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer
 - OLED SSD1306 (I2C 0x3C): Boot-Screen mit Countdown, danach rotierende Seiten (Systemname/IPs/Uhrzeit/Sensorwerte/Status) im 10s-Takt
 - Webserver (async, Port 80): Hauptseite mit Chart.js-Graph und Syslog-Tabelle, `/values.csv`-Download, passwortgeschützte Einstellungsseite (Benutzername `admin`, Passwort aus der Config), REST-API (`/api/status`, `/api/sensors`, `/api/network`, `/api/logs`, `/api/config`), XML-Import/-Export, WLAN-Scan, Reboot
-- OTA-Update: Versionscheck gegen GitHub Releases, Update direkt aus dem Release oder per lokalem `.bin`-Upload
-
-⚠️ Flash-Budget ist nach P5 eng (89 % belegt) — siehe `docs/entscheidungen.md`.
+- OTA-Update: nur per lokalem `.bin`-Upload auf der Einstellungsseite (kein GitHub-Versionscheck/-Direktinstall — HTTPS-Client hätte ~168 KB Flash gekostet, siehe `docs/entscheidungen.md`)
 
 Bewusst noch nicht enthalten (folgt in P6–P7, siehe Implementierungsplan):
 SNMP v1, Syslog (UDP-Versand der bereits vorhandenen Log-Einträge).

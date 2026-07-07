@@ -177,8 +177,7 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "<input type=\"file\" name=\"file\" accept=\".xml\"><input type=\"submit\" value=\"XML Import\">";
   html += "</form></div>";
 
-  html += "<div class=\"block\"><h2>Firmware</h2><div id=\"otaInfo\">wird geprueft...</div>";
-  html += "<button type=\"button\" onclick=\"otaGithub()\">Update aus GitHub-Release</button>";
+  html += "<div class=\"block\"><h2>Firmware</h2>";
   html += "<form method=\"POST\" action=\"/api/ota/upload\" enctype=\"multipart/form-data\">";
   html += "<input type=\"file\" name=\"file\" accept=\".bin\"><input type=\"submit\" value=\".bin hochladen\">";
   html += "</form></div>";
@@ -190,10 +189,6 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "function scanWifi(){fetch('/api/wifi/scan').then(r=>r.json()).then(d=>{";
   html += "document.getElementById('scanResult').innerHTML=d.networks.map(n=>";
   html += "`<div onclick=\"document.getElementById('wlanSsid').value='${n.ssid}'\">${n.ssid} (${n.rssi} dBm)</div>`).join('');});}";
-  html += "fetch('/api/ota/check').then(r=>r.json()).then(d=>{";
-  html += "document.getElementById('otaInfo').innerText = d.updateAvailable ? ('Update verfuegbar: '+d.latestVersion) : 'Aktuell (neueste Version installiert)';});";
-  html += "function otaGithub(){if(!confirm('Firmware aus GitHub-Release installieren?'))return;";
-  html += "fetch('/api/ota/github',{method:'POST'}).then(r=>r.text()).then(t=>alert(t));}";
   html += "</script>";
 
   return html;
@@ -450,44 +445,6 @@ void WebServerManager::handleApiWifiScan(AsyncWebServerRequest* request) {
   request->send(200, "application/json", out);
 }
 
-void WebServerManager::handleApiOtaCheck(AsyncWebServerRequest* request) {
-  if (!checkAuth(request)) return;
-
-  OtaCheckResult result = _ota.checkLatestRelease();
-
-  JsonDocument doc;
-  doc["success"] = result.success;
-  doc["latestVersion"] = result.latestVersion;
-  doc["updateAvailable"] = result.updateAvailable;
-  doc["currentVersion"] = DEVICE_FIRMWARE_VERSION;
-
-  String out;
-  serializeJson(doc, out);
-  request->send(200, "application/json", out);
-}
-
-void WebServerManager::handleApiOtaGithub(AsyncWebServerRequest* request) {
-  if (!checkAuth(request)) return;
-
-  OtaCheckResult check = _ota.checkLatestRelease();
-  if (!check.success || check.assetUrl.length() == 0) {
-    request->send(500, "text/plain", "Kein Release-Asset gefunden");
-    return;
-  }
-
-  String error;
-  if (!_ota.installFromUrl(check.assetUrl, error)) {
-    _data.pushLogEntry("OTA (GitHub) fehlgeschlagen: " + error);
-    request->send(500, "text/plain", "Fehlgeschlagen: " + error);
-    return;
-  }
-
-  _data.pushLogEntry("OTA (GitHub) erfolgreich, Neustart");
-  request->send(200, "text/plain", "Update erfolgreich, Geraet startet neu...");
-  delay(500);
-  ESP.restart();
-}
-
 // ----------------------------------------------------------------------------
 void WebServerManager::begin() {
   _server.on("/", HTTP_GET, [this](AsyncWebServerRequest* r) { handleRoot(r); });
@@ -515,8 +472,6 @@ void WebServerManager::begin() {
 
   _server.on("/api/reboot", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiReboot(r); });
   _server.on("/api/wifi/scan", HTTP_GET, [this](AsyncWebServerRequest* r) { handleApiWifiScan(r); });
-  _server.on("/api/ota/check", HTTP_GET, [this](AsyncWebServerRequest* r) { handleApiOtaCheck(r); });
-  _server.on("/api/ota/github", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiOtaGithub(r); });
 
   _server.on(
       "/api/ota/upload", HTTP_POST,
