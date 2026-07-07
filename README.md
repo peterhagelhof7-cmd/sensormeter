@@ -11,7 +11,7 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 |---|---|
 | [docs/lastenheft.txt](docs/lastenheft.txt) | Fachliche Anforderungen: Webseite, Einstellungen, SNMP-OIDs, Netzwerklogik, Zustandsmodell |
 | [docs/pflichtenheft.txt](docs/pflichtenheft.txt) | Technische Umsetzung: FreeRTOS-Tasks, Softwaremodule, Speicherlayout, Fehlerbehandlung |
-| [docs/verdrahtungsschema-v1.1.pdf](docs/verdrahtungsschema-v1.1.pdf) | Aktuelles, korrigiertes Verdrahtungsschema (Pinbelegung WT32-ETH01, Display, DHT11, RJ45-Modularanschluss) |
+| [docs/verdrahtungsschema-v1.2.pdf](docs/verdrahtungsschema-v1.2.pdf) | Aktuelles, korrigiertes Verdrahtungsschema (Pinbelegung WT32-ETH01, Display, DHT11, RJ45-Modularanschluss) |
 | [docs/flash-vorbereitung.pdf](docs/flash-vorbereitung.pdf) | Schritt-für-Schritt-Anleitung zum Flash-bereit-Machen (Boot-Modus, Verkabelung zum Flash-PC) |
 | [docs/pinout-wt32-eth01-v1.4.txt](docs/pinout-wt32-eth01-v1.4.txt) | Rohes Pinout-Referenzblatt des Boards laut Datenblatt |
 | [docs/implementierungsplan.html](docs/implementierungsplan.html) | Visueller Implementierungsplan: Reihenfolge P0–P8 vom Prototyp zur vollständigen Firmware (lokal im Browser öffnen) |
@@ -35,7 +35,7 @@ pio device monitor   # seriellen Log ansehen (115200 Baud)
 Enthalten (P0–P4):
 - Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
-- Ethernet (DHCP oder statisch) + optional WLAN parallel, korrigierte Pinbelegung v1.1 zentral in `include/pins.h`
+- Ethernet (DHCP oder statisch) + optional WLAN parallel, korrigierte Pinbelegung v1.2 zentral in `include/pins.h`
 - Fallback-WLAN `installer`/`installer`, wenn nach 5 Minuten kein Interface eine IP hat
 - NTP-Sync (`de.pool.ntp.org`, CET/CEST), 60s nach Boot, alle 5h, sofort nach Link-Up
 - NTP-Fehlerkette: 5 Min. ohne Sync + statische IP konfiguriert → DHCP-Test → nach 3 Min. Konfiguration wiederherstellen
@@ -43,22 +43,20 @@ Enthalten (P0–P4):
 - DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer
 - OLED SSD1306 (I2C 0x3C): Boot-Screen mit Countdown, danach rotierende Seiten (Systemname/IPs/Uhrzeit/Sensorwerte/Status) im 10s-Takt
 
-⚠️ Beim externen DHT22 die DATA-Leitung auf **RJ45-Pin 5** auflegen, nicht
-Pin 3 wie in einer Abbildung von `verdrahtungsschema-v1.1.pdf` — Widerspruch
-im Dokument selbst, siehe `docs/entscheidungen.md`.
-
-Bewusst noch nicht enthalten (folgt in P4–P8, siehe Implementierungsplan):
-Display, Webserver, SNMP v1, Syslog, OTA.
+Bewusst noch nicht enthalten (folgt in P5–P8, siehe Implementierungsplan):
+Webserver, SNMP v1, Syslog, OTA.
 
 ## Stand der Verdrahtung
 
-**`docs/verdrahtungsschema-v1.1.pdf` ist der einzig gültige Verdrahtungsstand.**
-Er korrigiert zwei Fehler einer früheren Version:
+**`docs/verdrahtungsschema-v1.2.pdf` ist der einzig gültige Verdrahtungsstand.**
+Wichtigste Punkte gegenüber der allerersten Version:
 
 - Display-I2C liegt auf **IO32/IO33** (nicht IO21/IO22 – die sind fest mit
   dem Ethernet-PHY verdrahtet)
 - RJ45-Pin 5 liegt auf **IO15** (nicht IO4 – das kollidierte mit dem
   internen DHT11-Datenpin)
+- Externer DHT-Sensor (Sensor 2) hängt an **RJ45-Pin 5**, nicht Pin 3
+  (Pin 3 ist dauerhaft I2C-SCL, gemeinsam mit dem Display)
 
 Ältere Verkabelungsnotizen aus der ursprünglichen Materialsammlung
 (`RJ45 GPIO.txt`, `RJ45 i2c.txt`, `RJ45 Dht.txt`, `RJ45 buchse.txt`,

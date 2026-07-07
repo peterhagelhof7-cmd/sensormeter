@@ -6,7 +6,7 @@
 |---|---|---|
 | WT32-ETH01 v1.4 (ESP32 + LAN8720) | 1 | Hauptmodul |
 | DHT11, 3-Draht-Modul | 1 | intern, Sensor 1, Data → IO4 |
-| DHT22, 3-Draht-Modul | 0–1 | extern, Sensor 2 (nur Sensormeter PRO), über RJ45 **Pin 5** (nicht Pin 3, siehe `docs/entscheidungen.md`) |
+| DHT22, 3-Draht-Modul | 0–1 | extern, Sensor 2 (nur Sensormeter PRO), über RJ45 Pin 5 |
 | OLED SSD1306, 0,96", 128×64, I2C | 1 | SCL → IO32, SDA → IO33 |
 | RJ45-Buchse, 8P8C, geschirmt | 1 | Modularanschluss für Sensor 2 / künftige Erweiterungen |
 | Pull-up-Widerstand 10 kΩ | 1 | intern DHT11-Data (IO4) → 3.3V |
