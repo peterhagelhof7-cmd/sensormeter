@@ -1,0 +1,39 @@
+name: Firmware Build Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Firmware-Projekt vorhanden?
+        id: check
+        run: |
+          if [ -f platformio.ini ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.check.outputs.exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: PlatformIO installieren
+        if: steps.check.outputs.exists == 'true'
+        run: pip install platformio
+
+      - name: Firmware bauen
+        if: steps.check.outputs.exists == 'true'
+        run: pio run
+
+      - name: Hinweis
+        if: steps.check.outputs.exists == 'false'
+        run: echo "platformio.ini fehlt noch (Phase P0 steht aus) - Build-Check wird uebersprungen."
