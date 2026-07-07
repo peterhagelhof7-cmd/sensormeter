@@ -3,6 +3,20 @@
 Kurzes Log für Design-/Scope-Entscheidungen inkl. Begründung, damit sie
 nachvollziehbar bleiben.
 
+## 2026-07-08 — Display-Auslegung: Boot-Countdown-Tempo & automatische Schriftgröße (P4)
+
+Zwei Stellen im Lastenheft sind für die Umsetzung zu knapp spezifiziert:
+
+- **Boot-Countdown "100 → 0 bis das Netzwerk bereit ist"**: keine Zeitbasis
+  angegeben. Auslegung: 1 Tick/Sekunde. Bei den bis zu 5 Minuten, die
+  `NETWORK_CHECK` laut P1 dauern darf, erreicht der Countdown 0 oft vor
+  Netzwerkbereitschaft und bleibt dann auf 0 stehen ("wir warten noch") statt
+  eine falsche Restzeit zu suggerieren.
+- **"größtmögliche Schrift sodass IP ohne Scrollen passt"**: gilt wörtlich
+  nur für die IP-Seite. Auslegung: pro Seite wird anhand der längsten Zeile
+  automatisch Schriftgröße 2 oder 1 gewählt (`DisplayManager::drawLines`),
+  damit das Prinzip einheitlich für alle Seiten gilt, nicht nur für IPs.
+
 ## 2026-07-07 — Verdrahtungsstand v1.1 (korrigiert) ist verbindlich
 
 Ältere Verkabelungsnotizen (`RJ45 GPIO.txt`, `RJ45 i2c.txt`, `RJ45 Dht.txt`,

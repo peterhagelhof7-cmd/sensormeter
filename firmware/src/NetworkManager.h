@@ -28,6 +28,11 @@ class NetworkManager {
   bool isWlanUp() const { return _wlanGotIp; }
   bool isUsingFallbackWlan() const { return _inFallbackWlan && _wlanGotIp; }
 
+  // Fuer Display (P4) / Webserver (P5). Implementiert in .cpp, damit dieser
+  // Header nicht <ETH.h> einbinden muss (Makro-Reihenfolge, siehe .cpp).
+  IPAddress getLanIp() const;
+  IPAddress getWlanIp() const;
+
   // Fuer TimeManager (Lastenheft: "nach 5 min ohne NTP -> DHCP aktivieren,
   // nach weiteren 3 min -> gesetzte IP-Einstellungen wiederherstellen").
   bool hasStaticConfig() const;

@@ -161,3 +161,11 @@ void NetworkManager::loop() {
     _networkCheckStartedMillis = millis();
   }
 }
+
+IPAddress NetworkManager::getLanIp() const {
+  return _ethGotIp ? ETH.localIP() : IPAddress(0, 0, 0, 0);
+}
+
+IPAddress NetworkManager::getWlanIp() const {
+  return _wlanGotIp ? WiFi.localIP() : IPAddress(0, 0, 0, 0);
+}

@@ -1,23 +1,26 @@
 // ============================================================================
-// Sensormeter (WT32-ETH01) - Phase P3: Sensorik
+// Sensormeter (WT32-ETH01) - Phase P4: Display
 //
 // Verdrahtet die Module (DataManager/ConfigManager/StorageManager/
-// NetworkManager/TimeManager/SensorManager). ConfigManager laedt/speichert
-// config.xml auf LittleFS (Default-Fallback beim ersten Boot); NetworkManager
-// bringt Ethernet (DHCP/statisch) und optional WLAN hoch und treibt den
-// Boot-Zustandsautomaten aus docs/lastenheft.txt Abschnitt 12 an; TimeManager
-// haengt sich mit der NTP-Sync- und Fehlerkette (DHCP-Test/Restore) daran;
-// SensorManager liest DHT11 (intern) und optional DHT22 (extern, Sensormeter
-// PRO) im 60s-Takt und fuellt den stuendlichen Ringpuffer.
+// NetworkManager/TimeManager/SensorManager/DisplayManager). ConfigManager
+// laedt/speichert config.xml auf LittleFS (Default-Fallback beim ersten
+// Boot); NetworkManager bringt Ethernet (DHCP/statisch) und optional WLAN
+// hoch und treibt den Boot-Zustandsautomaten aus docs/lastenheft.txt
+// Abschnitt 12 an; TimeManager haengt sich mit der NTP-Sync- und
+// Fehlerkette (DHCP-Test/Restore) daran; SensorManager liest DHT11
+// (intern) und optional DHT22 (extern, Sensormeter PRO) im 60s-Takt und
+// fuellt den stuendlichen Ringpuffer; DisplayManager zeigt waehrend des
+// Bootens Systemname + Countdown, danach rotierende Infoseiten (10s-Takt).
 //
 // Was hier bewusst noch fehlt (siehe docs/implementierungsplan.html):
-//   P4-P7 Display, Webserver, SNMP v1, Syslog, OTA
+//   P5-P7 Webserver, SNMP v1, Syslog, OTA
 // ============================================================================
 
 #include <Arduino.h>
 
 #include "ConfigManager.h"
 #include "DataManager.h"
+#include "DisplayManager.h"
 #include "NetworkManager.h"
 #include "SensorManager.h"
 #include "StorageManager.h"
@@ -36,6 +39,7 @@ StorageManager storageManager;
 NetworkManager networkManager(dataManager, configManager);
 TimeManager timeManager(dataManager, networkManager);
 SensorManager sensorManager(dataManager, configManager);
+DisplayManager displayManager(dataManager, configManager, networkManager);
 
 void setup() {
   Serial.begin(115200);
@@ -52,6 +56,7 @@ void setup() {
   configManager.begin();
   timeManager.begin();
   sensorManager.begin();
+  displayManager.begin();
 
   networkManager.begin();  // setzt Zustand auf INIT, dann NETWORK_CHECK
 }
@@ -60,5 +65,6 @@ void loop() {
   networkManager.loop();
   timeManager.loop();
   sensorManager.loop();
+  displayManager.loop();
   delay(50);
 }
