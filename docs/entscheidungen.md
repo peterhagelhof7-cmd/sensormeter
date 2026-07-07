@@ -28,6 +28,23 @@ wird als zusätzliches, optionales Monitoring-Feature weitergeführt (Template
 wird in Phase P6 an die neue SNMP-v1-OID-Struktur angepasst), ist aber kein
 Kernbestandteil des Lastenhefts.
 
+## 2026-07-08 — OTA-Versionscheck via GitHub Releases; Repo öffentlich
+
+Pflichtenheft Abschnitt 11 sieht OTA als spätere optionale Erweiterung vor;
+die von P0 genutzte Standard-Partitionstabelle hat bereits zwei OTA-fähige
+App-Partitionen (`ota_0`/`ota_1`), keine Anpassung am Flash-Layout nötig.
+
+Umsetzung (Details folgen in Phase P5, Einstellungsseite): Gerät fragt
+periodisch `api.github.com/repos/.../releases/latest` ab und zeigt einen
+Hinweis an, wenn eine neuere Version verfügbar ist (zunächst nur Anzeige,
+kein automatisches Flashen). Die GitHub-API verlangt für private Repos einen
+Zugangstoken, der sonst im Geräte-Flash läge und bei physischem Zugriff
+auslesbar wäre. Da echte Zugangsdaten (WLAN-PSK, Syslog-IP) ohnehin nie im
+Quellcode landen, sondern zur Laufzeit in `config.xml` auf LittleFS gespeichert
+werden (siehe `.gitignore`-Kommentar), spricht nichts dagegen, das Repo
+öffentlich zu machen — das Repo wurde daher auf **öffentlich** gestellt, ein
+Token ist damit nicht nötig.
+
 ## 2026-07-08 — Repo-Kuration
 
 In diesem Repo wird nur die Kern-Dokumentation versioniert (Lastenheft,

@@ -3,7 +3,10 @@
 .vscode/
 compile_commands.json
 
-# Geraetespezifische Konfiguration (enthaelt Zugangsdaten: WLAN-PSK, Syslog-IP, SNMP-Community)
+# Lokale Entwicklerkonfiguration. Echte Zugangsdaten (WLAN-PSK, Syslog-IP, ...)
+# leben zur Laufzeit in config.xml auf LittleFS, nie im Quellcode - dies ist nur
+# ein Sicherheitsnetz, falls waehrend der Entwicklung testweise etwas in
+# config.h landet, bevor die Einstellungsseite (P2/P5) existiert.
 # "**/" noetig, da das Firmware-Projekt in firmware/include/ liegt, nicht im Repo-Root
 **/include/config.h
 
