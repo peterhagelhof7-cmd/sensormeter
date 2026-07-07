@@ -78,6 +78,21 @@ nebenläufiger Tasks). Falls Display/Webserver/Sensorik in späteren Phasen
 blockierende Wartezeiten mit sich bringen, die den gemeinsamen Loop spürbar
 verzögern, wird das an der Stelle auf echte FreeRTOS-Tasks umgestellt.
 
+## 2026-07-08 — tinyxml2 vendort statt per lib_deps (P2)
+
+Für das in `config.xml` geforderte XML-Parsing/-Schreiben wird tinyxml2
+genutzt. Zwei Standardwege sind gescheitert bzw. ungünstig: Der
+PlatformIO-Registry-Fork `sepastian/tinyxml2` lässt sich unter Windows nicht
+installieren (enthält einen kaputten Symlink auf einen absoluten Pfad). Ein
+direkter Git-Checkout des Original-Repos baut zwar, bringt aber `contrib/`
+und die Testsuite `xmltest.cpp` mit und bläht den Flash-Verbrauch um ca.
+220 KB auf (63,7 % → 82,7 %) – nicht tragbar, da P3–P8 noch deutlich mehr
+Bibliotheken (DHT, SSD1306, AsyncWebServer, SNMP) brauchen. Lösung: nur
+`tinyxml2.cpp`/`tinyxml2.h` (zzgl. Lizenzhinweis) manuell nach
+`firmware/lib/tinyxml2/` kopiert. Effekt: nur noch ca. +21 KB Flash für die
+tatsächlich genutzte XML-Funktionalität (siehe `lib/tinyxml2/README.md` für
+Herkunft/Update-Hinweis).
+
 ## 2026-07-08 — Repo-Kuration
 
 In diesem Repo wird nur die Kern-Dokumentation versioniert (Lastenheft,
