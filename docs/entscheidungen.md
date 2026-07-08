@@ -305,3 +305,32 @@ Repos - egal welches Projekt lokal ausgecheckt ist, lassen sich darüber alle
 drei einrichten. Grund: alle drei Skripte waren bis auf Repo-URL,
 Ordnernamen und ein paar Hinweistexte ohnehin fast wortgleich; eine einzige
 gepflegte Version reduziert Drift zwischen den drei Kopien.
+
+## Versionierung
+
+Bisher war `DEVICE_FIRMWARE_VERSION` an die zuletzt abgeschlossene
+Implementierungsphase gekoppelt (`0.1.0-p0` … `0.1.0-p7`) - kein Schema mit
+klarer Fortsetzung, sobald alle Phasen umgesetzt sind, und es gab nie einen
+Git-Tag oder eine GitHub-Release, obwohl die Weboberfläche bereits einen
+Link auf "Releases auf GitHub" zeigt.
+
+**Umstellung auf Semantic Versioning**, analog zu Sensormeter WLAN und
+Sensormeter Display (dort zuerst eingeführt): aktueller Stand auf
+**`0.9.0-rc1`** (Beta) gesetzt - alle Kernfunktionen aus dem Lastenheft sind
+umgesetzt (P0-P7), aber nicht vollständig auf echter Hardware verifiziert
+(siehe "Noch offen" weiter oben), daher Release-Candidate-Status statt
+`1.0.0`.
+
+Zusätzlich nachgezogen: die Firmware-Version fehlte bislang auf dem OLED
+(Webserver und SNMP zeigten sie bereits) - jetzt als dritte Zeile auf der
+Status-Seite (`DisplayManager::drawStatusPage()`) ergänzt.
+
+Die Versionsnummer lebt weiterhin als einzige Quelle der Wahrheit in
+`firmware/include/config.h(.example)`, zusätzlich in README vermerkt. Der
+One-Pager (`docs/sensormeter-onepager.pdf`) hat kein eingechecktes
+HTML-Quelldokument mehr im Repo und wurde daher hier nicht mit
+aktualisiert - offener Punkt für eine spätere Runde.
+
+**Noch nicht Teil dieser Änderung** (separates Thema, wie bei den beiden
+Schwesterprojekten): tatsächliche Git-Tags + GitHub-Releases mit
+`.bin`-Artefakt pro Version.
