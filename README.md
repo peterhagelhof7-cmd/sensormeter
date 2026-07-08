@@ -1,5 +1,11 @@
 # Sensormeter (WT32-ETH01)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/projektfamilie-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/projektfamilie-light.png">
+  <img alt="Sensormeter Projektfamilie: Sensormeter (LAN), Sensormeter WLAN (WLAN) und Sensormeter Display (Touchscreen), verbunden über gemeinsame Architektur und SNMP" src="docs/projektfamilie-light.png">
+</picture>
+
 ESP32-basierter Umweltsensor (Temperatur/Luftfeuchte) mit kabelgebundenem
 Ethernet (WT32-ETH01, LAN8720), OLED-Anzeige, Webserver, SNMP v1 (read-only)
 und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
@@ -14,13 +20,15 @@ und lokalem OTA-Update), das u. a. diesen Sensormeter per SNMP abfragt und
 anzeigt. ·
 [Sensormeter WLAN](https://github.com/peterhagelhof7-cmd/sensormeter-wlan) —
 günstigere, WLAN-only Variante (generisches ESP32-DevKit, ein DHT22, kein
-Ethernet, kein Modulstecker); noch in der Doku-Phase, keine Firmware.
+Ethernet, kein Modulstecker); P0–P7 code-vollständig, noch nicht auf echter
+Hardware getestet.
 
 ## Dokumentation
 
 | Datei | Inhalt |
 |---|---|
 | [docs/sensormeter-onepager.pdf](docs/sensormeter-onepager.pdf) | One-Pager: Projektübersicht, Architektur, Kennzahlen auf einer Seite |
+| [docs/projektfamilie.html](docs/projektfamilie.html) | Architekturskizze: wie die drei Sensormeter-Projekte zusammenhängen |
 | [docs/lastenheft.txt](docs/lastenheft.txt) | Fachliche Anforderungen: Webseite, Einstellungen, SNMP-OIDs, Netzwerklogik, Zustandsmodell |
 | [docs/pflichtenheft.txt](docs/pflichtenheft.txt) | Technische Umsetzung: FreeRTOS-Tasks, Softwaremodule, Speicherlayout, Fehlerbehandlung |
 | [docs/verdrahtungsschema-v1.2.pdf](docs/verdrahtungsschema-v1.2.pdf) | Aktuelles, korrigiertes Verdrahtungsschema (Pinbelegung WT32-ETH01, Display, DHT11, RJ45-Modularanschluss) |
