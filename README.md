@@ -7,6 +7,9 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 
 [**One-Pager (PDF)**](docs/sensormeter-onepager.pdf) — kompakte Projektübersicht auf einer Seite.
 
+**Schwesterprojekt:** [Sensormeter Display](https://github.com/peterhagelhof7-cmd/sensormeter-display) —
+ESP32-Touchdisplay (HW-458B), das u. a. diesen Sensormeter per SNMP abfragt und anzeigt.
+
 ## Dokumentation
 
 | Datei | Inhalt |
