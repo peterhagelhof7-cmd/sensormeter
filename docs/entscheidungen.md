@@ -292,3 +292,16 @@ leerem/ungültigem Wert wird jeweils das zugehörige Gateway als DNS-Server
 verwendet (funktioniert bei den meisten Routern), sonst der eingetragene
 Server. Beide Interfaces (LAN und WLAN) sind damit vollständig über die
 Weboberfläche konfigurierbar.
+
+## 2026-07-09 — Flash-Skript vereinheitlicht (`flash.ps1` statt `flash-sensormeter.ps1`)
+
+`scripts/flash-sensormeter.ps1` wurde zu `scripts/flash.ps1` verallgemeinert:
+das Skript fragt jetzt zuerst (interaktiv oder per `-Project
+sensormeter|wlan|display`), welches der drei Sensormeter-Schwesterprojekte
+geflasht werden soll, statt fest an ein Repo gebunden zu sein. Danach
+identischer Ablauf wie zuvor (Python/Git/PlatformIO-Setup, Klonen/Pull,
+config.h, Bauen, Flashen). Das Skript liegt jetzt identisch in allen drei
+Repos - egal welches Projekt lokal ausgecheckt ist, lassen sich darüber alle
+drei einrichten. Grund: alle drei Skripte waren bis auf Repo-URL,
+Ordnernamen und ein paar Hinweistexte ohnehin fast wortgleich; eine einzige
+gepflegte Version reduziert Drift zwischen den drei Kopien.

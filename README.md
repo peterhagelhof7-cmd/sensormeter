@@ -48,10 +48,13 @@ pio run --target upload   # flashen (Board am Debug-Port angeschlossen, siehe fl
 pio device monitor   # seriellen Log ansehen (115200 Baud)
 ```
 
-**Auf einem anderen/frischen Windows-PC**: [`scripts/flash-sensormeter.ps1`](scripts/flash-sensormeter.ps1)
-(oder `.cmd` zum Doppelklicken) richtet Python/Git/PlatformIO automatisch
-ein, klont dieses Repo falls nötig und flasht das per USB angeschlossene
-Board in einem Rutsch. Details: [`scripts/README.md`](scripts/README.md).
+**Auf einem anderen/frischen Windows-PC**: [`scripts/flash.ps1`](scripts/flash.ps1)
+(oder `.cmd` zum Doppelklicken) fragt zuerst, welches der drei
+Sensormeter-Projekte geflasht werden soll (Sensormeter / Sensormeter WLAN /
+Sensormeter Display – dasselbe Skript liegt identisch in allen drei Repos),
+richtet danach Python/Git/PlatformIO automatisch ein, klont das gewählte
+Repo falls nötig und flasht das per USB angeschlossene Board in einem
+Rutsch. Details: [`scripts/README.md`](scripts/README.md).
 
 Enthalten (P0–P7, vollständig):
 - Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`, `SyslogManager`
