@@ -3,6 +3,31 @@
 Kurzes Log für Design-/Scope-Entscheidungen inkl. Begründung, damit sie
 nachvollziehbar bleiben.
 
+## 2026-07-08 — Flash-Setup-Skript: funktionale statt reine PATH-Pruefung
+
+`scripts/flash-sensormeter.ps1` richtet Python/Git/PlatformIO automatisch
+ein und flasht danach. Zwei echte Bugs beim Testen gefunden und behoben,
+bevor das Skript verteilt wurde:
+
+- **Falsch-positive Erkennung**: Windows legt standardmaessig einen
+  `python`-Store-Alias auf PATH, der fuer `Get-Command python` wie eine
+  echte Installation aussieht, aber nur ein Verweis auf den Microsoft
+  Store ist. Loesung: Erkennung ruft `<tool> --version` tatsaechlich auf
+  und prueft die Ausgabe gegen ein Muster (`^Python \d` usw.), statt nur
+  PATH-Praesenz zu pruefen.
+- **winget-Exitcode ist kein verlaesslicher Erfolgsindikator**: Ist ein
+  Paket bereits installiert und aktuell, liefert `winget install` einen
+  Nicht-Null-Exitcode ("kein Update verfuegbar"), obwohl das kein Fehler
+  ist. Loesung: Erfolg/Misserfolg wird ausschliesslich ueber den
+  funktionalen Vorher/Nachher-Test entschieden, nicht ueber den
+  winget-Exitcode.
+
+Getestet (auf diesem Rechner, mit `-SkipUpload`): bestehender Checkout mit
+lokalen Aenderungen (kein `git pull`, wie gewuenscht) sowie kompletter
+Frisch-Klon inkl. Bibliotheks-Download und Build - beide erfolgreich. Der
+eigentliche `pio run --target upload`-Schritt ist **ungetestet**, da kein
+Board angeschlossen war.
+
 ## 2026-07-08 — Systemlast-Analyse deckt Display-Ineffizienz auf, behoben
 
 Beim Aufstellen der Systemlast-Rechnung (`docs/systemlast.md`) fiel auf,

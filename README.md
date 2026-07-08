@@ -36,6 +36,11 @@ pio run --target upload   # flashen (Board am Debug-Port angeschlossen, siehe fl
 pio device monitor   # seriellen Log ansehen (115200 Baud)
 ```
 
+**Auf einem anderen/frischen Windows-PC**: [`scripts/flash-sensormeter.ps1`](scripts/flash-sensormeter.ps1)
+(oder `.cmd` zum Doppelklicken) richtet Python/Git/PlatformIO automatisch
+ein, klont dieses Repo falls nötig und flasht das per USB angeschlossene
+Board in einem Rutsch. Details: [`scripts/README.md`](scripts/README.md).
+
 Enthalten (P0–P7, vollständig):
 - Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`, `SyslogManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
