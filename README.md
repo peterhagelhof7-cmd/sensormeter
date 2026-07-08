@@ -19,6 +19,7 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 | [docs/entscheidungen.md](docs/entscheidungen.md) | Entscheidungsprotokoll: Verkabelungsstand, SNMP-Version, Zabbix-Scope, Repo-Kuration |
 | [docs/ZABBIX.md](docs/ZABBIX.md) | Zabbix-Integration: OIDs, Template-Import, Host-Einrichtung, Trigger |
 | [docs/zabbix-template-sensormeter.yaml](docs/zabbix-template-sensormeter.yaml) | Fertiges Zabbix-Template (optional, zusätzlich zu SNMP v1) |
+| [docs/stromversorgung.md](docs/stromversorgung.md) | Strombudget pro Komponente/Gerät und Netzteilempfehlung |
 
 ## Firmware
 

@@ -13,7 +13,7 @@
 | Pull-up-Widerstand 4,7 kΩ | 1–4 | extern DHT22-Data (RJ45-Modulseite, Pin 5) → 3.3V; bei I2C-Modul zusätzlich SDA + SCL |
 | Pull-down-Widerstand 10 kΩ | 1 | IO12 (RJ45 Pin 8) beim Boot LOW halten (Boot-Strapping-Pin) |
 | Gehäuse / Grundplatte | 1 | 3D-gedruckt, siehe `grundplatte-v1-druckvorlage.png` (lokal, nicht im Repo) |
-| Netzteil 5V, ≥ 500 mA | 1 | über USB-Buchse (Typ B/C) |
+| Netzteil 5V, ≥ 1 A | 1 | über USB-Buchse (Typ B/C); Herleitung siehe `stromversorgung.md` |
 
 ## Werkzeug (einmalig, nicht pro Gerät)
 
