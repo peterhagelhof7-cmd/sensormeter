@@ -7,10 +7,14 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 
 [**One-Pager (PDF)**](docs/sensormeter-onepager.pdf) — kompakte Projektübersicht auf einer Seite.
 
-**Schwesterprojekt:** [Sensormeter Display](https://github.com/peterhagelhof7-cmd/sensormeter-display) —
+**Schwesterprojekte:**
+[Sensormeter Display](https://github.com/peterhagelhof7-cmd/sensormeter-display) —
 ESP32-Touchdisplay (HW-458B, P0–P8 vollständig inkl. Einstellungs-Webserver
 und lokalem OTA-Update), das u. a. diesen Sensormeter per SNMP abfragt und
-anzeigt.
+anzeigt. ·
+[Sensormeter WLAN](https://github.com/peterhagelhof7-cmd/sensormeter-wlan) —
+günstigere, WLAN-only Variante (generisches ESP32-DevKit, ein DHT22, kein
+Ethernet, kein Modulstecker); noch in der Doku-Phase, keine Firmware.
 
 ## Dokumentation
 
