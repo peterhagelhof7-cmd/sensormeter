@@ -9,4 +9,4 @@
 // Kompilierzeit feststehen muessen.
 // ============================================================================
 
-#define DEVICE_FIRMWARE_VERSION "0.1.0-p6"
+#define DEVICE_FIRMWARE_VERSION "0.1.0-p7"

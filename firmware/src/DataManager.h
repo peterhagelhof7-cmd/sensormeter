@@ -24,6 +24,10 @@ struct SensorReading {
 struct LogEntry {
   time_t timestamp = 0;
   String message;
+  int severity = 6;      // Syslog-Konvention: 3 = Error, 6 = Informational
+  unsigned long sequence = 0;  // fortlaufend, damit SyslogManager (P7) neue
+                                // Eintraege erkennen kann, ohne zu pollen
+                                // "welcher war der letzte Text"
 };
 
 class DataManager {
@@ -48,10 +52,15 @@ class DataManager {
   size_t getRingbuffer(HourValue* out, size_t maxCount);
 
   // Lokales Ereignisprotokoll (Lastenheft 5.3 "Syslog-Ansicht": letzte 5
-  // Meldungen). Wird von P7 zusaetzlich per UDP als echtes Syslog versendet -
-  // dieselbe Quelle fuer beides.
-  void pushLogEntry(const String& message);
+  // Meldungen). Wird von SyslogManager (P7) zusaetzlich per UDP versendet -
+  // dieselbe Quelle fuer beides. severity folgt der Syslog-Konvention
+  // (3 = Error, 6 = Informational).
+  void pushLogEntry(const String& message, int severity = 6);
   size_t getLogEntries(LogEntry* out, size_t maxCount);  // neueste zuerst
+
+  // Fuer SyslogManager: liefert nur Eintraege mit sequence > afterSequence
+  // (chronologisch), damit Fehler-Events nicht doppelt oder verpasst werden.
+  size_t getLogEntriesAfter(unsigned long afterSequence, LogEntry* out, size_t maxCount);
 
  private:
   SemaphoreHandle_t _mutex = nullptr;
@@ -67,4 +76,5 @@ class DataManager {
   LogEntry _log[LOG_CAPACITY];
   size_t _logCount = 0;
   size_t _logNextIndex = 0;
+  unsigned long _logSequenceCounter = 0;
 };

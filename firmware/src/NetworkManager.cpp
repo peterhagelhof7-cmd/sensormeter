@@ -139,7 +139,7 @@ void NetworkManager::loop() {
     if (networkOk()) {
       _data.setSystemState(SystemState::RUN_NORMAL);
     } else if (millis() - _networkCheckStartedMillis > NETWORK_CHECK_TIMEOUT_MS) {
-      _data.pushLogEntry("Netzwerk: kein Link nach 5 Minuten, wechsle auf Recovery-WLAN \"installer\"");
+      _data.pushLogEntry("Netzwerk: kein Link nach 5 Minuten, wechsle auf Recovery-WLAN \"installer\"", 3);
       WiFi.mode(WIFI_MODE_STA);
       WiFi.disconnect();
       WiFi.begin(FALLBACK_WLAN_SSID, FALLBACK_WLAN_PSK);
@@ -155,7 +155,7 @@ void NetworkManager::loop() {
       _lastFallbackJoinAttemptMillis = millis();
     }
   } else if (state == SystemState::RUN_NORMAL && !networkOk()) {
-    _data.pushLogEntry("Netzwerk: Verbindung verloren (LAN+WLAN down)");
+    _data.pushLogEntry("Netzwerk: Verbindung verloren (LAN+WLAN down)", 3);
     _inFallbackWlan = false;
     _data.setSystemState(SystemState::NETWORK_CHECK);
     _networkCheckStartedMillis = millis();

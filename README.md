@@ -23,7 +23,7 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 ## Firmware
 
 `firmware/` ist ein PlatformIO-Projekt (Board `esp32dev`, Framework Arduino).
-Aktueller Stand: **P6 — SNMP v1** (siehe
+Aktueller Stand: **P7 — Syslog, damit alle Phasen (P0–P7) umgesetzt** (siehe
 [docs/implementierungsplan.html](docs/implementierungsplan.html)).
 
 ```
@@ -34,8 +34,8 @@ pio run --target upload   # flashen (Board am Debug-Port angeschlossen, siehe fl
 pio device monitor   # seriellen Log ansehen (115200 Baud)
 ```
 
-Enthalten (P0–P6):
-- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`
+Enthalten (P0–P7, vollständig):
+- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`, `SyslogManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
 - Ethernet (DHCP oder statisch) + optional WLAN parallel, korrigierte Pinbelegung v1.2 zentral in `include/pins.h`
 - Fallback-WLAN `installer`/`installer`, wenn nach 5 Minuten kein Interface eine IP hat
@@ -47,9 +47,9 @@ Enthalten (P0–P6):
 - Webserver (async, Port 80): Hauptseite mit Chart.js-Graph und Syslog-Tabelle, `/values.csv`-Download, passwortgeschützte Einstellungsseite (Benutzername `admin`, Passwort aus der Config), REST-API (`/api/status`, `/api/sensors`, `/api/network`, `/api/logs`, `/api/config`), XML-Import/-Export, WLAN-Scan, Reboot
 - OTA-Update: nur per lokalem `.bin`-Upload auf der Einstellungsseite (kein GitHub-Versionscheck/-Direktinstall — HTTPS-Client hätte ~168 KB Flash gekostet, siehe `docs/entscheidungen.md`); daneben ein Link zu den GitHub-Releases zum manuellen Herunterladen
 - SNMP v1 (read-only, Port 161): feste OID-Struktur unter `.1.3.6.1.4.1.99999.x` (System, Netzwerk, Sensor 1/2, Systemstatus), Community konfigurierbar
+- Syslog (UDP Port 514): Statusreport bei jedem Sensorzyklus, Fehler-Events (Sensor/Netzwerk/NTP) sofort — deaktiviert, solange kein Syslog-Server konfiguriert ist
 
-Bewusst noch nicht enthalten (folgt in P7, siehe Implementierungsplan):
-Syslog (UDP-Versand der bereits vorhandenen Log-Einträge).
+Damit sind alle im [Implementierungsplan](docs/implementierungsplan.html) vorgesehenen Phasen umgesetzt. Offen bleibt der reale Betrieb auf Hardware (Flashen, Verkabelung nach `docs/verdrahtungsschema-v1.2.pdf` prüfen, längerer Testlauf).
 
 ## Stand der Verdrahtung
 

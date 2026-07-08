@@ -35,12 +35,12 @@ void SensorManager::readInternalSensor() {
   reading.lastReadMillis = millis();
 
   if (isnan(humidity) || isnan(temperature)) {
-    _data.pushLogEntry("Sensor intern: Fehler beim Lesen des DHT11");
+    _data.pushLogEntry("Sensor intern: Fehler beim Lesen des DHT11", 3);
     _data.setSensor1(reading);  // reading.valid bleibt false
     return;
   }
   if (!plausibleDht11(temperature, humidity)) {
-    _data.pushLogEntry("Sensor intern: unplausibler Wert verworfen");
+    _data.pushLogEntry("Sensor intern: unplausibler Wert verworfen", 3);
     _data.setSensor1(reading);
     return;
   }
@@ -76,12 +76,12 @@ void SensorManager::readExternalSensorIfEnabled() {
   reading.lastReadMillis = millis();
 
   if (isnan(humidity) || isnan(temperature)) {
-    _data.pushLogEntry("Sensor extern: Fehler beim Lesen des DHT22");
+    _data.pushLogEntry("Sensor extern: Fehler beim Lesen des DHT22", 3);
     _data.setSensor2(reading);
     return;
   }
   if (!plausibleDht22(temperature, humidity)) {
-    _data.pushLogEntry("Sensor extern: unplausibler Wert verworfen");
+    _data.pushLogEntry("Sensor extern: unplausibler Wert verworfen", 3);
     _data.setSensor2(reading);
     return;
   }

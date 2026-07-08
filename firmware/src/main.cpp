@@ -1,5 +1,5 @@
 // ============================================================================
-// Sensormeter (WT32-ETH01) - Phase P6: SNMP v1
+// Sensormeter (WT32-ETH01) - Phase P7: Syslog
 //
 // Verdrahtet alle Module. ConfigManager laedt/speichert config.xml auf
 // LittleFS; NetworkManager bringt Ethernet (DHCP/statisch) und optional
@@ -9,10 +9,12 @@
 // fuellt den stuendlichen Ringpuffer; DisplayManager zeigt Boot-Countdown
 // und rotierende Infoseiten; WebServerManager stellt Hauptseite,
 // Einstellungsseite, REST-API und lokalen OTA-Upload bereit (async, Port
-// 80); SNMPManager beantwortet SNMP-v1/v2c-GET-Anfragen read-only (Port 161).
+// 80); SNMPManager beantwortet SNMP-v1/v2c-GET-Anfragen read-only (Port
+// 161); SyslogManager sendet bei jedem Sensorzyklus einen Statusreport
+// sowie Fehler-Events sofort per UDP (Port 514).
 //
-// Was hier bewusst noch fehlt (siehe docs/implementierungsplan.html):
-//   P7 Syslog (UDP-Versand der bereits vorhandenen DataManager-Log-Eintraege)
+// Damit sind alle Phasen aus docs/implementierungsplan.html (P0-P7)
+// umgesetzt.
 // ============================================================================
 
 #include <Arduino.h>
@@ -25,6 +27,7 @@
 #include "SNMPManager.h"
 #include "SensorManager.h"
 #include "StorageManager.h"
+#include "SyslogManager.h"
 #include "SystemState.h"
 #include "TimeManager.h"
 #include "WebServerManager.h"
@@ -45,6 +48,7 @@ DisplayManager displayManager(dataManager, configManager, networkManager);
 OtaManager otaManager;
 WebServerManager webServerManager(dataManager, configManager, networkManager, otaManager);
 SNMPManager snmpManager(dataManager, configManager, networkManager);
+SyslogManager syslogManager(dataManager, configManager, networkManager);
 
 void setup() {
   Serial.begin(115200);
@@ -62,6 +66,7 @@ void setup() {
   timeManager.begin();
   sensorManager.begin();
   displayManager.begin();
+  syslogManager.begin();
 
   networkManager.begin();  // setzt Zustand auf INIT, dann NETWORK_CHECK
   webServerManager.begin();  // async - kein eigener loop()-Aufruf noetig
@@ -74,5 +79,6 @@ void loop() {
   sensorManager.loop();
   displayManager.loop();
   snmpManager.loop();
+  syslogManager.loop();
   delay(50);
 }

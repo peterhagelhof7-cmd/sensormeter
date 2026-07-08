@@ -70,10 +70,13 @@ size_t DataManager::getRingbuffer(HourValue* out, size_t maxCount) {
   return count;
 }
 
-void DataManager::pushLogEntry(const String& message) {
+void DataManager::pushLogEntry(const String& message, int severity) {
   xSemaphoreTake(_mutex, portMAX_DELAY);
+  _logSequenceCounter++;
   _log[_logNextIndex].timestamp = time(nullptr);
   _log[_logNextIndex].message = message;
+  _log[_logNextIndex].severity = severity;
+  _log[_logNextIndex].sequence = _logSequenceCounter;
   _logNextIndex = (_logNextIndex + 1) % LOG_CAPACITY;
   if (_logCount < LOG_CAPACITY) _logCount++;
   xSemaphoreGive(_mutex);
@@ -88,6 +91,22 @@ size_t DataManager::getLogEntries(LogEntry* out, size_t maxCount) {
   for (size_t i = 0; i < count; i++) {
     size_t index = (_logNextIndex + LOG_CAPACITY - 1 - i) % LOG_CAPACITY;
     out[i] = _log[index];
+  }
+  xSemaphoreGive(_mutex);
+  return count;
+}
+
+size_t DataManager::getLogEntriesAfter(unsigned long afterSequence, LogEntry* out, size_t maxCount) {
+  size_t count = 0;
+  xSemaphoreTake(_mutex, portMAX_DELAY);
+  size_t startIndex = (_logNextIndex + LOG_CAPACITY - _logCount) % LOG_CAPACITY;
+  // Chronologisch (aeltester zuerst) durchgehen, damit die Reihenfolge beim
+  // Versand erhalten bleibt.
+  for (size_t i = 0; i < _logCount && count < maxCount; i++) {
+    size_t index = (startIndex + i) % LOG_CAPACITY;
+    if (_log[index].sequence > afterSequence) {
+      out[count++] = _log[index];
+    }
   }
   xSemaphoreGive(_mutex);
   return count;

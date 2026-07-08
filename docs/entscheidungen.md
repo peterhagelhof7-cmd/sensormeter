@@ -3,6 +3,33 @@
 Kurzes Log für Design-/Scope-Entscheidungen inkl. Begründung, damit sie
 nachvollziehbar bleiben.
 
+## 2026-07-08 — Syslog-Designentscheidungen (P7)
+
+- **Fehler-Events laufen ueber dasselbe Ereignisprotokoll wie die
+  Webseiten-Tabelle** (`DataManager::pushLogEntry`), nicht ueber einen
+  separaten Mechanismus. Neu: ein `severity`-Feld (3 = Error, 6 =
+  Informational) und eine fortlaufende `sequence`-Nummer pro Eintrag,
+  damit `SyslogManager` per Polling (jeden Loop-Tick) zuverlaessig genau
+  die neuen Eintraege erkennt und versendet, ohne ein Observer-/
+  Callback-Pattern einzufuehren (die C-Funktionszeiger-Callbacks der
+  SNMP-Bibliothek in P6 haben schon gezeigt, dass so etwas hier eher
+  Komplexitaet als Nutzen bringt).
+- **Statusreport-Trigger folgt dem tatsaechlichen Sensorzyklus**, nicht
+  einem eigenen 60s-Timer: `SyslogManager::loop()` beobachtet
+  `DataManager::getSensor1().lastReadMillis` und sendet den Report, sobald
+  sich dieser Wert aendert. Das erfuellt "bei jedem Sensorzyklus"
+  (Pflichtenheft) exakt, ohne dass zwei unabhaengige 60s-Timer
+  auseinanderdriften koennten.
+- **Nachrichtenformat**: minimal an RFC 5424 angelehnter Rahmen (PRI +
+  Version + Platzhalter), der eigentliche Inhalt folgt dem in Lastenheft
+  Abschnitt 9 vorgegebenen Pipe-Format. ISO-Zeitstempel ueber
+  `strftime("%Y-%m-%dT%H:%M:%S%z")` - liefert `+0200` statt `+02:00` (ISO
+  8601 Basic-Format statt Extended-Format), fuer ein internes Monitoring-
+  Format ausreichend genau.
+- **Syslog-Versand komplett deaktiviert, wenn `syslogServer` auf `0.0.0.0`
+  steht** (Config-Default) - kein UDP-Traffic, solange niemand einen Server
+  eingetragen hat.
+
 ## 2026-07-08 — Zabbix-Template auf neue OIDs aktualisiert
 
 Der Prototyp-Template (`zabbix-template-wt32-eth01-dht11.yaml`, lokal, nicht

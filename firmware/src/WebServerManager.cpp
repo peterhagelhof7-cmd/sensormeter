@@ -431,7 +431,7 @@ void WebServerManager::handleApiConfigImportUpload(AsyncWebServerRequest* reques
       _config.save();
       _data.pushLogEntry("Konfiguration importiert (Reboot empfohlen)");
     } else {
-      _data.pushLogEntry("Konfigurationsimport fehlgeschlagen (ungueltiges XML)");
+      _data.pushLogEntry("Konfigurationsimport fehlgeschlagen (ungueltiges XML)", 3);
     }
   }
 }
@@ -500,6 +500,7 @@ void WebServerManager::begin() {
           delay(500);
           ESP.restart();
         } else {
+          _data.pushLogEntry("OTA (lokaler Upload) fehlgeschlagen", 3);
           r->send(500, "text/plain", "Update fehlgeschlagen");
         }
       },
