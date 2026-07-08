@@ -92,6 +92,7 @@ String WebServerManager::buildMainPageBody() const {
   html += "<div class=\"row\"><span>Systemtyp</span><span>" + cfg.systemType + "</span></div>";
   html += "<div class=\"row\"><span>Uptime</span><span>" + String(uptimeBuf) + "</span></div>";
   html += "<div class=\"row\"><span>Freier Heap</span><span>" + String(ESP.getFreeHeap() / 1024) + " kB</span></div>";
+  html += "<div class=\"row\"><span>Chip-Temperatur</span><span>" + String(temperatureRead(), 1) + " C</span></div>";
   html += "</div>";
 
   html += "<div class=\"block\"><h2>Netzwerk</h2>";
@@ -245,6 +246,7 @@ void WebServerManager::handleApiStatus(AsyncWebServerRequest* request) {
   doc["firmwareVersion"] = DEVICE_FIRMWARE_VERSION;
   doc["uptimeSeconds"] = (unsigned long)(esp_timer_get_time() / 1000000ULL);
   doc["freeHeap"] = ESP.getFreeHeap();
+  doc["chipTemperatureC"] = temperatureRead();
   doc["timeSynced"] = isTimeSynced();
   if (isTimeSynced()) doc["time"] = (unsigned long)time(nullptr);
 

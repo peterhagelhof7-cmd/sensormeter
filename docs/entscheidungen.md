@@ -3,6 +3,18 @@
 Kurzes Log für Design-/Scope-Entscheidungen inkl. Begründung, damit sie
 nachvollziehbar bleiben.
 
+## 2026-07-08 — ESP32-Chip-Temperatur auf der Hauptseite (nachtraeglich, ausserhalb Lastenheft)
+
+Auf Wunsch ergaenzt: `temperatureRead()` (Arduino-ESP32-Core) liest den
+internen Temperatursensor des ESP32-Chips aus, angezeigt im "System"-Block
+der Hauptseite und in `/api/status` als `chipTemperatureC`. Wichtiger
+Unterschied zu den DHT-Sensorwerten: Das ist die **Chip-/Die-Temperatur**
+(durch Eigenerwaermung der Elektronik typischerweise deutlich hoeher als die
+Umgebungstemperatur), keine kalibrierte Umgebungsmessung - laut
+Core-Kommentar sogar "undocumented". Rein informativ (z. B. um grobe
+Selbsterwaermung/thermische Probleme zu erkennen), kein Ersatz fuer die
+DHT11/DHT22-Werte.
+
 ## 2026-07-08 — Syslog-Designentscheidungen (P7)
 
 - **Fehler-Events laufen ueber dasselbe Ereignisprotokoll wie die

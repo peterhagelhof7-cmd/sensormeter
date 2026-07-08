@@ -44,7 +44,7 @@ Enthalten (P0–P7, vollständig):
 - `config.xml` auf LittleFS: Laden/Speichern mit Default-Fallback, XML-Import/-Export
 - DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer
 - OLED SSD1306 (I2C 0x3C): Boot-Screen mit Countdown, danach rotierende Seiten (Systemname/IPs/Uhrzeit/Sensorwerte/Status) im 10s-Takt
-- Webserver (async, Port 80): Hauptseite mit Chart.js-Graph und Syslog-Tabelle, `/values.csv`-Download, passwortgeschützte Einstellungsseite (Benutzername `admin`, Passwort aus der Config), REST-API (`/api/status`, `/api/sensors`, `/api/network`, `/api/logs`, `/api/config`), XML-Import/-Export, WLAN-Scan, Reboot
+- Webserver (async, Port 80): Hauptseite mit Chart.js-Graph, Syslog-Tabelle und ESP32-Chip-Temperatur, `/values.csv`-Download, passwortgeschützte Einstellungsseite (Benutzername `admin`, Passwort aus der Config), REST-API (`/api/status`, `/api/sensors`, `/api/network`, `/api/logs`, `/api/config`), XML-Import/-Export, WLAN-Scan, Reboot
 - OTA-Update: nur per lokalem `.bin`-Upload auf der Einstellungsseite (kein GitHub-Versionscheck/-Direktinstall — HTTPS-Client hätte ~168 KB Flash gekostet, siehe `docs/entscheidungen.md`); daneben ein Link zu den GitHub-Releases zum manuellen Herunterladen
 - SNMP v1 (read-only, Port 161): feste OID-Struktur unter `.1.3.6.1.4.1.99999.x` (System, Netzwerk, Sensor 1/2, Systemstatus), Community konfigurierbar
 - Syslog (UDP Port 514): Statusreport bei jedem Sensorzyklus, Fehler-Events (Sensor/Netzwerk/NTP) sofort — deaktiviert, solange kein Syslog-Server konfiguriert ist
