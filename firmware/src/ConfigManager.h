@@ -12,8 +12,8 @@
 //
 // <config>
 //   <network>
-//     <lan dhcp="true" ip="" mask="" gateway=""/>
-//     <wlan dhcp="true" ssid="" psk="" ip="" mask="" gateway=""/>
+//     <lan dhcp="true" ip="" mask="" gateway="" dns=""/>
+//     <wlan dhcp="true" ssid="" psk="" ip="" mask="" gateway="" dns=""/>
 //   </network>
 //   <system>
 //     <name>Sensormeter</name>
@@ -38,11 +38,13 @@ struct DeviceConfig {
   String lanIp;
   String lanMask;
   String lanGateway;
+  String lanDns;  // leer = Gateway als DNS verwenden (siehe NetworkManager::applyLanConfig)
 
   bool wlanDhcp = true;
   String wlanIp;
   String wlanMask;
   String wlanGateway;
+  String wlanDns;  // leer = Gateway als DNS verwenden (siehe NetworkManager::applyWlanConfig)
   String wlanSsid;
   String wlanPsk;
 

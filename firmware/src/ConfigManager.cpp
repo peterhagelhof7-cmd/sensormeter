@@ -83,6 +83,7 @@ bool ConfigManager::importXml(const String& xml) {
       cfg.lanIp = attrOrEmpty(lan, "ip");
       cfg.lanMask = attrOrEmpty(lan, "mask");
       cfg.lanGateway = attrOrEmpty(lan, "gateway");
+      cfg.lanDns = attrOrEmpty(lan, "dns");
     }
     const XMLElement* wlan = network->FirstChildElement("wlan");
     if (wlan) {
@@ -92,6 +93,7 @@ bool ConfigManager::importXml(const String& xml) {
       cfg.wlanIp = attrOrEmpty(wlan, "ip");
       cfg.wlanMask = attrOrEmpty(wlan, "mask");
       cfg.wlanGateway = attrOrEmpty(wlan, "gateway");
+      cfg.wlanDns = attrOrEmpty(wlan, "dns");
     }
   }
 
@@ -136,6 +138,7 @@ String ConfigManager::exportXml() const {
   lan->SetAttribute("ip", _config.lanIp.c_str());
   lan->SetAttribute("mask", _config.lanMask.c_str());
   lan->SetAttribute("gateway", _config.lanGateway.c_str());
+  lan->SetAttribute("dns", _config.lanDns.c_str());
   network->InsertEndChild(lan);
 
   XMLElement* wlan = doc.NewElement("wlan");
@@ -145,6 +148,7 @@ String ConfigManager::exportXml() const {
   wlan->SetAttribute("ip", _config.wlanIp.c_str());
   wlan->SetAttribute("mask", _config.wlanMask.c_str());
   wlan->SetAttribute("gateway", _config.wlanGateway.c_str());
+  wlan->SetAttribute("dns", _config.wlanDns.c_str());
   network->InsertEndChild(wlan);
 
   XMLElement* system = doc.NewElement("system");

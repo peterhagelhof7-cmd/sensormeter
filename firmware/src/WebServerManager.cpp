@@ -152,6 +152,7 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "<label>IP<input type=\"text\" name=\"lanIp\" value=\"" + cfg.lanIp + "\"></label>";
   html += "<label>Netzmaske<input type=\"text\" name=\"lanMask\" value=\"" + cfg.lanMask + "\"></label>";
   html += "<label>Gateway<input type=\"text\" name=\"lanGateway\" value=\"" + cfg.lanGateway + "\"></label>";
+  html += "<label>DNS-Server (leer = Gateway verwenden)<input type=\"text\" name=\"lanDns\" value=\"" + cfg.lanDns + "\"></label>";
   html += "</div>";
 
   html += "<div class=\"block\"><h2>WLAN</h2>";
@@ -162,6 +163,7 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "<label>IP<input type=\"text\" name=\"wlanIp\" value=\"" + cfg.wlanIp + "\"></label>";
   html += "<label>Netzmaske<input type=\"text\" name=\"wlanMask\" value=\"" + cfg.wlanMask + "\"></label>";
   html += "<label>Gateway<input type=\"text\" name=\"wlanGateway\" value=\"" + cfg.wlanGateway + "\"></label>";
+  html += "<label>DNS-Server (leer = Gateway verwenden)<input type=\"text\" name=\"wlanDns\" value=\"" + cfg.wlanDns + "\"></label>";
   html += "</div>";
 
   html += "<div class=\"block\"><h2>Sensoren</h2>";
@@ -359,11 +361,13 @@ void WebServerManager::handleApiConfigGet(AsyncWebServerRequest* request) {
   doc["lanIp"] = cfg.lanIp;
   doc["lanMask"] = cfg.lanMask;
   doc["lanGateway"] = cfg.lanGateway;
+  doc["lanDns"] = cfg.lanDns;
   doc["wlanDhcp"] = cfg.wlanDhcp;
   doc["wlanSsid"] = cfg.wlanSsid;
   doc["wlanIp"] = cfg.wlanIp;
   doc["wlanMask"] = cfg.wlanMask;
   doc["wlanGateway"] = cfg.wlanGateway;
+  doc["wlanDns"] = cfg.wlanDns;
   doc["sensor2Enabled"] = cfg.sensor2Enabled;
   doc["sensor2Name"] = cfg.sensor2Name;
   doc["syslogServer"] = cfg.syslogServer;
@@ -389,6 +393,7 @@ void WebServerManager::handleApiConfigPost(AsyncWebServerRequest* request) {
   if (request->hasParam("lanIp", true)) cfg.lanIp = request->getParam("lanIp", true)->value();
   if (request->hasParam("lanMask", true)) cfg.lanMask = request->getParam("lanMask", true)->value();
   if (request->hasParam("lanGateway", true)) cfg.lanGateway = request->getParam("lanGateway", true)->value();
+  if (request->hasParam("lanDns", true)) cfg.lanDns = request->getParam("lanDns", true)->value();
 
   cfg.wlanDhcp = request->hasParam("wlanDhcp", true);
   if (request->hasParam("wlanSsid", true)) cfg.wlanSsid = request->getParam("wlanSsid", true)->value();
@@ -396,6 +401,7 @@ void WebServerManager::handleApiConfigPost(AsyncWebServerRequest* request) {
   if (request->hasParam("wlanIp", true)) cfg.wlanIp = request->getParam("wlanIp", true)->value();
   if (request->hasParam("wlanMask", true)) cfg.wlanMask = request->getParam("wlanMask", true)->value();
   if (request->hasParam("wlanGateway", true)) cfg.wlanGateway = request->getParam("wlanGateway", true)->value();
+  if (request->hasParam("wlanDns", true)) cfg.wlanDns = request->getParam("wlanDns", true)->value();
 
   cfg.sensor2Enabled = request->hasParam("sensor2Enabled", true);
   if (request->hasParam("sensor2Name", true)) cfg.sensor2Name = request->getParam("sensor2Name", true)->value();

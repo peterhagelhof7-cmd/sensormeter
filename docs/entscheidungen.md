@@ -270,3 +270,25 @@ Pinout-Referenz, Implementierungsplan, Stückliste). Produktfotos,
 Datenblatt-PDF, Fritzing-/Visio-Dateien, 3D-Druckvorlagen,
 HTML-Diagramm-Exporte und das ESP32-Fachbuch bleiben lokal außerhalb des
 Repos.
+
+## 2026-07-09 — Gefixt: DNS-Server bei statischer LAN-/WLAN-IP fehlte komplett
+
+Beim analogen Fix im Sensormeter-WLAN-Projekt aufgefallen (dort zuerst durch
+eine Nutzerfrage entdeckt) und hier verifiziert: `NetworkManager::
+applyLanConfig()`/`applyWlanConfig()` riefen bisher nur `ETH.config(ip,
+gateway, mask)` bzw. `WiFi.config(ip, gateway, mask)` auf (3-Parameter-Form).
+Die tatsächliche Signatur ist `config(ip, gateway, subnet, dns1=0.0.0.0,
+dns2=0.0.0.0)`, und sowohl `ETH.cpp::config()` als auch
+`WiFiGeneric.cpp::set_esp_interface_dns()` setzen einen DNS-Server nur,
+wenn die übergebene Adresse ungleich `0.0.0.0` ist. Ohne explizite Angabe
+blieb bei statischer IP auf **beiden** Interfaces also gar kein DNS-Server
+konfiguriert - Hostnamensauflösung (z. B. für einen künftigen
+NTP-/HTTPS-Hostnamen) wäre fehlgeschlagen. Bei DHCP (Default) betrifft das
+nicht, da der DNS-Server automatisch vom Router mitkommt.
+
+**Fix:** Neue Konfigurationsfelder `lanDns`/`wlanDns` (Web-Formular,
+`ConfigManager`, XML-Schema `<lan dns="...">`/`<wlan dns="...">`) - bei
+leerem/ungültigem Wert wird jeweils das zugehörige Gateway als DNS-Server
+verwendet (funktioniert bei den meisten Routern), sonst der eingetragene
+Server. Beide Interfaces (LAN und WLAN) sind damit vollständig über die
+Weboberfläche konfigurierbar.

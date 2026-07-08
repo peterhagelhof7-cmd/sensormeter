@@ -66,14 +66,25 @@ void NetworkManager::onNetworkEvent(WiFiEvent_t event) {
   }
 }
 
+// ETH.config()/WiFi.config() setzen DNS NUR, wenn dns1/dns2 != 0.0.0.0 sind
+// (siehe WiFiGeneric.cpp::set_esp_interface_dns() bzw. ETH.cpp::config() -
+// beide pruefen "if(static_cast<uint32_t>(dns1) != 0)"). Ohne explizite
+// Angabe bliebe bei statischer IP sonst gar kein DNS-Server gesetzt und
+// z.B. eine spaetere Hostname-Aufloesung wuerde fehlschlagen. Leeres/
+// ungueltiges DNS-Feld -> Gateway als DNS verwenden (funktioniert bei den
+// meisten Routern).
 void NetworkManager::applyLanConfig() {
   const DeviceConfig& cfg = _config.getConfig();
   if (cfg.lanDhcp) return;  // Default nach ETH.begin() ist bereits DHCP
 
   IPAddress ip, mask, gateway;
   if (ip.fromString(cfg.lanIp) && mask.fromString(cfg.lanMask) && gateway.fromString(cfg.lanGateway)) {
-    ETH.config(ip, gateway, mask);
-    Serial.println("[NET] LAN: statische IP angewendet");
+    IPAddress dns;
+    if (cfg.lanDns.length() == 0 || !dns.fromString(cfg.lanDns)) {
+      dns = gateway;
+    }
+    ETH.config(ip, gateway, mask, dns);
+    Serial.println("[NET] LAN: statische IP angewendet (DNS: " + dns.toString() + ")");
   } else {
     Serial.println("[NET] LAN: statische IP konfiguriert, aber ungueltig -> bleibe bei DHCP");
   }
@@ -85,8 +96,12 @@ void NetworkManager::applyWlanConfig() {
 
   IPAddress ip, mask, gateway;
   if (ip.fromString(cfg.wlanIp) && mask.fromString(cfg.wlanMask) && gateway.fromString(cfg.wlanGateway)) {
-    WiFi.config(ip, gateway, mask);
-    Serial.println("[NET] WLAN: statische IP angewendet");
+    IPAddress dns;
+    if (cfg.wlanDns.length() == 0 || !dns.fromString(cfg.wlanDns)) {
+      dns = gateway;
+    }
+    WiFi.config(ip, gateway, mask, dns);
+    Serial.println("[NET] WLAN: statische IP angewendet (DNS: " + dns.toString() + ")");
   } else {
     Serial.println("[NET] WLAN: statische IP konfiguriert, aber ungueltig -> bleibe bei DHCP");
   }
