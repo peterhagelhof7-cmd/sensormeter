@@ -20,6 +20,7 @@ und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
 | [docs/ZABBIX.md](docs/ZABBIX.md) | Zabbix-Integration: OIDs, Template-Import, Host-Einrichtung, Trigger |
 | [docs/zabbix-template-sensormeter.yaml](docs/zabbix-template-sensormeter.yaml) | Fertiges Zabbix-Template (optional, zusätzlich zu SNMP v1) |
 | [docs/stromversorgung.md](docs/stromversorgung.md) | Strombudget pro Komponente/Gerät und Netzteilempfehlung |
+| [docs/systemlast.md](docs/systemlast.md) | CPU/RAM/Flash-Last je Phase (gemessen), REST-API-Heap-Last (simuliert), Zielwert-Abgleich gegen Pflichtenheft 8 |
 
 ## Firmware
 

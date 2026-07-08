@@ -138,11 +138,18 @@ void DisplayManager::loop() {
   bool booting = (state == SystemState::BOOT || state == SystemState::INIT || state == SystemState::NETWORK_CHECK);
 
   if (booting) {
-    if (millis() - _lastCountdownTickMillis >= COUNTDOWN_TICK_MS) {
+    // Nur bei Countdown-Aenderung neu zeichnen (1x/s), nicht bei jedem
+    // 50ms-Tick - ein volles I2C-Frame kostet ~20-25ms; bei jedem Tick
+    // waeren das bis zu ~40% CPU-Last allein fuers Display waehrend eines
+    // bis zu 5 Minuten langen NETWORK_CHECK (siehe docs/systemlast.md).
+    if (_lastCountdownTickMillis == 0) {
+      _lastCountdownTickMillis = millis();
+      drawBootScreen();
+    } else if (millis() - _lastCountdownTickMillis >= COUNTDOWN_TICK_MS) {
       _lastCountdownTickMillis = millis();
       if (_countdownValue > 0) _countdownValue--;
+      drawBootScreen();
     }
-    drawBootScreen();
     return;
   }
 

@@ -3,6 +3,18 @@
 Kurzes Log für Design-/Scope-Entscheidungen inkl. Begründung, damit sie
 nachvollziehbar bleiben.
 
+## 2026-07-08 — Systemlast-Analyse deckt Display-Ineffizienz auf, behoben
+
+Beim Aufstellen der Systemlast-Rechnung (`docs/systemlast.md`) fiel auf,
+dass `DisplayManager::loop()` den Boot-Countdown-Screen bei jedem
+50-ms-Tick neu gezeichnet hat statt nur bei tatsaechlicher
+Wertaenderung (1x/s) - bei ~20-25ms pro vollem I2C-Frame waeren das
+rechnerisch ~40-50% CPU-Last allein fuers Display waehrend der bis zu
+5 Minuten dauernden `NETWORK_CHECK`-Phase gewesen, nah am bzw. ueber dem
+Pflichtenheft-Zielwert "CPU load < 40%". Noch vor dem ersten
+Hardware-Test behoben: Neuzeichnen nur noch bei tatsaechlicher
+Countdown-Aenderung. Details/Rechnung siehe `docs/systemlast.md`.
+
 ## 2026-07-08 — ESP32-Chip-Temperatur auf der Hauptseite (nachtraeglich, ausserhalb Lastenheft)
 
 Auf Wunsch ergaenzt: `temperatureRead()` (Arduino-ESP32-Core) liest den
