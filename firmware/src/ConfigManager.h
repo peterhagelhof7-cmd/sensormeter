@@ -24,7 +24,8 @@
 //     <server>0.0.0.0</server>
 //   </syslog>
 //   <sensors>
-//     <sensor2 enabled="false" name="Extern"/>
+//     <sensor1 tempOffset="0.0" humOffset="0.0"/>
+//     <sensor2 enabled="false" name="Extern" tempOffset="0.0" humOffset="0.0"/>
 //   </sensors>
 //   <snmp community="public"/>
 // </config>
@@ -33,6 +34,16 @@ struct DeviceConfig {
   String systemName = "Sensormeter";
   String systemType = "Sensormeter";  // "Sensormeter" oder "Sensormeter PRO"
   String settingsPassword = "installer";
+
+  // Kalibrierkorrektur je Sensor (fester Grad-/Prozent-Versatz, positiv
+  // oder negativ) - falls ein Sensor systematisch von einem Referenzwert
+  // abweicht. Wird direkt in SensorManager auf den validierten Rohmesswert
+  // angewendet, damit Anzeige, SNMP UND Stundenwerte/CSV immer denselben,
+  // bereits korrigierten Wert sehen (siehe docs/entscheidungen.md).
+  float sensor1TempOffset = 0.0f;
+  float sensor1HumOffset = 0.0f;
+  float sensor2TempOffset = 0.0f;
+  float sensor2HumOffset = 0.0f;
 
   bool lanDhcp = true;
   String lanIp;

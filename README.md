@@ -46,7 +46,7 @@ Hardware getestet.
 
 `firmware/` ist ein PlatformIO-Projekt (Board `esp32dev`, Framework Arduino).
 
-**Version:** `0.9.0-rc1` (Beta) — Versionsschema siehe
+**Version:** `0.9.0-rc2` (Beta) — Versionsschema siehe
 [docs/entscheidungen.md](docs/entscheidungen.md#versionierung).
 
 Aktueller Stand: **P7 — Syslog, damit alle Phasen (P0–P7) umgesetzt** (siehe
@@ -76,9 +76,9 @@ Enthalten (P0–P7, vollständig):
 - NTP-Sync (`de.pool.ntp.org`, CET/CEST), 60s nach Boot, alle 5h, sofort nach Link-Up
 - NTP-Fehlerkette: 5 Min. ohne Sync + statische IP konfiguriert → DHCP-Test → nach 3 Min. Konfiguration wiederherstellen
 - `config.xml` auf LittleFS: Laden/Speichern mit Default-Fallback, XML-Import/-Export
-- DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer
+- DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer, je Sensor eine konfigurierbare Kalibrierkorrektur (°C/%, wirkt auf Anzeige, SNMP und CSV gleichermaßen)
 - OLED SSD1306 (I2C 0x3C): Boot-Screen mit Countdown, danach rotierende Seiten (Systemname/IPs/Uhrzeit/Sensorwerte/Status) im 10s-Takt
-- Webserver (async, Port 80): Hauptseite mit Chart.js-Graph, Syslog-Tabelle und ESP32-Chip-Temperatur, `/values.csv`-Download, passwortgeschützte Einstellungsseite (Benutzername `admin`, Passwort aus der Config), REST-API (`/api/status`, `/api/sensors`, `/api/network`, `/api/logs`, `/api/config`), XML-Import/-Export, WLAN-Scan, Reboot
+- Webserver (async, Port 80, Design an das Sensormeter-Display-Projekt angepasst): Hauptseite mit Chart.js-Graph, Syslog-Tabelle und ESP32-Chip-Temperatur, `/values.csv`-Download, passwortgeschützte Einstellungsseite (Benutzername `admin`, Passwort aus der Config) inkl. Sensor-Kalibrierkorrektur, REST-API (`/api/status`, `/api/sensors`, `/api/network`, `/api/logs`, `/api/config`), XML-Import/-Export, WLAN-Scan, Reboot
 - OTA-Update: nur per lokalem `.bin`-Upload auf der Einstellungsseite (kein GitHub-Versionscheck/-Direktinstall — HTTPS-Client hätte ~168 KB Flash gekostet, siehe `docs/entscheidungen.md`); daneben ein Link zu den GitHub-Releases zum manuellen Herunterladen
 - SNMP v1 (read-only, Port 161): feste OID-Struktur unter `.1.3.6.1.4.1.99999.x` (System, Netzwerk, Sensor 1/2, Systemstatus), Community konfigurierbar
 - Syslog (UDP Port 514): Statusreport bei jedem Sensorzyklus, Fehler-Events (Sensor/Netzwerk/NTP) sofort — deaktiviert, solange kein Syslog-Server konfiguriert ist

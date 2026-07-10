@@ -334,3 +334,64 @@ aktualisiert - offener Punkt für eine spätere Runde.
 **Noch nicht Teil dieser Änderung** (separates Thema, wie bei den beiden
 Schwesterprojekten): tatsächliche Git-Tags + GitHub-Releases mit
 `.bin`-Artefakt pro Version.
+
+## Kalibrierkorrektur je Sensor + Webdesign an Sensormeter Display angepasst
+
+Nutzerwunsch: fester Korrekturwert (°C/%, positiv oder negativ) für beide
+Sensoren, der auch die SNMP-gemeldeten Werte erfasst; zusätzlich das
+Webdesign an das inzwischen überarbeitete Sensormeter-Display-Projekt
+angleichen.
+
+### Korrektur direkt in SensorManager angewendet - wirkt automatisch auch auf SNMP
+`DeviceConfig` bekam vier neue Felder (`sensor1TempOffset`/`sensor1HumOffset`/
+`sensor2TempOffset`/`sensor2HumOffset`, persistiert im `<sensors>`-Element
+von `config.xml`). Die Korrektur wird in `SensorManager::readInternalSensor()`/
+`readExternalSensorIfEnabled()` NACH der Plausibilitätsprüfung auf den
+Rohmesswert angewendet, bevor `DataManager::setSensor1()/setSensor2()`
+aufgerufen wird. Da `SNMPManager::refreshValues()` denselben
+`DataManager::getSensor1()/getSensor2()` liest wie die Weboberfläche und die
+Stundenwerte-Aufzeichnung, propagiert die Korrektur automatisch überallhin -
+kein separater Eingriff in `SNMPManager` nötig (einziger Grund, warum das
+nicht reicht, wäre ein Wunsch nach einer vom lokalen Wert unabhängigen
+"SNMP-only"-Korrektur, der hier nicht vorliegt). Luftfeuchte wird nach der
+Korrektur auf [0, 100] geklemmt, Temperatur bewusst nicht.
+
+### Webdesign: kein Lastenheft-Konflikt, da 20pt/Schwarz-Weiß nur Stilentscheidung war
+Vor der Umstellung geprüft: das bisherige schwarz/weiße 20pt-Design (siehe
+"Webserver-Designentscheidungen (P5)" oben) ist in `lastenheft.txt`
+Abschnitt 5 nirgends als Anforderung festgehalten, nur die anzuzeigenden
+DATEN sind spezifiziert - kein Zielkonflikt. `buildPageShell()` wurde auf
+die Palette aus dem Sensormeter-Display-Projekt umgestellt (Navy-Banner
+`#0f1f3d`, Orange-Akzent `#c8622a`, warmes Creme `#f2f0e9` für
+Tabellenköpfe, Kartenrahmen `#e4e1d8`, Systemschriftart statt generischem
+`sans-serif`) - dabei bewusst NUR das CSS geändert, alle HTML-Klassennamen
+(`.block`/`.row`/`label`/...) unverändert gelassen, um keine der
+zahlreichen HTML-Bau-Stellen in `buildMainPageBody()`/`buildSettingsPageBody()`
+anfassen zu müssen. Chart.js-Linienfarben von hartcodiertem `red`/`blue`
+auf `#a63d2e`/`#2a5ba0` (dieselben Töne wie im Sensormeter-Display-Graph)
+geändert.
+
+Mit `pio run` gebaut (erfolgreich, Flash 80,7 % / 1.058.225 B, RAM 16,0 % /
+52.328 B). Nicht geflasht - kein WT32-ETH01-Board angeschlossen (nur das
+Sensormeter-Display-Board war über USB verfügbar).
+
+### Nachtrag: v0.9.0-rc2 + Doku aktualisiert
+
+Nach der Kalibrierkorrektur+Webdesign-Änderung oben: Version auf
+`0.9.0-rc2` (Beta) gesetzt (`config.h`/`config.h.example`, README).
+`lastenheft.txt` Abschnitt 6 ("Sensoren") um die neuen
+Kalibrierkorrektur-Felder ergänzt, Abschnitt 7 (SNMP) um den Hinweis, dass
+die gemeldeten Werte bereits korrigiert sind. `pflichtenheft.txt` Abschnitt
+5.2 korrigiert - dort stand noch "HTML + CSS (dark mode)", was seit der
+Umstellung auf die Sensormeter-Display-Palette nicht mehr stimmt.
+
+**Bewusst nicht angefasst:** `docs/sensormeter-onepager.pdf` hat kein
+eingechecktes HTML-Quelldokument im Repo (anders als beim
+Sensormeter-Display-Projekt, wo die HTML-Quelle aus der Git-Historie
+wiederherstellbar war) - dieser Nachpflege-Rückstand bestand schon vor
+dieser Änderung (siehe "Versionierung" oben) und wurde hier nicht
+nachgeholt, da eine Neuerstellung ohne Vorlage ein eigenständiges Vorhaben
+wäre, kein Teil dieser Doku-Aktualisierung.
+
+Mit `pio run` neu gebaut zur Verifikation nach den Doku-Änderungen (Code
+selbst unverändert seit dem letzten Build).

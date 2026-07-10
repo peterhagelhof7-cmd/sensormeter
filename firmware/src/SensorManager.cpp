@@ -45,6 +45,17 @@ void SensorManager::readInternalSensor() {
     return;
   }
 
+  // Kalibrierkorrektur erst NACH der Plausibilitaetspruefung auf den
+  // Rohmesswert anwenden - sie ist eine kleine Kalibrierkonstante, kein
+  // Mittel zur Fehlerkompensation, und soll den Garbage-Filter nicht
+  // verfaelschen. Wirkt dadurch auf Anzeige, SNMP und Stundenwerte/CSV
+  // gleichermassen, da alle denselben DataManager-Wert lesen.
+  const DeviceConfig& cfg = _config.getConfig();
+  temperature += cfg.sensor1TempOffset;
+  humidity += cfg.sensor1HumOffset;
+  if (humidity < 0.0f) humidity = 0.0f;
+  if (humidity > 100.0f) humidity = 100.0f;
+
   reading.temperature = temperature;
   reading.humidity = humidity;
   reading.valid = true;
@@ -67,7 +78,8 @@ void SensorManager::readInternalSensor() {
 }
 
 void SensorManager::readExternalSensorIfEnabled() {
-  if (!_config.getConfig().sensor2Enabled) return;
+  const DeviceConfig& cfg = _config.getConfig();
+  if (!cfg.sensor2Enabled) return;
 
   float humidity = dhtExternal.readHumidity();
   float temperature = dhtExternal.readTemperature();
@@ -85,6 +97,13 @@ void SensorManager::readExternalSensorIfEnabled() {
     _data.setSensor2(reading);
     return;
   }
+
+  // Siehe Kommentar in readInternalSensor() - Korrektur erst nach der
+  // Plausibilitaetspruefung auf den Rohmesswert.
+  temperature += cfg.sensor2TempOffset;
+  humidity += cfg.sensor2HumOffset;
+  if (humidity < 0.0f) humidity = 0.0f;
+  if (humidity > 100.0f) humidity = 100.0f;
 
   reading.temperature = temperature;
   reading.humidity = humidity;

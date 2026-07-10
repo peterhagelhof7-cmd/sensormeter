@@ -106,11 +106,18 @@ bool ConfigManager::importXml(const String& xml) {
 
   const XMLElement* sensors = root->FirstChildElement("sensors");
   if (sensors) {
+    const XMLElement* sensor1 = sensors->FirstChildElement("sensor1");
+    if (sensor1) {
+      cfg.sensor1TempOffset = sensor1->FloatAttribute("tempOffset", cfg.sensor1TempOffset);
+      cfg.sensor1HumOffset = sensor1->FloatAttribute("humOffset", cfg.sensor1HumOffset);
+    }
     const XMLElement* sensor2 = sensors->FirstChildElement("sensor2");
     if (sensor2) {
       cfg.sensor2Enabled = parseBool(sensor2->Attribute("enabled"), cfg.sensor2Enabled);
       String name = attrOrEmpty(sensor2, "name");
       if (name.length() > 0) cfg.sensor2Name = name;
+      cfg.sensor2TempOffset = sensor2->FloatAttribute("tempOffset", cfg.sensor2TempOffset);
+      cfg.sensor2HumOffset = sensor2->FloatAttribute("humOffset", cfg.sensor2HumOffset);
     }
   }
 
@@ -171,9 +178,15 @@ String ConfigManager::exportXml() const {
 
   XMLElement* sensors = doc.NewElement("sensors");
   root->InsertEndChild(sensors);
+  XMLElement* sensor1 = doc.NewElement("sensor1");
+  sensor1->SetAttribute("tempOffset", _config.sensor1TempOffset);
+  sensor1->SetAttribute("humOffset", _config.sensor1HumOffset);
+  sensors->InsertEndChild(sensor1);
   XMLElement* sensor2 = doc.NewElement("sensor2");
   sensor2->SetAttribute("enabled", _config.sensor2Enabled ? "true" : "false");
   sensor2->SetAttribute("name", _config.sensor2Name.c_str());
+  sensor2->SetAttribute("tempOffset", _config.sensor2TempOffset);
+  sensor2->SetAttribute("humOffset", _config.sensor2HumOffset);
   sensors->InsertEndChild(sensor2);
 
   XMLElement* snmp = doc.NewElement("snmp");
