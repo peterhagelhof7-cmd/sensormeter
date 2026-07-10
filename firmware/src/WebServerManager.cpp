@@ -2,6 +2,7 @@
 
 #include <ArduinoJson.h>
 #include <ESP32Ping.h>
+#include <ETH.h>
 #include <LittleFS.h>
 #include <Update.h>
 #include <esp_timer.h>
@@ -42,6 +43,21 @@ String formatCalibratedTs(uint32_t ts) {
   char buf[20];
   snprintf(buf, sizeof(buf), "%02d.%02d.%04d %02d:%02d", tmv.tm_mday, tmv.tm_mon + 1, tmv.tm_year + 1900,
            tmv.tm_hour, tmv.tm_min);
+  return String(buf);
+}
+
+// ISO 8601 (YYYY-MM-DD HH:MM:SS) fuer den CSV-Export (handleValuesCsv) -
+// bewusst ein anderes Format als formatCalibratedTs() oben (das fuer die
+// Web-UI gedacht ist): Tabellenkalkulationen erkennen und sortieren ISO
+// 8601 zuverlaessig als Datum, ein roher Unix-Timestamp oder das deutsche
+// TT.MM.JJJJ-Format dagegen nicht ohne manuelle Spaltenumwandlung.
+String formatCsvTimestamp(uint32_t ts) {
+  time_t t = static_cast<time_t>(ts);
+  struct tm tmv;
+  localtime_r(&t, &tmv);
+  char buf[20];
+  snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d", tmv.tm_year + 1900, tmv.tm_mon + 1, tmv.tm_mday,
+           tmv.tm_hour, tmv.tm_min, tmv.tm_sec);
   return String(buf);
 }
 }  // namespace
@@ -192,15 +208,24 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "</div>";
 
   html += "<div class=\"block\"><h2>LAN</h2>";
-  html += "<label><input type=\"checkbox\" name=\"lanDhcp\" " + String(cfg.lanDhcp ? "checked" : "") + "> DHCP</label>";
-  html += "<label>IP<input type=\"text\" name=\"lanIp\" value=\"" + cfg.lanIp + "\"></label>";
-  html += "<label>Netzmaske<input type=\"text\" name=\"lanMask\" value=\"" + cfg.lanMask + "\"></label>";
-  html += "<label>Gateway<input type=\"text\" name=\"lanGateway\" value=\"" + cfg.lanGateway + "\"></label>";
-  html += "<label>DNS-Server (leer = Gateway verwenden)<input type=\"text\" name=\"lanDns\" value=\"" + cfg.lanDns + "\"></label>";
+  html += "<label><input type=\"checkbox\" name=\"lanDhcp\" id=\"lanDhcp\" " +
+          String(cfg.lanDhcp ? "checked" : "") + "> DHCP</label>";
+  html += "<label>IP<input type=\"text\" name=\"lanIp\" id=\"lanIp\" value=\"" + cfg.lanIp + "\"></label>";
+  html += "<label>Netzmaske<input type=\"text\" name=\"lanMask\" id=\"lanMask\" value=\"" + cfg.lanMask + "\"></label>";
+  html += "<label>Gateway<input type=\"text\" name=\"lanGateway\" id=\"lanGateway\" value=\"" + cfg.lanGateway + "\"></label>";
+  html += "<label>DNS-Server (leer = Gateway verwenden)<input type=\"text\" name=\"lanDns\" id=\"lanDns\" value=\"" +
+          cfg.lanDns + "\"></label>";
+  html += "<button type=\"button\" onclick=\"applyNetwork('lan')\">IP-Einstellungen uebernehmen &amp; neu "
+          "starten</button> <span id=\"lanApplyStatus\"></span>";
+  html += "<p class=\"hint\">Prueft vor der Uebernahme, ob die Verbindung tatsaechlich moeglich ist - bei "
+          "statischer IP per Ping (Adresse darf nicht bereits belegt sein), bei DHCP durch einen echten "
+          "Verbindungsversuch (nur bei erhaltener Lease wird uebernommen). Erst bei Erfolg werden die "
+          "Netzwerkfelder gespeichert und das Geraet neu gestartet.</p>";
   html += "</div>";
 
   html += "<div class=\"block\"><h2>WLAN</h2>";
-  html += "<label><input type=\"checkbox\" name=\"wlanDhcp\" " + String(cfg.wlanDhcp ? "checked" : "") + "> DHCP</label>";
+  html += "<label><input type=\"checkbox\" name=\"wlanDhcp\" id=\"wlanDhcp\" " +
+          String(cfg.wlanDhcp ? "checked" : "") + "> DHCP</label>";
   html += "<label>SSID<input type=\"text\" name=\"wlanSsid\" id=\"wlanSsid\" value=\"" + cfg.wlanSsid + "\"></label>";
   html += "<button type=\"button\" onclick=\"scanWifi()\">SSIDs suchen (bis 20s)</button><div id=\"scanResult\"></div>";
   html += "<label>PSK<input type=\"password\" name=\"wlanPsk\" id=\"wlanPsk\" value=\"" + cfg.wlanPsk + "\"></label>";
@@ -209,10 +234,17 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "<p class=\"hint\">Speichert nur SSID/PSK, startet sofort neu und probiert die Verbindung fuer 30s - "
           "gelingt es nicht (und ist auch kein LAN-Kabel gesteckt), faellt das Geraet automatisch zurueck auf den "
           "eigenen Access-Point \"installer\".</p>";
-  html += "<label>IP<input type=\"text\" name=\"wlanIp\" value=\"" + cfg.wlanIp + "\"></label>";
-  html += "<label>Netzmaske<input type=\"text\" name=\"wlanMask\" value=\"" + cfg.wlanMask + "\"></label>";
-  html += "<label>Gateway<input type=\"text\" name=\"wlanGateway\" value=\"" + cfg.wlanGateway + "\"></label>";
-  html += "<label>DNS-Server (leer = Gateway verwenden)<input type=\"text\" name=\"wlanDns\" value=\"" + cfg.wlanDns + "\"></label>";
+  html += "<label>IP<input type=\"text\" name=\"wlanIp\" id=\"wlanIp\" value=\"" + cfg.wlanIp + "\"></label>";
+  html += "<label>Netzmaske<input type=\"text\" name=\"wlanMask\" id=\"wlanMask\" value=\"" + cfg.wlanMask + "\"></label>";
+  html += "<label>Gateway<input type=\"text\" name=\"wlanGateway\" id=\"wlanGateway\" value=\"" + cfg.wlanGateway + "\"></label>";
+  html += "<label>DNS-Server (leer = Gateway verwenden)<input type=\"text\" name=\"wlanDns\" id=\"wlanDns\" value=\"" +
+          cfg.wlanDns + "\"></label>";
+  html += "<button type=\"button\" onclick=\"applyNetwork('wlan')\">IP-Einstellungen uebernehmen &amp; neu "
+          "starten</button> <span id=\"wlanApplyStatus\"></span>";
+  html += "<p class=\"hint\">Prueft vor der Uebernahme, ob die Verbindung tatsaechlich moeglich ist - bei "
+          "statischer IP per Ping (Adresse darf nicht bereits belegt sein), bei DHCP durch einen echten "
+          "Verbindungsversuch (nur bei erhaltener Lease wird uebernommen). Erst bei Erfolg werden die "
+          "Netzwerkfelder gespeichert und das Geraet neu gestartet.</p>";
   html += "</div>";
 
   html += "<div class=\"block\"><h2>Sensoren</h2>";
@@ -289,6 +321,16 @@ String WebServerManager::buildSettingsPageBody() const {
           "wlanPsk:document.getElementById('wlanPsk').value});"
           "document.getElementById('connectStatus').innerText='Verbinde, Geraet startet neu...';"
           "fetch('/api/wifi/connect',{method:'POST',body});}";
+  html += "function applyNetwork(iface){"
+          "const p=iface;"
+          "const body=new URLSearchParams({iface:iface,"
+          "dhcp:document.getElementById(p+'Dhcp').checked?'1':'0',"
+          "ip:document.getElementById(p+'Ip').value,mask:document.getElementById(p+'Mask').value,"
+          "gateway:document.getElementById(p+'Gateway').value,dns:document.getElementById(p+'Dns').value});"
+          "const status=document.getElementById(p+'ApplyStatus');"
+          "status.innerText='Pruefe Erreichbarkeit (bis zu 8s)...';"
+          "fetch('/api/network/apply',{method:'POST',body}).then(r=>r.text()).then(t=>{status.innerText=t;})"
+          ".catch(()=>{status.innerText='Fehler bei der Anfrage.';});}";
   html += "</script>";
 
   return html;
@@ -312,7 +354,7 @@ void WebServerManager::handleValuesCsv(AsyncWebServerRequest* request) {
 
   String csv = "timestamp,temperature,humidity\n";
   for (size_t i = 0; i < count; i++) {
-    csv += String((unsigned long)buffer[i].timestamp) + "," + String(buffer[i].temperature, 1) + "," +
+    csv += formatCsvTimestamp(buffer[i].timestamp) + "," + String(buffer[i].temperature, 1) + "," +
            String(buffer[i].humidity, 1) + "\n";
   }
 
@@ -667,6 +709,111 @@ void WebServerManager::handleApiFactoryReset(AsyncWebServerRequest* request) {
   ESP.restart();
 }
 
+void WebServerManager::handleApiNetworkApply(AsyncWebServerRequest* request) {
+  if (!checkAuth(request)) return;
+
+  // Bibliotheks-/ESP-IDF-Standardwert fuer die Wartezeit auf eine DHCP-
+  // Lease. Laenger als der 1s-Ping-Timeout, da eine vollstaendige
+  // DHCP-Verhandlung (Discover/Offer/Request/Ack) mehr Umlaeufe braucht -
+  // noch nicht auf echter Hardware verifiziert, ob das den Async-Webserver-
+  // Handler zu lange blockiert (siehe die WiFi.scanNetworks()-Erfahrung,
+  // docs/entscheidungen.md) - bei Auffaelligkeiten (Reboot waehrend des
+  // Tests) hier zuerst nachsehen.
+  static const unsigned long DHCP_TEST_TIMEOUT_MS = 8000;
+
+  String iface = request->hasParam("iface", true) ? request->getParam("iface", true)->value() : "";
+  if (iface != "lan" && iface != "wlan") {
+    request->send(400, "text/plain", "Unbekanntes Interface.");
+    return;
+  }
+  bool isLan = (iface == "lan");
+
+  bool dhcp = request->hasParam("dhcp", true) && request->getParam("dhcp", true)->value() == "1";
+  DeviceConfig cfg = _config.getConfig();
+
+  if (dhcp) {
+    // Live-Test auf der bestehenden Verbindung: ETH.config()/WiFi.config()
+    // mit Nulladressen erzwingt einen neuen DHCP-Lauf, OHNE das Interface zu
+    // trennen (reiner L3-Vorgang, dasselbe Muster wie
+    // NetworkManager::beginDhcpFallbackTest()). Erst bei tatsaechlich
+    // erhaltener Lease (IP != 0.0.0.0) gilt der Test als erfolgreich.
+    IPAddress zero(0, 0, 0, 0);
+    IPAddress gotIp;
+    if (isLan) {
+      ETH.config(zero, zero, zero);
+    } else {
+      WiFi.config(zero, zero, zero);
+    }
+    unsigned long start = millis();
+    bool gotLease = false;
+    while (millis() - start < DHCP_TEST_TIMEOUT_MS) {
+      gotIp = isLan ? ETH.localIP() : WiFi.localIP();
+      if (gotIp != zero) {
+        gotLease = true;
+        break;
+      }
+      delay(100);
+    }
+    if (!gotLease) {
+      // Zuletzt gespeicherte Konfiguration auf BEIDEN Interfaces live
+      // wiederherstellen (No-Op fuer das jeweils andere, DHCP-konfigurierte
+      // Interface), damit die laufende Verbindung (inkl. dieser HTTP-
+      // Antwort) nicht im DHCP-Test-Zwischenzustand haengen bleibt.
+      _network.restoreConfiguredAddresses();
+      String label = isLan ? "LAN" : "WLAN";
+      _data.pushLogEntry(label + ": kein DHCP-Lease erhalten - Einstellungen NICHT uebernommen.", 3);
+      request->send(409, "text/plain",
+                     "Kein DHCP-Server im Netz gefunden (keine Lease erhalten) - Einstellungen NICHT "
+                     "uebernommen.");
+      return;
+    }
+    if (isLan) {
+      cfg.lanDhcp = true;
+    } else {
+      cfg.wlanDhcp = true;
+    }
+  } else {
+    IPAddress newIp;
+    if (!request->hasParam("ip", true) || !newIp.fromString(request->getParam("ip", true)->value())) {
+      request->send(400, "text/plain", "Ungueltige IP-Adresse.");
+      return;
+    }
+    IPAddress activeIp = isLan ? _network.getLanIp() : _network.getWlanIp();
+    if (newIp != activeIp && ipRespondsToPing(newIp)) {
+      String label = isLan ? "LAN" : "WLAN";
+      _data.pushLogEntry(label + "-IP " + newIp.toString() + " ist bereits belegt - Einstellungen NICHT "
+                          "uebernommen.", 3);
+      request->send(409, "text/plain",
+                     "IP " + newIp.toString() +
+                         " ist bereits belegt (ein Geraet antwortet auf Ping) - Einstellungen NICHT uebernommen.");
+      return;
+    }
+    String mask = request->hasParam("mask", true) ? request->getParam("mask", true)->value() : "";
+    String gateway = request->hasParam("gateway", true) ? request->getParam("gateway", true)->value() : "";
+    String dns = request->hasParam("dns", true) ? request->getParam("dns", true)->value() : "";
+    if (isLan) {
+      cfg.lanDhcp = false;
+      cfg.lanIp = newIp.toString();
+      cfg.lanMask = mask;
+      cfg.lanGateway = gateway;
+      cfg.lanDns = dns;
+    } else {
+      cfg.wlanDhcp = false;
+      cfg.wlanIp = newIp.toString();
+      cfg.wlanMask = mask;
+      cfg.wlanGateway = gateway;
+      cfg.wlanDns = dns;
+    }
+  }
+
+  _config.setConfig(cfg);
+  _data.pushLogEntry((isLan ? String("LAN") : String("WLAN")) +
+                      "-Netzwerkeinstellungen geprueft und uebernommen, starte neu");
+  request->send(200, "text/plain", "Geprueft und uebernommen, Geraet startet neu ...");
+  delay(500);
+  ESP.restart();
+}
+
 // ----------------------------------------------------------------------------
 void WebServerManager::begin() {
   _server.on("/", HTTP_GET, [this](AsyncWebServerRequest* r) { handleRoot(r); });
@@ -696,6 +843,7 @@ void WebServerManager::begin() {
   _server.on("/api/wifi/scan", HTTP_GET, [this](AsyncWebServerRequest* r) { handleApiWifiScan(r); });
   _server.on("/api/wifi/connect", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiWifiConnect(r); });
   _server.on("/api/factory-reset", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiFactoryReset(r); });
+  _server.on("/api/network/apply", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiNetworkApply(r); });
 
   _server.on(
       "/api/ota/upload", HTTP_POST,

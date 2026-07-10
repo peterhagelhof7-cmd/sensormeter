@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Sensormeter — Admin-Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1c2430;
+    background: #ffffff;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .cover {
+    background: #0f1f3d;
+    color: #fff;
+    margin: -18mm -16mm 12mm -16mm;
+    padding: 30mm 16mm 16mm 16mm;
+  }
+  .cover .eyebrow { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #9fb3d9; margin-bottom: 6mm; }
+  .cover h1 { margin: 0 0 4mm 0; font-size: 30px; }
+  .cover .subtitle { color: #cdd8ec; font-size: 13px; max-width: 130mm; }
+  .cover .badges { margin-top: 8mm; display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 3px; font-size: 10px; font-weight: 600; background: #24365c; color: #cdd8ec; }
+  .badge-orange { background: #c8622a; color: #fff; }
+
+  h1.section { font-size: 18px; color: #0f1f3d; border-bottom: 2px solid #c8622a; padding-bottom: 2mm; margin: 14mm 0 5mm 0; page-break-after: avoid; break-after: avoid; }
+  h1.section .num { color: #c8622a; margin-right: 2mm; }
+  h2 { font-size: 13.5px; color: #8f4a1e; margin: 6mm 0 2mm 0; page-break-after: avoid; break-after: avoid; }
+  h3 { font-size: 12px; color: #1c2430; margin: 4mm 0 1.5mm 0; page-break-after: avoid; break-after: avoid; }
+  p { margin: 0 0 3mm 0; }
+  ul, ol { margin: 0 0 3mm 0; padding-left: 5mm; }
+  li { margin-bottom: 1.2mm; }
+  code, .code {
+    font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+    background: #f2f0e9;
+    border: 1px solid #e4e1d8;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 11px;
+    word-break: break-all;
+  }
+  pre.code-block {
+    font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+    background: #f2f0e9;
+    color: #1c2430;
+    border: 1px solid #c7c2b4;
+    border-left: 3px solid #8f4a1e;
+    border-radius: 0 4px 4px 0;
+    padding: 3mm 4mm;
+    font-size: 11px;
+    line-height: 1.6;
+    margin: 2mm 0 4mm 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .callout {
+    border-left: 3px solid #c8622a;
+    background: #fbf3ee;
+    padding: 3mm 4mm;
+    margin: 3mm 0;
+    border-radius: 0 3px 3px 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .callout.warn { border-left-color: #a63d2e; background: #fbeeec; }
+  .callout.warn .callout-title { color: #a63d2e; }
+  .callout-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #8f4a1e; margin-bottom: 1mm; }
+  table { border-collapse: collapse; width: 100%; margin: 2mm 0 4mm 0; page-break-inside: avoid; break-inside: avoid; }
+  table th, table td { border: 1px solid #e4e1d8; padding: 1.5mm 2.5mm; font-size: 11px; text-align: left; vertical-align: top; }
+  table th { background: #f2f0e9; }
+
+  /* Generischer Wrapper, um eine Ueberschrift + ihren direkt folgenden
+     Absatz/ihre Tabelle als Einheit zusammenzuhalten. */
+  .keep { page-break-inside: avoid; break-inside: avoid; }
+
+  /* --- OLED sketches --- */
+  .sketch-wrap { display: flex; gap: 6mm; align-items: flex-start; margin: 3mm 0 5mm 0; page-break-inside: avoid; break-inside: avoid; }
+  .sketch-wrap.stack { flex-direction: column; }
+  .sketch-notes { flex: 1; font-size: 11px; }
+  .sketch-notes ul { padding-left: 4mm; }
+  .device {
+    flex-shrink: 0;
+    width: 60mm;
+    background: #2b2f36;
+    border-radius: 3mm;
+    padding: 4mm 3mm;
+  }
+  .device .screen {
+    position: relative;
+    width: 100%;
+    height: 27mm;
+    background: #05070a;
+    overflow: hidden;
+    font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+  }
+  .device .screen .oled-text {
+    position: absolute;
+    left: 0; right: 0;
+    text-align: center;
+    color: #7fd8ff;
+    text-shadow: 0 0 1.2px #7fd8ff;
+  }
+
+  /* --- Board-Skizze (WT32-ETH01-Umriss) --- */
+  .board-wrap { display: flex; gap: 6mm; align-items: flex-start; margin: 3mm 0 5mm 0; page-break-inside: avoid; break-inside: avoid; }
+  .board {
+    position: relative;
+    width: 46mm; height: 70mm;
+    background: #1f4a6b;
+    border: 0.4mm solid #123047;
+    border-radius: 2mm;
+    flex-shrink: 0;
+  }
+  .board .module {
+    position: absolute; top: 6mm; left: 6mm;
+    width: 34mm; height: 22mm;
+    background: #8a8f98; border: 0.3mm solid #5c6068; border-radius: 1mm;
+  }
+  .board .module-label {
+    position: absolute; top: 14mm; left: 9mm;
+    font-size: 6.5px; color: #24272b; font-family: Consolas, "Cascadia Mono", monospace;
+  }
+  .board .rj45 {
+    position: absolute; top: 30mm; left: 6mm;
+    width: 16mm; height: 12mm;
+    background: #2b2f36; border: 0.3mm solid #0d0f11; border-radius: 0.6mm;
+  }
+  .board .rj45-label {
+    position: absolute; top: 43mm; left: 6mm; width: 16mm; text-align: center;
+    font-size: 6.5px; color: #cdd8ec;
+  }
+  .board .header-left, .board .header-right {
+    position: absolute; top: 6mm; width: 2mm; height: 58mm;
+    background: repeating-linear-gradient(to bottom, #d8b23a 0, #d8b23a 1.6mm, transparent 1.6mm, transparent 3.4mm);
+  }
+  .board .header-left { left: -2mm; }
+  .board .header-right { right: -2mm; }
+  .board .db-label {
+    position: absolute; top: 30mm; right: 2mm; width: 16mm; text-align: right;
+    font-size: 6.5px; color: #cdd8ec;
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="eyebrow">Firmware-Projekt · Hobby / Privat</div>
+  <h1>SENSORMETER</h1>
+  <div class="subtitle">Admin-Guide — Inbetriebnahme, OLED-Anzeige und Konfiguration über die Weboberfläche</div>
+  <div class="badges">
+    <span class="badge badge-orange">v0.9.0-rc2 · Beta</span>
+    <span class="badge">WT32-ETH01 · LAN + optional WLAN</span>
+    <span class="badge">DHT11/DHT22 · OLED · Webserver · SNMP · Syslog · OTA</span>
+    <span class="badge">github.com/peterhagelhof7-cmd/sensormeter</span>
+  </div>
+</div>
+
+<div class="toc">
+  <div class="toc-row"><a href="#sec1">1. Erste Inbetriebnahme (Auspacken, Verkabeln, Flashen)</a></div>
+  <div class="toc-row"><a href="#sec2">2. Erststart am Gerät (Netzwerk-Ersteinrichtung)</a></div>
+  <div class="toc-row"><a href="#sec3">3. OLED-Anzeige</a></div>
+  <div class="toc-row"><a href="#sec4">4. Konfiguration über die Weboberfläche</a></div>
+  <div class="toc-row"><a href="#sec5">5. Firmware-Updates</a></div>
+  <div class="toc-row"><a href="#sec6">6. SNMP &amp; Syslog (für Netzwerk-Admins)</a></div>
+  <div class="toc-row"><a href="#sec7">7. Konfigurations- und Datenexport (config.xml / values.csv)</a></div>
+  <div class="toc-row"><a href="#sec-anhang">Anhang: Troubleshooting</a></div>
+</div>
+
+<!-- ============================================================ -->
+<h1 class="section" id="sec1"><span class="num">1</span>Erste Inbetriebnahme</h1>
+
+<h2>1.1 Auspacken &amp; Hardware-Übersicht</h2>
+<p>Das Gerät basiert auf dem <b>WT32-ETH01</b>-Modul (ESP32 + integrierter
+LAN8720-Ethernet-PHY), ergänzt um einen internen <b>DHT11</b>-Sensor, ein
+<b>OLED-Display SSD1306</b> (0,96", 128×64, I2C auf IO32/IO33) und einen
+RJ45-Modularanschluss für einen optionalen zweiten Sensor
+(<b>DHT22</b>, „Sensormeter PRO"). Genaues Anschlussschema:
+<span class="code">docs/verdrahtungsschema-v1.2.pdf</span>.</p>
+
+<div class="board-wrap">
+  <div class="board">
+    <div class="header-left"></div>
+    <div class="header-right"></div>
+    <div class="module"></div>
+    <div class="module-label">WT32-ETH01</div>
+    <div class="rj45"></div>
+    <div class="rj45-label">RJ45</div>
+    <div class="db-label">Debug-<br>Burning</div>
+  </div>
+  <div class="sketch-notes">
+    <p><b>Anders als die beiden Geschwisterprojekte</b> (generisches
+    ESP32-DevKit mit USB-C, bzw. HW-458B-Touchdisplay) hat das WT32-ETH01
+    <b>kein Onboard-USB</b> — geflasht wird über die separate
+    <b>Debug-Burning-Schnittstelle</b> (EN, GND, 3V3, TXD0/IO1, RXD0/IO3,
+    IO0) mit einem externen 3,3V-USB-Seriell-Adapter, nicht über die
+    RJ45-Buchse. Ohne DTR/RTS-fähigen Adapter müssen EN und IO0 manuell
+    über Taster/Jumper geschaltet werden (siehe
+    <span class="code">docs/flash-vorbereitung.pdf</span> für die
+    vollständige Schritt-für-Schritt-Anleitung inkl. Verkabelungstabelle).</p>
+  </div>
+</div>
+
+<div class="callout warn">
+  <div class="callout-title">Debug-Burning-Schnittstelle ≠ RJ45-Modularanschluss</div>
+  Für das Flashen wird ausschließlich die Debug-Burning-Schnittstelle des
+  Moduls verwendet — <b>nicht</b> die RXD/TXD-Pins des RJ45-Anschlusses
+  (die sind für den optionalen zweiten Sensor reserviert). Beide
+  Schnittstellen sind unterschiedlich verdrahtet und dürfen nicht
+  verwechselt werden.
+</div>
+
+<h2>1.2 Flash-Bereitschaft herstellen</h2>
+<p>Kompakt zusammengefasst (vollständige Anleitung mit Fotos/Tabellen:
+<span class="code">docs/flash-vorbereitung.pdf</span>):</p>
+<ol>
+  <li>USB-Seriell-Adapter (CH340/CP2102, 3,3V-Logikpegel) an die
+  Debug-Burning-Schnittstelle anschließen: GND↔GND, Adapter-TX↔Board-RXD
+  (IO3), Adapter-RX↔Board-TXD (IO1) — <b>gekreuzt</b></li>
+  <li>Board separat über den 20-Pin-Hauptheader mit stabilen 3,3V/5V
+  versorgen (min. 500 mA) — <b>nicht</b> über den USB-Adapter, der liefert
+  zu wenig Strom für ESP32 + Ethernet-PHY</li>
+  <li>Adapter mit DTR/RTS: automatischer Boot-Modus-Wechsel beim Flashen,
+  kein manuelles Eingreifen nötig. Ohne DTR/RTS: IO0 vor dem Flashen auf
+  GND ziehen (Taster halten oder Jumper), EN kurz auf GND ziehen und
+  loslassen, IO0 erst nach erfolgreichem Flash wieder freigeben</li>
+</ol>
+
+<h2>1.3 PowerShell-Skript ausführen</h2>
+<p>Das Skript <span class="code">scripts/flash.ps1</span> übernimmt die
+komplette Einrichtung: es fragt zuerst, welches der drei
+Sensormeter-Projekte geflasht werden soll (dasselbe Skript liegt identisch
+in allen drei Repos), installiert dann fehlende Werkzeuge (Python, Git,
+PlatformIO), holt den Quellcode, legt bei Bedarf
+<span class="code">include/config.h</span> an und baut/flasht die
+Firmware.</p>
+<pre class="code-block">.\flash.ps1 -Project sensormeter</pre>
+<table>
+  <tr><th>Parameter</th><th>Wirkung</th></tr>
+  <tr><td><span class="code">-Project sensormeter</span></td><td>Projekt direkt angeben, ohne die interaktive Abfrage (alternativ <span class="code">wlan</span> oder <span class="code">display</span>)</td></tr>
+  <tr><td><span class="code">-RepoPath &lt;Pfad&gt;</span></td><td>Zielordner für den Checkout (Default: Ordner „sensormeter" neben dem Skript)</td></tr>
+  <tr><td><span class="code">-Port COM5</span></td><td>Seriellen Port fest vorgeben, falls die automatische Erkennung fehlschlägt</td></tr>
+  <tr><td><span class="code">-SkipUpload</span></td><td>Nur bauen, nicht flashen — z. B. um vorab zu prüfen, ob alles kompiliert</td></tr>
+</table>
+
+<h2>1.4 Flashen</h2>
+<p>Ohne <span class="code">-SkipUpload</span> schließt das Skript direkt mit
+dem eigentlichen Flash-Vorgang ab (<span class="code">pio run --target
+upload</span>). Nach erfolgreichem Flashen: IO0 wieder freigeben (falls
+manuell auf GND gezogen) und das Board neu starten (EN kurz auf GND, dann
+loslassen, oder Stromversorgung kurz trennen).</p>
+<div class="callout warn">
+  <div class="callout-title">Bei Fehlschlag</div>
+  Häufigste Ursachen: fehlende Masseverbindung (GND zuerst prüfen), falscher
+  COM-Port, IO0 nicht (mehr) auf GND während des Upload-Versuchs, oder
+  Board-Stromversorgung zu schwach (min. 500 mA nötig, nicht über den
+  USB-Adapter). Siehe <span class="code">docs/flash-vorbereitung.pdf</span>
+  Schritt 6 für den vollständigen Verbindungstest.
+</div>
+<div class="callout">
+  <div class="callout-title">Einstellungen bleiben beim Flashen erhalten</div>
+  Ein normaler Flash-Vorgang schreibt ausschließlich den App-Bereich
+  (Bootloader, Partitionstabelle, Firmware-Image). Die separate
+  LittleFS-Datenpartition, auf der <span class="code">config.xml</span>
+  und <span class="code">history.csv</span> liegen (siehe Abschnitt 7),
+  bleibt dabei unangetastet — LAN/WLAN-Zugangsdaten, statische IP,
+  Web-Passwort etc. gehen beim Neuflashen also nicht verloren. Nur ein
+  expliziter kompletter Flash-Löschvorgang oder ein Werksreset über die
+  Weboberfläche (Abschnitt 4.2) setzt sie zurück.
+</div>
+
+<!-- ============================================================ -->
+<h1 class="section" id="sec2"><span class="num">2</span>Erststart am Gerät</h1>
+
+<p>Die Netzwerk-Ersteinrichtung läuft über die Weboberfläche (Abschnitt 4),
+erreichbar sobald das Gerät im Netzwerk ist. Anders als bei Sensormeter
+WLAN gibt es hier <b>zwei</b> Netzwerk-Interfaces: LAN (Ethernet, primär)
+und optional WLAN parallel dazu.</p>
+
+<h2>2.1 Boot-Ablauf</h2>
+<ol>
+  <li><b>BOOT / INIT</b> — kurze Initialisierung, das OLED zeigt Systemname
+  + Systemtyp und einen Countdown</li>
+  <li><b>NETWORK_CHECK</b> — Ethernet startet automatisch (DHCP oder
+  statisch), WLAN parallel dazu falls Zugangsdaten hinterlegt sind; bis zu
+  5 Minuten lang</li>
+  <li>Bei Erfolg (LAN <b>oder</b> WLAN hat eine IP): <b>Normalbetrieb</b>,
+  das OLED wechselt zu den rotierenden Infoseiten (Abschnitt 3)</li>
+  <li>Haben nach 5 Minuten <b>weder</b> LAN <b>noch</b> WLAN eine IP:
+  <b>Fallback-Modus</b> — das Gerät spannt einen eigenen Access Point auf
+  (siehe Abschnitt 2.2)</li>
+</ol>
+<p>Ist ein LAN-Kabel angeschlossen, ist der Fallback-Fall in der Praxis
+selten — er greift vor allem, wenn weder Kabel gesteckt noch ein WLAN
+konfiguriert ist.</p>
+
+<h2>2.2 Ersteinrichtung über den eigenen Access Point</h2>
+<div class="callout">
+  <div class="callout-title">Eigener Access Point „installer"</div>
+  <p>Findet das Gerät nach 5 Minuten weder über LAN noch über WLAN eine
+  Verbindung, spannt es selbst ein Netzwerk auf: SSID
+  <span class="code">installer</span>, Passwort
+  <span class="code">installer</span>, feste IP
+  <span class="code">192.168.4.1</span> mit Subnetzmaske
+  <span class="code">255.255.255.0</span>, DHCP-Server aktiv. Kein
+  Internetzugang über diesen Access Point. Das OLED zeigt währenddessen
+  nur „Fallback aktiv" + die eigene IP (Abschnitt 3).</p>
+</div>
+<ol>
+  <li>Mit einem Smartphone, Tablet oder Laptop im WLAN nach
+  <span class="code">installer</span> suchen und mit Passwort
+  <span class="code">installer</span> verbinden</li>
+  <li>Im Browser <span class="code">http://192.168.4.1/</span> aufrufen</li>
+  <li>Auf der Einstellungsseite (Abschnitt 4, Login erforderlich) im
+  Bereich „WLAN" auf „SSIDs suchen (bis 20s)" klicken, gewünschtes Netz
+  anklicken, Passwort eintragen und „Verbinden &amp; testen (Neustart)"
+  klicken</li>
+  <li>Klappt die Verbindung, verlässt das Gerät den Fallback-Modus. Klappt
+  sie nicht (und ist auch kein LAN-Kabel gesteckt), spannt es automatisch
+  wieder den Access Point auf</li>
+</ol>
+<p>Steckt stattdessen einfach ein LAN-Kabel — das genügt in den meisten
+Fällen, ganz ohne den Umweg über den Access Point.</p>
+
+<!-- ============================================================ -->
+<h1 class="section" id="sec3"><span class="num">3</span>OLED-Anzeige</h1>
+<p>Das 128×64-Display zeigt im Normalbetrieb sechs Infoseiten im
+10-Sekunden-Takt nacheinander (keine Bedienelemente — reine Anzeige, siehe
+Hinweis am Ende dieses Abschnitts). Alle Seiten sind horizontal und
+vertikal zentriert und nutzen eine feste, bewusst große Schrift; passt eine
+Zeile nicht auf einmal (z. B. eine lange WLAN-SSID), läuft sie waagerecht
+durch, bis sie komplett zu lesen war, statt die Schrift zu verkleinern.</p>
+
+<div class="sketch-wrap">
+  <div class="device"><div class="screen">
+    <div class="oled-text" style="top:9mm; font-size:4.4mm; font-weight:700;">Sensormeter</div>
+    <div class="oled-text" style="top:17mm; font-size:4.4mm; font-weight:700;">Sensormeter PRO</div>
+  </div></div>
+  <div class="sketch-notes">
+    <p><b>Seite 1 — Systemname + Systemtyp</b><br>Zeile 1: frei editierbarer
+    Systemname (Abschnitt 4, Feld „Systemname"). Zeile 2: automatisch
+    ermittelter Systemtyp — „Sensormeter" mit nur dem internen Sensor,
+    „Sensormeter PRO", sobald Sensor 2 aktiviert ist.</p>
+  </div>
+</div>
+
+<div class="sketch-wrap">
+  <div class="device"><div class="screen">
+    <div class="oled-text" style="top:9mm; font-size:4.2mm; font-weight:700;">LAN 192.168.1.10</div>
+    <div class="oled-text" style="top:17mm; font-size:4.2mm; font-weight:700;">WLAN ---</div>
+  </div></div>
+  <div class="sketch-notes">
+    <p><b>Seite 2 — IPs</b><br>Zeile 1: LAN-IP (leer/„---", solange kein
+    Kabel verbunden). Zeile 2: WLAN-IP, nur relevant falls ein WLAN
+    konfiguriert ist.</p>
+  </div>
+</div>
+
+<div class="sketch-wrap">
+  <div class="device"><div class="screen">
+    <div class="oled-text" style="top:6mm; font-size:5mm; font-weight:700;">08.07.2026</div>
+    <div class="oled-text" style="top:15mm; font-size:5mm; font-weight:700;">14:32:07</div>
+  </div></div>
+  <div class="sketch-notes">
+    <p><b>Seite 3 — Uhrzeit</b><br>Datum und Uhrzeit per NTP
+    (<span class="code">de.pool.ntp.org</span>). Zeigt
+    „<span class="code">--:--:--</span>", solange die Zeit noch nicht
+    synchronisiert ist.</p>
+  </div>
+</div>
+
+<div class="sketch-wrap">
+  <div class="device"><div class="screen">
+    <div class="oled-text" style="top:9mm; font-size:3.8mm; font-weight:700;">Intern 21.4C 53%</div>
+    <div class="oled-text" style="top:17mm; font-size:3.8mm; font-weight:700;">Extern 19.8C 61%</div>
+  </div></div>
+  <div class="sketch-notes">
+    <p><b>Seite 4 — Sensorwerte</b><br>Zeile 1: interner DHT11. Zeile 2 nur
+    bei aktiviertem Sensor 2 (PRO): externer DHT22 über RJ45, mit dem
+    konfigurierten Sensor-2-Namen (Default „Extern"). Zeigt
+    „<span class="code">---</span>", falls noch kein gültiger Messwert
+    vorliegt.</p>
+  </div>
+</div>
+
+<div class="sketch-wrap">
+  <div class="device"><div class="screen">
+    <div class="oled-text" style="top:4mm; font-size:4mm; font-weight:700;">LAN OK</div>
+    <div class="oled-text" style="top:12mm; font-size:4mm; font-weight:700;">WLAN --</div>
+    <div class="oled-text" style="top:19mm; font-size:3mm;">v0.9.0-rc2</div>
+  </div></div>
+  <div class="sketch-notes">
+    <p><b>Seite 5 — Status</b><br>Zeile 1: LAN-Status
+    („<span class="code">OK</span>"/„<span class="code">--</span>"). Zeile
+    2: WLAN-Status, oder „<span class="code">WLAN Fallback</span>" (im
+    Fallback-Fall wird stattdessen die dedizierte Fallback-Seite gezeigt,
+    siehe unten). Zeile 3: aktuelle Firmware-Version.</p>
+  </div>
+</div>
+
+<div class="sketch-wrap">
+  <div class="device"><div class="screen">
+    <div class="oled-text" style="top:9mm; font-size:4mm; font-weight:700;">WLAN-Signal</div>
+    <div class="oled-text" style="top:17mm; font-size:4.6mm; font-weight:700;">-52dB</div>
+  </div></div>
+  <div class="sketch-notes">
+    <p><b>Seite 6 — WLAN-Signal</b><br>Aktuelle Empfangsstärke (RSSI) in
+    dBm, nur relevant wenn das optionale WLAN verbunden oder der
+    Fallback-Access-Point aktiv ist. Zeigt „<span class="code">---</span>",
+    solange keine WLAN-Verbindung besteht — für rein LAN-betriebene Geräte
+    also dauerhaft.</p>
+  </div>
+</div>
+
+<div class="sketch-wrap">
+  <div class="device"><div class="screen">
+    <div class="oled-text" style="top:5mm; font-size:3.4mm; font-weight:700;">Sensormeter</div>
+    <div class="oled-text" style="top:12mm; font-size:3.4mm; font-weight:700;">Sensormeter PRO</div>
+    <div class="oled-text" style="top:19mm; font-size:3.2mm;">42 warte</div>
+  </div></div>
+  <div class="sketch-notes">
+    <p><b>Boot-Countdown</b><br>Während BOOT/INIT/NETWORK_CHECK (vor der
+    Seitenrotation oben): Systemname / Systemtyp / ein Countdown von 100
+    auf 0 gefolgt von „warte". Der Countdown läuft schneller als die
+    tatsächliche Wartezeit ab und bleibt danach bei 0 stehen — er zeigt
+    „wir warten noch", keine exakte Restzeit.</p>
+  </div>
+</div>
+
+<div class="sketch-wrap">
+  <div class="device"><div class="screen">
+    <div class="oled-text" style="top:9mm; font-size:4.2mm; font-weight:700;">Fallback aktiv</div>
+    <div class="oled-text" style="top:17mm; font-size:4.6mm; font-weight:700;">192.168.4.1</div>
+  </div></div>
+  <div class="sketch-notes">
+    <p><b>Fallback-Modus</b><br>Solange das Gerät den eigenen Access Point
+    „installer" hostet (Abschnitt 2.2), zeigt das OLED ausschließlich
+    diese Seite — keine Seitenrotation, da nur die eigene IP zur
+    Einrichtung relevant ist.</p>
+  </div>
+</div>
+
+<div class="callout">
+  <div class="callout-title">Kein Taster-Bedienelement</div>
+  Anders als bei Sensormeter WLAN (generisches ESP32-DevKit mit
+  zusätzlich nutzbarem BOOT-Taster) lässt sich das OLED hier
+  <b>nicht</b> per Tastendruck manuell weiterschalten oder für einen
+  Werksreset nutzen: GPIO0 ist beim WT32-ETH01 fest als Takteingang für
+  den Ethernet-PHY verdrahtet (<span class="code">ETH_CLOCK_GPIO0_IN</span>)
+  und steht nicht als freier Taster zur Verfügung. Werksreset und
+  Seitenwechsel funktionieren hier ausschließlich über die Weboberfläche
+  bzw. die automatische 10s-Rotation.
+</div>
+
+<!-- ============================================================ -->
+<h1 class="section" id="sec4"><span class="num">4</span>Konfiguration über die Weboberfläche</h1>
+
+<h2>4.1 Zugriff</h2>
+<ol>
+  <li>IP-Adresse des Geräts ermitteln — am einfachsten über das OLED
+  (Abschnitt 3, Seite 2) — oder direkt per Namen zugreifen:
+  <span class="code">http://&lt;systemname&gt;.local/</span> (mDNS)</li>
+  <li>Im Browser eines Geräts im selben Netzwerk aufrufen:
+  <span class="code">http://&lt;IP-Adresse&gt;/</span></li>
+  <li>Für die Einstellungsseite fragt der Browser nach Benutzername und
+  Passwort (HTTP Basic Auth) — die Hauptseite selbst ist ohne Login
+  einsehbar</li>
+</ol>
+
+<div class="callout warn">
+  <div class="callout-title">Standard-Zugangsdaten — dringend ändern!</div>
+  <table style="margin:2mm 0;">
+    <tr><th>Benutzername</th><td><span class="code">admin</span> (fest, nicht änderbar)</td></tr>
+    <tr><th>Passwort</th><td><span class="code">installer</span> (Werkseinstellung)</td></tr>
+  </table>
+  Bitte das Web-Passwort <b>sofort nach der ersten Anmeldung</b> unter
+  „System" (Abschnitt 4.2) ändern.
+</div>
+
+<h2>4.2 Alle Einstellungen im Detail</h2>
+
+<h3>System</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>Systemname</td><td>Freier Anzeigename des Geräts (Titel der Weboberfläche, Basis für den mDNS-Namen, auch auf der OLED-Seite 1 sichtbar). Default: „Sensormeter".</td></tr>
+  <tr><td>Neues Passwort</td><td>Neues Web-Passwort (Benutzername immer „admin"). Leer lassen, um das aktuelle Passwort beizubehalten.</td></tr>
+</table>
+
+<h3>LAN</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>DHCP</td><td>Aktiviert: automatische IP-Vergabe durch den Router (empfohlen). Deaktiviert: feste IP unten eintragen.</td></tr>
+  <tr><td>IP / Netzmaske / Gateway / DNS-Server</td><td>Nur bei deaktiviertem DHCP relevant. Leeres DNS-Feld = Gateway als DNS verwenden.</td></tr>
+</table>
+
+<h3>WLAN</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>DHCP</td><td>Aktiviert: automatische IP-Vergabe durch den Router. Deaktiviert: feste IP unten eintragen.</td></tr>
+  <tr><td>SSID</td><td>Name des WLAN-Netzes. Über „SSIDs suchen (bis 20s)" lässt sich eine Liste erreichbarer Netze samt Empfangsstärke abrufen und per Klick übernehmen — läuft nicht-blockierend im Hintergrund.</td></tr>
+  <tr><td>PSK</td><td>WLAN-Passwort.</td></tr>
+  <tr><td>IP / Netzmaske / Gateway / DNS-Server</td><td>Nur bei deaktiviertem DHCP relevant.</td></tr>
+</table>
+
+<div class="callout">
+  <div class="callout-title">Kollisions-Check vor dem Setzen einer statischen IP</div>
+  Wird bei LAN und/oder WLAN eine statische Adresse eingetragen und
+  gespeichert, prüft das Gerät vor dem Übernehmen per Ping, ob im
+  jeweiligen Netz bereits ein anderes Gerät unter dieser Adresse
+  antwortet. Ist das bei mindestens einer der beiden Adressen der Fall,
+  werden <b>alle</b> Einstellungen dieser Seite <b>nicht</b> übernommen
+  und die Fehlermeldung „IP-Adresse belegt" angezeigt — einfach eine
+  andere, freie Adresse wählen und erneut speichern. Der Check läuft pro
+  Interface nur, wenn sich die eingetragene Adresse tatsächlich von der
+  aktuell aktiven LAN- bzw. WLAN-IP unterscheidet (verhindert einen
+  falschen Alarm beim erneuten Speichern unveränderter Einstellungen).
+</div>
+
+<div class="keep">
+<h3 style="margin-top:0;">Drei Wege, um Netzwerkeinstellungen zu übernehmen</h3>
+<table>
+  <tr><th>Button</th><th>Interface</th><th>Prüft vorab?</th><th>Neustart?</th></tr>
+  <tr><td>„Verbinden &amp; testen (Neustart)"</td><td>nur WLAN</td><td>Ja — 30s echter Verbindungsversuch nach dem Neustart</td><td>Sofort, automatisch</td></tr>
+  <tr><td>„IP-Einstellungen übernehmen &amp; neu starten"</td><td>LAN und WLAN je ein eigener Button</td><td>Ja — vorab, ohne Neustart: bei statischer IP per Ping (Kollisions-Check oben), bei DHCP per echtem Lease-Test auf der laufenden Verbindung</td><td>Nur bei erfolgreichem Test, automatisch</td></tr>
+  <tr><td>„Speichern (LittleFS)" (unten auf der Seite)</td><td>alle Felder gemeinsam</td><td>Nein</td><td>Keiner — „Reboot" manuell nötig</td></tr>
+</table>
+<p>Der Button „IP-Einstellungen übernehmen &amp; neu starten" existiert
+für <b>LAN und WLAN getrennt</b> (jeweils direkt im zugehörigen
+Einstellungsblock) und ist der sicherste Weg, gezielt nur die
+Netzwerkadresse eines Interfaces zu ändern: bei statischer IP wird sie
+vorab per Ping auf Kollision geprüft (wie oben beschrieben); bei DHCP
+schaltet das Gerät die laufende Verbindung testweise auf DHCP um und
+wartet bis zu 8 Sekunden auf eine tatsächlich erhaltene Lease,
+<b>bevor</b> etwas gespeichert wird. Schlägt der Test fehl, bleibt die
+bisherige Konfiguration unverändert aktiv, es wird nichts gespeichert und
+<b>kein</b> Neustart ausgelöst — die Fehlermeldung erscheint direkt neben
+dem Button. Erst bei erfolgreichem Test werden die Einstellungen
+gespeichert und das Gerät neu gestartet.</p>
+</div>
+
+<h3>Sensoren</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>Sensor 1 (intern) Korrektur Temperatur/Feuchte</td><td>Ganzzahliger Korrekturwert (°C/%, positiv oder negativ) für den internen DHT11, falls er systematisch abweicht. Zeitpunkt der letzten Änderung wird darunter angezeigt.</td></tr>
+  <tr><td>Sensor 2 (extern) aktiv</td><td>Aktiviert den optionalen zweiten Sensor (DHT22 über RJ45) — schaltet den Systemtyp automatisch auf „Sensormeter PRO" um.</td></tr>
+  <tr><td>Sensor-2-Name</td><td>Freier Anzeigename für Sensor 2 (Default „Extern"), erscheint auf OLED, Weboberfläche und SNMP.</td></tr>
+  <tr><td>Sensor 2 Korrektur Temperatur/Feuchte</td><td>Wie Sensor 1, für den externen Sensor.</td></tr>
+</table>
+
+<h3>Syslog</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>Syslog-Server-IP</td><td>IP-Adresse eines Syslog-Empfängers im Netzwerk (UDP 514). Bei „0.0.0.0" (Default) ist der Versand deaktiviert — siehe Abschnitt 6.</td></tr>
+</table>
+
+<h3>SNMP</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>Community</td><td>SNMP-Community-String (read-only Abfrage, Port 161). Default: „public" — siehe Abschnitt 6.</td></tr>
+</table>
+
+<h3>Konfiguration (XML)</h3>
+<p>„XML Export" lädt die aktuelle Konfiguration als
+<span class="code">config.xml</span> herunter. „XML Import" spielt eine
+zuvor exportierte (oder manuell angepasste) Datei zurück — ein Neustart
+danach wird empfohlen. Genauer Aufbau der Datei: Abschnitt 7.1.</p>
+<div class="keep">
+<table>
+  <tr><th>Button</th><th>Wirkung</th></tr>
+  <tr><td>Werksreset (nur Einstellungen)</td><td>Setzt <span class="code">config.xml</span> auf Werkswerte zurück (LAN/WLAN-Zugangsdaten, Web-Passwort, Kalibrierung, Syslog/SNMP-Einstellungen). Der 7-Tage-Verlauf bleibt erhalten.</td></tr>
+  <tr><td>Werksreset (Einstellungen + Daten)</td><td>Wie oben, zusätzlich wird der gespeicherte 7-Tage-Verlauf gelöscht. Nicht rückgängig zu machen.</td></tr>
+</table>
+<p style="font-size:11px; color:#6b6559;">Anders als bei Sensormeter WLAN
+gibt es hier <b>keinen</b> zusätzlichen Taster-Weg für den Werksreset
+(siehe Abschnitt 3, Hinweis „Kein Taster-Bedienelement") — bei fehlendem
+Netzwerkzugriff bleibt nur der komplette Flash-Löschvorgang über die
+Debug-Burning-Schnittstelle (Abschnitt 1).</p>
+</div>
+
+<h3>Firmware</h3>
+<p>Siehe Abschnitt 5.</p>
+
+<h3>Reboot</h3>
+<p>Startet das Gerät sofort neu (mit Sicherheitsabfrage im Browser).</p>
+
+<h2>4.3 Hauptseite (ohne Login)</h2>
+<p>Zeigt Systemwerte (Zeit, Firmware-Version, Uptime, freier Heap,
+Chip-Temperatur), Netzwerkstatus (LAN-/WLAN-IP, WLAN-SSID/RSSI,
+Fallback-Status), die aktuellen Sensorwerte, einen 7-Tage-Verlaufsgraph
+sowie die letzten Syslog-Meldungen. Über die Schaltflächen
+„values.csv" (Rohdaten-Download, Aufbau siehe Abschnitt 7.2) und
+„Einstellungen" (Abschnitt 4.2, login-geschützt) erreichbar.</p>
+
+<!-- ============================================================ -->
+<h1 class="section" id="sec5"><span class="num">5</span>Firmware-Updates</h1>
+<p>Zwei Wege, eine neue Firmware-Version einzuspielen:</p>
+<h2>5.1 Lokales OTA-Update über das Webinterface</h2>
+<ol>
+  <li>Neue <span class="code">.bin</span>-Datei besorgen (z. B. von den
+  GitHub-Releases, verlinkt unten auf der Einstellungsseite)</li>
+  <li>Im Bereich „Firmware" die Datei auswählen und „.bin hochladen" klicken</li>
+  <li>Nach erfolgreichem Upload startet das Gerät automatisch neu</li>
+</ol>
+<h2>5.2 Erneutes Ausführen des PowerShell-Skripts</h2>
+<p>Alternativ das Skript aus Abschnitt 1.3 im vorhandenen Checkout erneut
+ausführen — es aktualisiert den Quellcode (<span class="code">git
+pull</span>, sofern keine lokalen Änderungen vorliegen) und flasht per
+Debug-Burning-Schnittstelle neu (Abschnitt 1.2 beachten).</p>
+
+<!-- ============================================================ -->
+<h1 class="section" id="sec6"><span class="num">6</span>SNMP &amp; Syslog (für Netzwerk-Admins)</h1>
+<p>Zusätzlich zur Weboberfläche bietet das Gerät zwei maschinenlesbare
+Schnittstellen, z. B. für Monitoring-Systeme oder das
+Sensormeter-Display-Projekt.</p>
+
+<h2>6.1 SNMP (v1, read-only, Port 161)</h2>
+<p>Feste Basis-OID <span class="code">.1.3.6.1.4.1.99999</span> — dieselbe
+Basis wie Sensormeter WLAN, damit ein Sensormeter-Display beide
+Produktvarianten ohne Codeänderung abfragen kann. Die Community entspricht
+dem in Abschnitt 4.2 konfigurierten Wert (Default:
+<span class="code">public</span>).</p>
+<table>
+  <tr><th>OID</th><th>Bedeutung</th></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.1.1.0</span></td><td>Systemname</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.1.2.0</span></td><td>Firmwareversion</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.1.3.0</span></td><td>Systemtyp („Sensormeter" / „Sensormeter PRO")</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.2.1.0</span></td><td>LAN-IP</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.2.2.0</span></td><td>WLAN-IP</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.2.3.0</span></td><td>WLAN-RSSI (dBm)</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.3.1.0</span></td><td>Sensor 1 Name („Intern")</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.3.2.0</span></td><td>Sensor 1 Temperatur (°C ×10)</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.3.3.0</span></td><td>Sensor 1 Luftfeuchte (% ×10)</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.4.1.0</span></td><td>Sensor 2 Name (nur PRO)</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.4.2.0</span></td><td>Sensor 2 Temperatur (nur PRO)</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.4.3.0</span></td><td>Sensor 2 Luftfeuchte (nur PRO)</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.5.1.0</span></td><td>Uptime (TimeTicks, 1/100 s)</td></tr>
+  <tr><td><span class="code">.1.3.6.1.4.1.99999.5.2.0</span></td><td>Freier Heap (Bytes)</td></tr>
+</table>
+<div class="callout">
+  <div class="callout-title">Hinweis</div>
+  Der Zweig <span class="code">.4</span> (Sensor 2) bleibt bei reinen
+  „Sensormeter"-Geräten (Sensor 2 deaktiviert) unbeantwortet — ein
+  Sensormeter-Display, das versehentlich dort abfragt, bekommt keine
+  Antwort statt eines falschen Werts.
+</div>
+<pre class="code-block">snmpget -v1 -c public &lt;IP-Adresse&gt; .1.3.6.1.4.1.99999.3.2.0</pre>
+<p>Zusätzlich zum reinen SNMP-Abgleich existiert ein fertiges
+Zabbix-Template, siehe <span class="code">docs/ZABBIX.md</span> für
+Import/Host-Einrichtung/Trigger.</p>
+
+<h2>6.2 Syslog (UDP 514)</h2>
+<p>Nur aktiv, wenn unter „Syslog" (Abschnitt 4.2) eine Server-IP ungleich
+<span class="code">0.0.0.0</span> eingetragen ist. Zwei Arten von
+Meldungen:</p>
+<ul>
+  <li><b>Statusreport</b> — bei jedem Sensorzyklus (alle 60s), Severity
+  „Informational":<br>
+  <span class="code">Systemname | LAN-IP | WLAN-IP | RSSI | Sensor1 | Sensor2 | ISO-Zeit | Uptime</span></li>
+  <li><b>Fehler-Events</b> — sofort bei Sensor-/Netzwerk-/NTP-Fehlern,
+  Severity „Error"</li>
+</ul>
+
+<!-- ============================================================ -->
+<h1 class="section" id="sec7"><span class="num">7</span>Konfigurations- und Datenexport</h1>
+<p>Zwei Dateien lassen sich über die Weboberfläche herunterladen — beide
+liegen auf der LittleFS-Datenpartition des Geräts (siehe Callout in
+Abschnitt 1.4) und überstehen daher ein normales Neuflashen der Firmware.</p>
+
+<h2>7.1 config.xml — Aufbau</h2>
+<p>Enthält die komplette Gerätekonfiguration (identisch zu dem, was
+„XML Export" auf der Einstellungsseite liefert, Abschnitt 4.2). Ein
+gültiges XML-Dokument mit <span class="code">&lt;config&gt;</span> als
+Wurzelelement; fehlt beim Import ein Feld, bleibt der zuletzt gültige
+bzw. Werks-Default aktiv statt eines Fehlers.</p>
+<div class="keep">
+<table>
+  <tr><th>Element</th><th>Attribut / Kindelement</th><th>Bedeutung</th></tr>
+  <tr><td rowspan="5"><span class="code">&lt;network&gt;&lt;lan&gt;</span></td><td><span class="code">dhcp</span></td><td>„true"/„false" — DHCP oder statische IP</td></tr>
+  <tr><td><span class="code">ip</span></td><td>Statische IP (nur bei <span class="code">dhcp="false"</span> wirksam)</td></tr>
+  <tr><td><span class="code">mask</span></td><td>Subnetzmaske</td></tr>
+  <tr><td><span class="code">gateway</span></td><td>Gateway-Adresse</td></tr>
+  <tr><td><span class="code">dns</span></td><td>DNS-Server (leer = Gateway verwenden)</td></tr>
+  <tr><td rowspan="8"><span class="code">&lt;network&gt;&lt;wlan&gt;</span></td><td><span class="code">dhcp</span></td><td>„true"/„false" — DHCP oder statische IP</td></tr>
+  <tr><td><span class="code">ssid</span></td><td>WLAN-Netzwerkname</td></tr>
+  <tr><td><span class="code">psk</span></td><td>WLAN-Passwort (Klartext)</td></tr>
+  <tr><td><span class="code">ip</span></td><td>Statische IP</td></tr>
+  <tr><td><span class="code">mask</span></td><td>Subnetzmaske</td></tr>
+  <tr><td><span class="code">gateway</span></td><td>Gateway-Adresse</td></tr>
+  <tr><td><span class="code">dns</span></td><td>DNS-Server</td></tr>
+  <tr><td><span class="code">pendingTest</span></td><td>Internes Einmal-Flag für „Verbinden &amp; testen" (Abschnitt 4.2) - normalerweise „false"</td></tr>
+  <tr><td rowspan="3"><span class="code">&lt;system&gt;</span></td><td><span class="code">&lt;name&gt;</span></td><td>Systemname (Abschnitt 4.2)</td></tr>
+  <tr><td><span class="code">&lt;type&gt;</span></td><td>Systemtyp, automatisch ermittelt („Sensormeter"/„Sensormeter PRO")</td></tr>
+  <tr><td><span class="code">&lt;password&gt;</span></td><td>Web-Login-Passwort (Klartext, Benutzername immer fest „admin")</td></tr>
+  <tr><td><span class="code">&lt;syslog&gt;</span></td><td><span class="code">&lt;server&gt;</span></td><td>Syslog-Empfänger-IP, „0.0.0.0" = deaktiviert</td></tr>
+  <tr><td rowspan="3"><span class="code">&lt;sensors&gt;&lt;sensor1&gt;</span></td><td><span class="code">tempOffset</span></td><td>Temperatur-Korrektur in °C (interner DHT11)</td></tr>
+  <tr><td><span class="code">humOffset</span></td><td>Feuchte-Korrektur in %</td></tr>
+  <tr><td><span class="code">calibratedTs</span></td><td>Unix-Zeitstempel der letzten Kalibrierung (0 = nie)</td></tr>
+  <tr><td rowspan="5"><span class="code">&lt;sensors&gt;&lt;sensor2&gt;</span></td><td><span class="code">enabled</span></td><td>„true"/„false" — aktiviert „Sensormeter PRO"</td></tr>
+  <tr><td><span class="code">name</span></td><td>Anzeigename (Default „Extern")</td></tr>
+  <tr><td><span class="code">tempOffset</span></td><td>Temperatur-Korrektur in °C (externer DHT22)</td></tr>
+  <tr><td><span class="code">humOffset</span></td><td>Feuchte-Korrektur in %</td></tr>
+  <tr><td><span class="code">calibratedTs</span></td><td>Unix-Zeitstempel der letzten Kalibrierung</td></tr>
+  <tr><td><span class="code">&lt;snmp&gt;</span></td><td><span class="code">community</span></td><td>SNMP-Community-String</td></tr>
+</table>
+</div>
+<p><b>Beispiel</b> (Werte anonymisiert, Sensor 2 aktiviert):</p>
+<pre class="code-block">&lt;config&gt;
+    &lt;network&gt;
+        &lt;lan dhcp="true" ip="" mask="" gateway="" dns=""/&gt;
+        &lt;wlan dhcp="false" ssid="Heimnetz" psk="geheim123" ip="192.168.1.42"
+              mask="255.255.255.0" gateway="192.168.1.1" dns="" pendingTest="false"/&gt;
+    &lt;/network&gt;
+    &lt;system&gt;
+        &lt;name&gt;Sensormeter&lt;/name&gt;
+        &lt;type&gt;Sensormeter PRO&lt;/type&gt;
+        &lt;password&gt;installer&lt;/password&gt;
+    &lt;/system&gt;
+    &lt;syslog&gt;
+        &lt;server&gt;0.0.0.0&lt;/server&gt;
+    &lt;/syslog&gt;
+    &lt;sensors&gt;
+        &lt;sensor1 tempOffset="0" humOffset="0" calibratedTs="0"/&gt;
+        &lt;sensor2 enabled="true" name="Extern" tempOffset="0" humOffset="0" calibratedTs="0"/&gt;
+    &lt;/sensors&gt;
+    &lt;snmp community="public"/&gt;
+&lt;/config&gt;</pre>
+<div class="callout warn">
+  <div class="callout-title">Enthält Klartext-Zugangsdaten</div>
+  WLAN-Passwort und Web-Login-Passwort stehen unverschlüsselt in der
+  Datei. Exportierte <span class="code">config.xml</span>-Dateien
+  entsprechend wie ein Passwort behandeln (nicht unverschlüsselt
+  weitergeben oder in ein öffentliches Repository legen).
+</div>
+
+<h2>7.2 values.csv — Aufbau</h2>
+<p>Der 7-Tage-Sensorverlauf (stündliche Messpunkte, Ringpuffer) als
+CSV-Datei zum Download über den Button „values.csv" auf der Hauptseite
+(Abschnitt 4.3) — z. B. zur Weiterverarbeitung in Excel/Numbers/Python.</p>
+<div class="keep">
+<table>
+  <tr><th>Spalte</th><th>Format</th><th>Beispiel</th></tr>
+  <tr><td><span class="code">timestamp</span></td><td>ISO 8601, lokale Zeit (<span class="code">YYYY-MM-DD HH:MM:SS</span>)</td><td><span class="code">2026-07-11 00:00:00</span></td></tr>
+  <tr><td><span class="code">temperature</span></td><td>Dezimalzahl, 1 Nachkommastelle, °C</td><td><span class="code">21.4</span></td></tr>
+  <tr><td><span class="code">humidity</span></td><td>Dezimalzahl, 1 Nachkommastelle, %</td><td><span class="code">53.0</span></td></tr>
+</table>
+</div>
+<pre class="code-block">timestamp,temperature,humidity
+2026-07-10 14:00:00,21.4,53.0
+2026-07-10 15:00:00,21.6,52.3
+2026-07-10 16:00:00,22.1,51.8</pre>
+<div class="callout">
+  <div class="callout-title">ISO-8601-Format seit v0.9.0-rc2</div>
+  <p>Frühere Firmware-Versionen schrieben in die Spalte
+  <span class="code">timestamp</span> einen rohen Unix-Zeitstempel
+  (Sekunden seit 1970, z. B. <span class="code">1783900328</span>) statt
+  eines lesbaren Datums. Ab dieser Version liefert die Spalte das oben
+  gezeigte ISO-8601-Format — von Tabellenkalkulationen zuverlässig als
+  Datum erkannt und sortierbar, ohne manuelle Spaltenumwandlung.</p>
+  <p style="font-size:11px; color:#6b6559; margin-bottom:0;">Die
+  <span class="code">values.csv</span> enthält bei Sensormeter (anders als
+  bei Sensormeter WLAN) nur eine gemeinsame Temperatur-/Feuchte-Spalte
+  (Sensor 1) — für Sensor 2 (PRO) gibt es aktuell keinen eigenen
+  CSV-Export, nur die Anzeige auf OLED/Weboberfläche/SNMP.</p>
+</div>
+
+<!-- ============================================================ -->
+<h1 class="section" id="sec-anhang">Anhang — Troubleshooting</h1>
+<table>
+  <tr><th>Problem</th><th>Mögliche Ursache / Lösung</th></tr>
+  <tr><td>Kein COM-Port beim Flashen erkannt</td><td>Nicht die RJ45-Buchse, sondern die Debug-Burning-Schnittstelle verwenden (Abschnitt 1.1); GND-Verbindung zuerst prüfen (häufigste Ursache); CH340-/CP2102-Treiber installiert?</td></tr>
+  <tr><td>Flash-Vorgang schlägt fehl</td><td>IO0 während des Uploads nicht (mehr) auf GND, falscher COM-Port, oder Board-Stromversorgung zu schwach (separat mit min. 500 mA versorgen, nicht über den USB-Adapter)</td></tr>
+  <tr><td>OLED bleibt dunkel</td><td>I2C-Verdrahtung prüfen (SDA→IO33, SCL→IO32 — <b>nicht</b> IO21/IO22, die sind fest mit dem Ethernet-PHY belegt), I2C-Adresse muss 0x3C sein</td></tr>
+  <tr><td>Sensorwert bleibt „---"</td><td>DHT-Verdrahtung prüfen (intern: siehe <span class="code">docs/verdrahtungsschema-v1.2.pdf</span>; extern: RJ45-Pin 5), Sensor braucht nach dem Boot ggf. einen Moment bis zur ersten gültigen Messung</td></tr>
+  <tr><td>Gerät bleibt dauerhaft im Fallback-Modus („Fallback aktiv" auf dem OLED)</td><td>Weder LAN-Kabel gesteckt noch gültiges WLAN konfiguriert — mit dem Access Point „installer"/„installer" verbinden (Abschnitt 2.2) und Zugangsdaten über „Verbinden &amp; testen" korrigieren, oder LAN-Kabel stecken</td></tr>
+  <tr><td>Webinterface nicht erreichbar</td><td>IP-Adresse über das OLED (Abschnitt 3, Seite 2) oder <span class="code">http://&lt;systemname&gt;.local/</span> (mDNS) prüfen</td></tr>
+  <tr><td>Neue statische IP wird als „belegt" abgelehnt</td><td>Ein anderes Gerät im jeweiligen Netz (LAN oder WLAN) antwortet unter dieser Adresse (Abschnitt 4.2) — im Router/DHCP-Server nachsehen, wer die Adresse belegt, oder eine andere, freie Adresse wählen</td></tr>
+  <tr><td>„IP-Einstellungen übernehmen" meldet „Kein DHCP-Server gefunden"</td><td>Im Zielnetz (LAN oder WLAN) ist kein DHCP-Server aktiv, oder das Interface ist gerade nicht verbunden — bei Bedarf stattdessen eine statische IP eintragen, oder DHCP im Router prüfen (Abschnitt 4.2)</td></tr>
+  <tr><td>Web-Login schlägt fehl / Gerät im Netzwerk gar nicht erreichbar</td><td>Benutzername immer „admin"; bei Passwortverlust hilft „Werksreset (nur Einstellungen)" auf der Einstellungsseite (Abschnitt 4.2) — ist auch das nicht erreichbar, bleibt nur der komplette Flash-Löschvorgang über die Debug-Burning-Schnittstelle (kein Taster-Reset wie bei Sensormeter WLAN möglich, siehe Abschnitt 3)</td></tr>
+  <tr><td>SNMP/Syslog liefert keine Daten</td><td>Community-String bzw. Server-IP in den Einstellungen prüfen (Abschnitt 4.2), Firewall auf dem Empfänger prüfen (UDP 161/514)</td></tr>
+</table>
+
+<p style="margin-top:8mm; font-size:10px; color:#6b7280;">
+Sensormeter — Admin-Guide · github.com/peterhagelhof7-cmd/sensormeter ·
+Entwickelt mit Unterstützung von Claude (Anthropic) als Coding-Assistent
+</p>
+
+</body>
+</html>
