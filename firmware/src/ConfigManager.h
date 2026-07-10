@@ -13,7 +13,7 @@
 // <config>
 //   <network>
 //     <lan dhcp="true" ip="" mask="" gateway="" dns=""/>
-//     <wlan dhcp="true" ssid="" psk="" ip="" mask="" gateway="" dns=""/>
+//     <wlan dhcp="true" ssid="" psk="" ip="" mask="" gateway="" dns="" pendingTest="false"/>
 //   </network>
 //   <system>
 //     <name>Sensormeter</name>
@@ -24,8 +24,8 @@
 //     <server>0.0.0.0</server>
 //   </syslog>
 //   <sensors>
-//     <sensor1 tempOffset="0.0" humOffset="0.0"/>
-//     <sensor2 enabled="false" name="Extern" tempOffset="0.0" humOffset="0.0"/>
+//     <sensor1 tempOffset="0.0" humOffset="0.0" calibratedTs="0"/>
+//     <sensor2 enabled="false" name="Extern" tempOffset="0.0" humOffset="0.0" calibratedTs="0"/>
 //   </sensors>
 //   <snmp community="public"/>
 // </config>
@@ -45,6 +45,12 @@ struct DeviceConfig {
   float sensor2TempOffset = 0.0f;
   float sensor2HumOffset = 0.0f;
 
+  // Wall-Clock-Zeitpunkt (time(nullptr)), zu dem die jeweiligen Offsets
+  // zuletzt TATSAECHLICH geaendert wurden (nicht nur gespeichert - siehe
+  // WebServerManager::handleApiConfigPost()). 0 = noch nie kalibriert.
+  uint32_t sensor1CalibratedTs = 0;
+  uint32_t sensor2CalibratedTs = 0;
+
   bool lanDhcp = true;
   String lanIp;
   String lanMask;
@@ -58,6 +64,14 @@ struct DeviceConfig {
   String wlanDns;  // leer = Gateway als DNS verwenden (siehe NetworkManager::applyWlanConfig)
   String wlanSsid;
   String wlanPsk;
+  // Einmal-Flag: nach Eingabe neuer WLAN-Zugangsdaten ueber die
+  // Einstellungsseite im Fallback-Access-Point gesetzt, damit
+  // NetworkManager den anschliessenden Verbindungsversuch nur kurz statt
+  // 5 Minuten abwartet (schnelles Feedback), bevor er wieder auf den
+  // Fallback-AP zurueckfaellt. Wird beim naechsten Boot sofort gelesen und
+  // geloescht - ueberlebt also nur genau einen Neustart (siehe
+  // NetworkManager::begin()).
+  bool wlanPendingTest = false;
 
   String syslogServer = "0.0.0.0";
 

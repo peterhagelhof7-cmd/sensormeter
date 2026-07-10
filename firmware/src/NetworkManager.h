@@ -12,10 +12,15 @@
 //   - statische IP fuer LAN/WLAN (aus ConfigManager, aktuell noch Defaults -
 //     echtes Laden aus config.xml folgt in P2)
 //   - WLAN-Verbindung parallel zu Ethernet, falls SSID konfiguriert
-//   - echter Fallback: nach 5 Minuten ohne Netzwerk wird versucht, das
-//     Recovery-WLAN "installer"/"installer" zu joinen (siehe
-//     docs/entscheidungen.md fuer die Auslegung dieser Spezifikationsstelle)
 //   - Hilfsfunktionen fuer TimeManager's NTP-Fehlerkette (DHCP-Test/Restore)
+//
+// Fallback: haben weder LAN noch WLAN nach 5 Minuten eine IP, spannt das
+// Geraet einen eigenen Access Point auf (SSID/PSK "installer", DHCP aktiv,
+// nur eigene IP + Subnetzmaske konfiguriert, kein Gateway/DNS - siehe
+// lastenheft.txt Abschnitt 8/12 und docs/entscheidungen.md). Betrifft nur
+// den WLAN-Zweig, LAN bleibt davon unberuehrt und hat weiterhin Vorrang -
+// kommt es waehrend des Fallback-APs zustande, uebernimmt networkOk() das
+// automatisch.
 
 class NetworkManager {
  public:
@@ -26,8 +31,8 @@ class NetworkManager {
 
   bool isLanUp() const { return _ethGotIp; }
   bool isLanLinkUp() const { return _ethConnected; }
-  bool isWlanUp() const { return _wlanGotIp; }
-  bool isUsingFallbackWlan() const { return _inFallbackWlan && _wlanGotIp; }
+  bool isWlanUp() const { return _wlanGotIp || _apActive; }
+  bool isUsingFallbackWlan() const { return _apActive; }
 
   // Fuer Display (P4) / Webserver (P5). Implementiert in .cpp, damit dieser
   // Header nicht <ETH.h> einbinden muss (Makro-Reihenfolge, siehe .cpp).
@@ -48,18 +53,31 @@ class NetworkManager {
   void beginDhcpFallbackTest();
   void restoreConfiguredAddresses();
 
+  // Leitet aus dem frei eingebbaren Systemnamen (ConfigManager) einen
+  // DNS-/mDNS-tauglichen Hostnamen ab (nur a-z/0-9/-, keine Leerzeichen/
+  // Umlaute/Grossbuchstaben) - wird sowohl fuer ETH.setHostname() als auch
+  // fuer den mDNS-Namen (main.cpp) verwendet, damit beide konsistent sind.
+  static String sanitizeHostname(const String& name);
+
  private:
   DataManager& _data;
   ConfigManager& _config;
 
   unsigned long _networkCheckStartedMillis = 0;
   unsigned long _lastFallbackJoinAttemptMillis = 0;
-  bool _inFallbackWlan = false;
   bool _wlanConfigured = false;
+  // Timeout fuer den aktuellen NETWORK_CHECK-Durchlauf - normal 5 Minuten,
+  // kurz (30s) direkt nach Eingabe neuer WLAN-Zugangsdaten im Fallback-AP
+  // (siehe begin() / DeviceConfig::wlanPendingTest).
+  unsigned long _networkCheckTimeoutMs = 0;
 
   void applyLanConfig();
   void applyWlanConfig();
-  bool networkOk() const { return _ethGotIp || _wlanGotIp; }
+  // Startet den eigenen Fallback-Access-Point (SSID/PSK "installer", siehe
+  // lastenheft.txt Abschnitt 8/12: "eigener Access Point"). Betrifft nur
+  // WiFi - ETH laeuft als separates Interface unabhaengig weiter.
+  void startFallbackAp();
+  bool networkOk() const { return _ethGotIp || _wlanGotIp || _apActive; }
 
   static NetworkManager* _instance;
   static void onNetworkEvent(WiFiEvent_t event);
@@ -67,4 +85,5 @@ class NetworkManager {
   volatile bool _ethConnected = false;
   volatile bool _ethGotIp = false;
   volatile bool _wlanGotIp = false;
+  volatile bool _apActive = false;
 };

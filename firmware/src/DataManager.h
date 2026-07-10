@@ -47,9 +47,18 @@ class DataManager {
   void setSensor2(const SensorReading& reading);
 
   // Ringpuffer-Speicher ist ab P0 reserviert; Befuellung folgt in P3 (Sensorik)
-  // bzw. Anzeige im Graph in P5 (Webserver).
+  // bzw. Anzeige im Graph in P5 (Webserver). pushHourValue() persistiert bei
+  // jedem Aufruf (1x/Stunde) nach /history.csv auf LittleFS, damit der
+  // 7-Tage-Verlauf einen Neustart uebersteht - vernachlaessigbarer Flash-
+  // Verschleiss bei stuendlicher Schreibfrequenz (siehe docs/entscheidungen.md).
   void pushHourValue(const HourValue& value);
   size_t getRingbuffer(HourValue* out, size_t maxCount);
+
+  // Muss erst NACH StorageManager::begin() (LittleFS-Mount) aufgerufen
+  // werden - main.cpp ruft dataManager.begin() bewusst frueher auf (Mutex
+  // fuer alle anderen Datenfelder muss vor jedem anderen Modul stehen),
+  // daher kein impliziter load() in begin().
+  void loadRingbuffer();
 
   // Lokales Ereignisprotokoll (Lastenheft 5.3 "Syslog-Ansicht": letzte 5
   // Meldungen). Wird von SyslogManager (P7) zusaetzlich per UDP versendet -
@@ -63,6 +72,8 @@ class DataManager {
   size_t getLogEntriesAfter(unsigned long afterSequence, LogEntry* out, size_t maxCount);
 
  private:
+  void saveRingbuffer();
+
   SemaphoreHandle_t _mutex = nullptr;
 
   SystemState _systemState = SystemState::BOOT;

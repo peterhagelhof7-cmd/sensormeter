@@ -13,8 +13,10 @@
 // /api/config), OTA-Update per lokalem .bin-Upload (kein HTTPS-Client,
 // siehe docs/entscheidungen.md fuer den Flash-Budget-Hintergrund).
 // Async (non-blocking) per AsyncWebServer, siehe Pflichtenheft Abschnitt 5+8
-// - Ausnahmen: WLAN-Scan und OTA-Flash sind admin-ausgeloeste Einzelaktionen
-// und blockieren kurzzeitig (siehe docs/entscheidungen.md).
+// - Ausnahme: OTA-Flash ist eine admin-ausgeloeste Einzelaktion und blockiert
+// kurzzeitig. Der WLAN-Scan (/api/wifi/scan) laeuft dagegen bewusst NICHT
+// blockierend (WiFi.scanNetworks(true) + Polling durch die Seite) - siehe
+// docs/entscheidungen.md.
 
 class WebServerManager {
  public:
@@ -59,6 +61,10 @@ class WebServerManager {
 
   void handleApiReboot(AsyncWebServerRequest* request);
   void handleApiWifiScan(AsyncWebServerRequest* request);
+  void handleApiWifiConnect(AsyncWebServerRequest* request);
+  // scope=settings: nur config.xml auf Defaults; scope=all: zusaetzlich
+  // /history.csv loeschen.
+  void handleApiFactoryReset(AsyncWebServerRequest* request);
 
   String buildPageShell(const String& title, const String& bodyContent) const;
   String buildMainPageBody() const;

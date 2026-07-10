@@ -395,3 +395,134 @@ wäre, kein Teil dieser Doku-Aktualisierung.
 
 Mit `pio run` neu gebaut zur Verifikation nach den Doku-Änderungen (Code
 selbst unverändert seit dem letzten Build).
+
+## Vier Verbesserungen aus Sensormeter WLAN übernommen
+
+Sensormeter WLAN durchlief einen ausführlichen Testzyklus auf echter
+Hardware und bekam dabei mehrere Fixes/Features, die auf denselben
+Modul-Mustern beruhen wie hier (`NetworkManager`, `WebServerManager`,
+`DisplayManager`). Auf Nutzerwunsch geprüft und - soweit die
+Dual-Interface-Architektur (LAN **und** WLAN, nicht WLAN-only) es zulässt
+- übernommen. Ausdrücklich **nicht** übernommen: der dortige
+BOOT-Taster als Bedienelement (siehe eigener Abschnitt unten - hier aus
+Hardware-Gründen nicht möglich).
+
+### Fallback-Access-Point ist jetzt ein echter SoftAP
+
+Bislang identisches Verhalten zum ursprünglichen Sensormeter-WLAN-Bug:
+`NetworkManager` versuchte im Fallback-Fall per `WiFi.begin("installer",
+"installer")` einem **bestehenden** Netz beizutreten, statt selbst eines
+aufzuspannen - Widerspruch zu `lastenheft.txt` Abschnitt 8/12 ("eigener
+Access Point"). Jetzt `WiFi.softAPConfig(192.168.4.1, 192.168.4.1,
+255.255.255.0)` + `WiFi.softAP("installer", "installer")`, nur eigene IP +
+Subnetzmaske, kein Gateway/DNS. Betrifft ausschließlich den WLAN-Zweig -
+LAN bleibt unabhängig davon aktiv und hat weiterhin Vorrang; der Fallback-
+AP startet nur, wenn nach 5 Minuten **weder** LAN **noch** WLAN eine IP
+haben (`networkOk() = ethGotIp || wlanGotIp || apActive`).
+
+Dazu passend: neuer Button „Verbinden & testen (Neustart)“ auf der
+Einstellungsseite (nur innerhalb des WLAN-Formulars, nicht für LAN
+relevant) - speichert SSID/PSK, setzt `DeviceConfig::wlanPendingTest`,
+startet sofort neu. `NetworkManager::begin()` liest das Flag, löscht es
+sofort wieder (gilt nur für einen Boot-Versuch) und wartet dann nur 30s
+statt der regulären 5 Minuten, bevor es bei Misserfolg zurück in den
+Fallback-AP fällt.
+
+### WLAN-Scan blockierte den Async-Webserver-Task
+
+Derselbe Bug wie bei Sensormeter WLAN: `WiFi.scanNetworks()` (blockierend,
+mehrere Sekunden) direkt im AsyncWebServer-Request-Handler aufgerufen -
+kann den Async-TCP-Task blockieren und zum Absturz führen, besonders
+kritisch während das Gerät selbst als Fallback-AP läuft und ein Client
+verbunden ist. Fix: `WiFi.scanNetworks(true)` (asynchron), `/api/wifi/scan`
+liefert je nach `WiFi.scanComplete()`-Status `{"status":"started"|"running"|"done"}`
+zurück, die Einstellungsseite pollt das per JavaScript alle 1,5s.
+
+### Werksreset ergänzt
+
+Neue Buttons im Bereich „Konfiguration“ der Einstellungsseite: „nur
+Einstellungen“ setzt `config.xml` per `ConfigManager::setConfig
+(DeviceConfig())` auf Defaults zurück, „Einstellungen + Daten“ löscht
+zusätzlich `/history.csv`. Beide mit Sicherheitsabfrage, danach
+automatischer Neustart (`/api/factory-reset`, Formularfeld
+`scope=settings|all`). Gab es bei Sensormeter bisher gar nicht (auch nicht
+vor der WLAN-Portierung).
+
+### OLED-Anzeige überarbeitet: zentriert, feste größere Schrift, Scroll statt Schrumpfen
+
+Wie bei Sensormeter WLAN, hier zusätzlich vereinfacht durch das bereits
+vorhandene echte `systemType`-Feld (bei Sensormeter WLAN musste dafür erst
+eine feste Konstante erfunden werden):
+
+- Boot-Countdown zeigt jetzt 3 Zeilen (Systemname / Systemtyp / Countdown +
+  "warte") statt bisher 2, jede Zeile mit eigener größtmöglicher
+  Schriftgröße.
+- Alle rotierenden Seiten sind jetzt horizontal UND vertikal zentriert
+  (vorher linksbündig) und nutzen einheitlich eine feste, bewusst größere
+  Schriftgröße (2), statt sie an die jeweils längste Zeile anzupassen.
+  Läuft eine Zeile dabei über (z.B. eine lange WLAN-SSID), läuft sie
+  waagerecht durch statt die Schrift für alle Zeilen zu schrumpfen -
+  synchronisiert auf den 10s-Seitenwechsel-Timer.
+  Nebenbei denselben latenten Absturzpfad behoben wie bei Sensormeter
+  WLAN: die alte Schriftgrößen-Berechnung rundete bei sehr langen Zeilen
+  per Integer-Division auf Größe 0 herunter und hätte automatisch
+  umgebrochen.
+- Neue sechste Seite "WLAN-Signal" (RSSI in dBm, nur relevant wenn das
+  optionale WLAN tatsächlich verbunden oder der Fallback-AP aktiv ist).
+- Neue dedizierte Fallback-Seite: zeigt ausschließlich "Fallback aktiv" +
+  die eigene AP-IP, keine Seitenrotation, solange der Access Point läuft.
+
+### BOOT-Taster NICHT übertragbar (Hardware-Grund)
+
+Bei Sensormeter WLAN dient der ohnehin vorhandene BOOT-Taster (GPIO0)
+zusätzlich als Bedienelement (Tipp = nächste Seite, Halten = Werksreset
+mit Fail-Safe). Bei WT32-ETH01 ist GPIO0 fest als Takteingang für den
+Ethernet-PHY verdrahtet (`ETH_CLOCK_GPIO0_IN`, siehe `pins.h` -
+`ETH_CLK_MODE`), nicht als freier Taster verfügbar. Eine Portierung würde
+einen zusätzlichen physischen Taster an einem freien GPIO plus
+entsprechende Verkabelung erfordern - eine Hardware-Änderung, keine reine
+Software-Portierung. Nicht umgesetzt in dieser Runde; bei Bedarf für eine
+spätere Hardware-Revision vormerken.
+
+Mit `pio run` gebaut und verifiziert (erfolgreich, Flash 83,7 % /
+1.096.549 B, RAM 16,6 % / 54.288 B). Nicht geflasht - kein WT32-ETH01-Board
+angeschlossen.
+
+## Sicherheits-Feature: Ping-Check vor statischer IP-Vergabe
+
+Beim Speichern der Einstellungsseite wird jetzt vor dem Übernehmen einer
+neu gesetzten statischen LAN- oder WLAN-IP per Ping geprüft, ob im
+jeweiligen Netz bereits ein anderes Gerät unter dieser Adresse antwortet.
+Ist das der Fall, werden alle Einstellungen dieser Seite verworfen und
+eine Fehlerseite ("IP-Adresse belegt") angezeigt statt eine
+Adresskollision im Netz zu riskieren.
+
+- Bibliothek `marian-craciunescu/ESP32Ping` neu in `platformio.ini`
+  ergänzt (bei Sensormeter Display bereits vorhanden, dort für die
+  Ping-Zielüberwachung).
+- `Ping.ping(ip, 1)` mit der Bibliotheks-Standardwartezeit von 1s -
+  deutlich kürzer als der mehrsekündige `WiFi.scanNetworks()`-Blockierfall,
+  der früher bei Sensormeter WLAN zum Watchdog-Reset führte (siehe oben) -
+  daher unproblematisch innerhalb des synchronen `AsyncWebServerRequest`-
+  Handlers.
+- Der Check läuft pro Interface nur, wenn DHCP deaktiviert ist UND sich
+  die eingetragene Adresse von der aktuell aktiven LAN-/WLAN-IP
+  unterscheidet - vermeidet einen Ping bei jedem Speichern unveränderter
+  Einstellungen (das Formular deckt alle Einstellungsblöcke gemeinsam ab)
+  und verhindert einen falschen Alarm, wenn die eigene, bereits aktive
+  Adresse erneut als statisch bestätigt wird.
+- Admin-Guide (Abschnitt 4.2, Anhang) entsprechend ergänzt.
+
+Mit `pio run` gebaut und verifiziert (erfolgreich, Flash 83,9 % /
+1.099.633 B, RAM 16,6 % / 54.368 B). Nicht geflasht - kein WT32-ETH01-Board
+angeschlossen.
+
+## Werks-Zugangsdaten projektübergreifend geprüft
+
+Auf Anfrage geprüft, ob die Werks-Zugangsdaten bei allen drei
+Sensormeter-Projekten konsistent sind. Ergebnis: Sensormeter und
+Sensormeter WLAN nutzten bereits beide `installer` als Web-Passwort-
+Default. Abweichend war Sensormeter Display (`admin`) - dort auf
+`installer` vereinheitlicht, siehe `sensormeter-display/docs/entscheidungen.md`.
+Der Benutzername ist bei allen drei Projekten ohnehin fest `admin` (kein
+eigenes Feld).

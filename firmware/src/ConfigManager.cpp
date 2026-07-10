@@ -94,6 +94,7 @@ bool ConfigManager::importXml(const String& xml) {
       cfg.wlanMask = attrOrEmpty(wlan, "mask");
       cfg.wlanGateway = attrOrEmpty(wlan, "gateway");
       cfg.wlanDns = attrOrEmpty(wlan, "dns");
+      cfg.wlanPendingTest = parseBool(wlan->Attribute("pendingTest"), cfg.wlanPendingTest);
     }
   }
 
@@ -110,6 +111,7 @@ bool ConfigManager::importXml(const String& xml) {
     if (sensor1) {
       cfg.sensor1TempOffset = sensor1->FloatAttribute("tempOffset", cfg.sensor1TempOffset);
       cfg.sensor1HumOffset = sensor1->FloatAttribute("humOffset", cfg.sensor1HumOffset);
+      cfg.sensor1CalibratedTs = sensor1->UnsignedAttribute("calibratedTs", cfg.sensor1CalibratedTs);
     }
     const XMLElement* sensor2 = sensors->FirstChildElement("sensor2");
     if (sensor2) {
@@ -118,6 +120,7 @@ bool ConfigManager::importXml(const String& xml) {
       if (name.length() > 0) cfg.sensor2Name = name;
       cfg.sensor2TempOffset = sensor2->FloatAttribute("tempOffset", cfg.sensor2TempOffset);
       cfg.sensor2HumOffset = sensor2->FloatAttribute("humOffset", cfg.sensor2HumOffset);
+      cfg.sensor2CalibratedTs = sensor2->UnsignedAttribute("calibratedTs", cfg.sensor2CalibratedTs);
     }
   }
 
@@ -156,6 +159,7 @@ String ConfigManager::exportXml() const {
   wlan->SetAttribute("mask", _config.wlanMask.c_str());
   wlan->SetAttribute("gateway", _config.wlanGateway.c_str());
   wlan->SetAttribute("dns", _config.wlanDns.c_str());
+  wlan->SetAttribute("pendingTest", _config.wlanPendingTest ? "true" : "false");
   network->InsertEndChild(wlan);
 
   XMLElement* system = doc.NewElement("system");
@@ -181,12 +185,14 @@ String ConfigManager::exportXml() const {
   XMLElement* sensor1 = doc.NewElement("sensor1");
   sensor1->SetAttribute("tempOffset", _config.sensor1TempOffset);
   sensor1->SetAttribute("humOffset", _config.sensor1HumOffset);
+  sensor1->SetAttribute("calibratedTs", _config.sensor1CalibratedTs);
   sensors->InsertEndChild(sensor1);
   XMLElement* sensor2 = doc.NewElement("sensor2");
   sensor2->SetAttribute("enabled", _config.sensor2Enabled ? "true" : "false");
   sensor2->SetAttribute("name", _config.sensor2Name.c_str());
   sensor2->SetAttribute("tempOffset", _config.sensor2TempOffset);
   sensor2->SetAttribute("humOffset", _config.sensor2HumOffset);
+  sensor2->SetAttribute("calibratedTs", _config.sensor2CalibratedTs);
   sensors->InsertEndChild(sensor2);
 
   XMLElement* snmp = doc.NewElement("snmp");

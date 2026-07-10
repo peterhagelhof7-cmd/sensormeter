@@ -36,35 +36,104 @@ void DisplayManager::begin() {
   }
   display.cp437(true);
   display.setTextColor(SSD1306_WHITE);
+  // Wir brechen Zeilen selbst um (mehrere setCursor()/println()-Aufrufe)
+  // bzw. lassen zu lange Zeilen bewusst laufen (siehe drawScrollingLine())
+  // - das automatische Adafruit-GFX-Wrapping wuerde beides durcheinanderbringen.
+  display.setTextWrap(false);
   drawBootScreen();
 }
 
-// Zeichnet 1-4 Textzeilen mit der groesstmoeglichen Schriftgroesse, bei der
-// die laengste Zeile ohne Scrollen auf das Display passt (Lastenheft
-// Abschnitt 11: "größtmögliche Schrift sodass IP ohne Scrollen ... passt").
+// Feste Zielschriftgroesse fuer alle rotierenden Seiten - Zeilen, die dabei
+// nicht auf einmal passen (z.B. lange SSIDs), laufen waagerecht durch statt
+// die Schrift fuer alle zu schrumpfen, siehe drawScrollingLine().
+static const int LINE_TEXT_SIZE = 2;
+
+// Zeichnet eine einzelne Zeile bei fester Groesse, zentriert falls sie
+// passt, sonst waagerecht durchlaufend gemaess progress (0.0 = Anfang,
+// 1.0 = Ende - siehe Aufrufer fuer die Zeitbasis). Absicherung gegen
+// Zeilenumbruch: eine WLAN-SSID darf bis zu 32 Zeichen lang sein, bei
+// Groesse 2 passen aber nur SCREEN_WIDTH/(6*2) = 10 Zeichen in eine Zeile -
+// ohne Scroll wuerde Adafruit-GFX sonst automatisch umbrechen und die
+// naechste Zeile ueberlagern.
+void DisplayManager::drawScrollingLine(const String& text, int y, int size, float progress) {
+  int textWidth = static_cast<int>(text.length()) * 6 * size;
+  display.setTextSize(size);
+  if (textWidth <= SCREEN_WIDTH) {
+    int x = max(0, (SCREEN_WIDTH - textWidth) / 2);
+    display.setCursor(x, y);
+    display.println(text);
+    return;
+  }
+  if (progress < 0.0f) progress = 0.0f;
+  if (progress > 1.0f) progress = 1.0f;
+  int scrollDistance = textWidth - SCREEN_WIDTH;
+  int x = -static_cast<int>(progress * scrollDistance);
+  display.setCursor(x, y);
+  display.println(text);
+}
+
+// Zeichnet 1-4 Textzeilen bei fester Groesse (LINE_TEXT_SIZE), horizontal
+// UND vertikal zentriert - laeuft eine Zeile ueber, scrollt sie synchron
+// zum Seitenwechsel-Timer: einmal komplett durch, haelt dann am Ende an,
+// bis die naechste Seite (PAGE_INTERVAL_MS) dran ist.
 void DisplayManager::drawLines(const String lines[], int count) {
-  size_t maxLen = 0;
-  for (int i = 0; i < count; i++) maxLen = max(maxLen, (size_t)lines[i].length());
+  int lineHeight = LINE_TEXT_SIZE * 8;
+  int y0 = max(0, (SCREEN_HEIGHT - count * lineHeight) / 2);
 
-  int size = 2;
-  if (maxLen * 6 * size > (size_t)SCREEN_WIDTH) size = 1;
-
-  int lineHeight = size * 8 + 2;
+  static const unsigned long kScrollHoldMs = 1500UL;
+  unsigned long scrollWindowMs =
+      PAGE_INTERVAL_MS > kScrollHoldMs ? PAGE_INTERVAL_MS - kScrollHoldMs : PAGE_INTERVAL_MS;
+  unsigned long elapsed = millis() - _lastPageSwitchMillis;
+  float progress = static_cast<float>(elapsed) / static_cast<float>(scrollWindowMs);
 
   display.clearDisplay();
-  display.setTextSize(size);
   for (int i = 0; i < count; i++) {
-    display.setCursor(0, i * lineHeight);
-    display.println(lines[i]);
+    drawScrollingLine(lines[i], y0 + i * lineHeight, LINE_TEXT_SIZE, progress);
   }
   display.display();
 }
 
 void DisplayManager::drawBootScreen() {
-  String lines[2];
-  lines[0] = _config.getConfig().systemName;
-  lines[1] = String(_countdownValue);
-  drawLines(lines, 2);
+  // Jede Zeile bekommt ihre eigene groesstmoegliche Schriftgroesse (statt
+  // einer gemeinsamen wie drawLines()): der Systemname kann lang sein und
+  // damit auf Groesse 1 begrenzt bleiben, waehrend Systemtyp und Countdown
+  // deutlich groesser dargestellt werden koennen.
+  String line1 = _config.getConfig().systemName;
+  String line2 = _config.getConfig().systemType;
+  // Auf 3 Stellen leerzeichen-aufgefuellt, damit die Zeilenlaenge (und damit
+  // die Schriftgroesse) waehrend des Runterzaehlens 100->0 konstant bleibt,
+  // statt bei jedem Ziffernwechsel (100->99->9) die Groesse springen zu
+  // lassen.
+  char countdownBuf[16];
+  snprintf(countdownBuf, sizeof(countdownBuf), "%3d warte", _countdownValue);
+  String line3 = countdownBuf;
+
+  int size1 = max(1, SCREEN_WIDTH / (static_cast<int>(line1.length()) * 6));
+  int size2 = max(1, SCREEN_WIDTH / (static_cast<int>(line2.length()) * 6));
+  int size3 = max(1, SCREEN_WIDTH / (static_cast<int>(line3.length()) * 6));
+
+  int h1 = size1 * 8, h2 = size2 * 8, h3 = size3 * 8;
+  while (h1 + h2 + h3 > SCREEN_HEIGHT && (size1 > 1 || size2 > 1 || size3 > 1)) {
+    if (size1 > 1) size1--;
+    if (size2 > 1) size2--;
+    if (size3 > 1) size3--;
+    h1 = size1 * 8; h2 = size2 * 8; h3 = size3 * 8;
+  }
+
+  int y0 = max(0, (SCREEN_HEIGHT - (h1 + h2 + h3)) / 2);
+
+  display.clearDisplay();
+  auto drawCentered = [&](const String& text, int size, int y) {
+    display.setTextSize(size);
+    int w = static_cast<int>(text.length()) * 6 * size;
+    int x = max(0, (SCREEN_WIDTH - w) / 2);
+    display.setCursor(x, y);
+    display.println(text);
+  };
+  drawCentered(line1, size1, y0);
+  drawCentered(line2, size2, y0 + h1);
+  drawCentered(line3, size3, y0 + h1 + h2);
+  display.display();
 }
 
 void DisplayManager::drawSystemNamePage() {
@@ -128,6 +197,32 @@ void DisplayManager::drawStatusPage() {
   drawLines(lines, 3);
 }
 
+void DisplayManager::drawSignalPage() {
+  String lines[2];
+  lines[0] = "WLAN-Signal";
+  lines[1] = _network.isWlanUp() ? String(_network.getWlanRssi()) + "dB" : String("---");
+  drawLines(lines, 2);
+}
+
+void DisplayManager::drawFallbackIpPage() {
+  String ip = _network.isWlanUp() ? _network.getWlanIp().toString() : String("---");
+
+  // Anders als drawLines(): hier gibt es keine Seitenwechsel-Deadline (die
+  // Seite bleibt, solange der Fallback-AP aktiv ist) - "Fallback aktiv" ist
+  // bei Groesse 2 zu lang fuer eine Zeile, laeuft also dauerhaft wieder-
+  // holend durch statt einmal bis zu einem Wechsel.
+  static const unsigned long kCycleMs = 4000UL;
+  float progress = static_cast<float>(millis() % kCycleMs) / static_cast<float>(kCycleMs);
+
+  int lineHeight = LINE_TEXT_SIZE * 8;
+  int y0 = max(0, (SCREEN_HEIGHT - 2 * lineHeight) / 2);
+
+  display.clearDisplay();
+  drawScrollingLine("Fallback aktiv", y0, LINE_TEXT_SIZE, progress);
+  drawScrollingLine(ip, y0 + lineHeight, LINE_TEXT_SIZE, progress);
+  display.display();
+}
+
 void DisplayManager::drawPage(int page) {
   switch (page) {
     case 0: drawSystemNamePage(); break;
@@ -135,6 +230,7 @@ void DisplayManager::drawPage(int page) {
     case 2: drawTimePage(); break;
     case 3: drawSensorsPage(); break;
     case 4: drawStatusPage(); break;
+    case 5: drawSignalPage(); break;
     default: break;
   }
 }
@@ -158,6 +254,12 @@ void DisplayManager::loop() {
       if (_countdownValue > 0) _countdownValue--;
       drawBootScreen();
     }
+    return;
+  }
+
+  if (_network.isUsingFallbackWlan()) {
+    // Keine Seitenrotation im Fallback-AP - siehe drawFallbackIpPage().
+    drawFallbackIpPage();
     return;
   }
 

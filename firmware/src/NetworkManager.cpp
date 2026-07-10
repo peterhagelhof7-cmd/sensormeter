@@ -7,27 +7,56 @@
 NetworkManager* NetworkManager::_instance = nullptr;
 
 // "Netzwerk-Check": solange kein Interface eine IP hat, warten wir laut
-// Lastenheft 5 Minuten, bevor auf das Recovery-WLAN "installer" umgeschaltet
-// wird (siehe docs/entscheidungen.md).
+// Lastenheft 5 Minuten, bevor der eigene Fallback-Access-Point "installer"
+// gestartet wird (siehe docs/entscheidungen.md).
 static const unsigned long NETWORK_CHECK_TIMEOUT_MS = 5UL * 60UL * 1000UL;
+// Kurzer Timeout, wenn ueber die Einstellungsseite im Fallback-AP gerade
+// neue WLAN-Zugangsdaten eingegeben wurden (DeviceConfig::wlanPendingTest) -
+// schnelles Feedback statt 5 Minuten Wartezeit, siehe begin().
+static const unsigned long WLAN_TEST_TIMEOUT_MS = 30UL * 1000UL;
 static const unsigned long FALLBACK_RETRY_INTERVAL_MS = 30UL * 1000UL;
 static const char* FALLBACK_WLAN_SSID = "installer";
 static const char* FALLBACK_WLAN_PSK = "installer";
+
+// Eigener Access Point statt Beitritt zu einem bestehenden Netz (siehe
+// lastenheft.txt Abschnitt 8/12) - nur IP + Subnetzmaske konfiguriert, kein
+// Gateway/DNS, da der AP nicht ins Internet weiterleitet. DHCP-Server laeuft
+// automatisch (ESP32-Arduino-Core startet ihn implizit mit WiFi.softAP()).
+static const IPAddress FALLBACK_AP_IP(192, 168, 4, 1);
+static const IPAddress FALLBACK_AP_SUBNET(255, 255, 255, 0);
 
 NetworkManager::NetworkManager(DataManager& dataManager, ConfigManager& configManager)
     : _data(dataManager), _config(configManager) {
   _instance = this;
 }
 
+String NetworkManager::sanitizeHostname(const String& name) {
+  String out;
+  for (size_t i = 0; i < name.length(); i++) {
+    char c = name[i];
+    if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+    if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-') {
+      out += c;
+    } else if ((c == ' ' || c == '_') && out.length() > 0 && out[out.length() - 1] != '-') {
+      out += '-';
+    }
+  }
+  while (out.length() > 0 && out[out.length() - 1] == '-') out.remove(out.length() - 1);
+  while (out.length() > 0 && out[0] == '-') out.remove(0, 1);
+  if (out.isEmpty()) out = "sensormeter";
+  return out;
+}
+
 void NetworkManager::onNetworkEvent(WiFiEvent_t event) {
   if (!_instance) return;
 
   switch (event) {
-    case ARDUINO_EVENT_ETH_START:
+    case ARDUINO_EVENT_ETH_START: {
       Serial.println("[NET] Ethernet gestartet");
-      // TODO (P2): Hostname aus ConfigManager (systemName) statt Platzhalter
-      ETH.setHostname("sensormeter");
+      String hostname = sanitizeHostname(_instance->_config.getConfig().systemName);
+      ETH.setHostname(hostname.c_str());
       break;
+    }
     case ARDUINO_EVENT_ETH_CONNECTED:
       Serial.println("[NET] Ethernet-Kabel verbunden");
       _instance->_ethConnected = true;
@@ -60,9 +89,31 @@ void NetworkManager::onNetworkEvent(WiFiEvent_t event) {
       Serial.println("[NET] WLAN-Verbindung verloren");
       _instance->_wlanGotIp = false;
       break;
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+      Serial.println("[NET] Client mit Fallback-Access-Point verbunden");
+      break;
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+      Serial.println("[NET] Client vom Fallback-Access-Point getrennt");
+      break;
 
     default:
       break;
+  }
+}
+
+void NetworkManager::startFallbackAp() {
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_MODE_AP);
+  WiFi.softAPConfig(FALLBACK_AP_IP, FALLBACK_AP_IP, FALLBACK_AP_SUBNET);
+  _apActive = WiFi.softAP(FALLBACK_WLAN_SSID, FALLBACK_WLAN_PSK);
+
+  if (_apActive) {
+    Serial.print("[NET] Fallback-Access-Point \"");
+    Serial.print(FALLBACK_WLAN_SSID);
+    Serial.print("\" gestartet, IP: ");
+    Serial.println(WiFi.softAPIP());
+  } else {
+    Serial.println("[NET] Fallback-Access-Point konnte nicht gestartet werden");
   }
 }
 
@@ -134,7 +185,22 @@ void NetworkManager::begin() {
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, ETH_PHY_MDIO, ETH_PHY_TYPE, ETH_CLK_MODE);
   applyLanConfig();
 
-  const DeviceConfig& cfg = _config.getConfig();
+  DeviceConfig cfg = _config.getConfig();
+
+  // Einmal-Flag konsumieren: wurde ueber die Einstellungsseite im
+  // Fallback-AP gerade ein neues WLAN eingetragen, diesen einen Boot mit
+  // kurzem Timeout pruefen, dann das Flag sofort wieder loeschen (siehe
+  // DeviceConfig::wlanPendingTest) - unabhaengig vom Ergebnis nur ein
+  // Versuch mit dem kurzen Timeout.
+  if (cfg.wlanPendingTest) {
+    _networkCheckTimeoutMs = WLAN_TEST_TIMEOUT_MS;
+    cfg.wlanPendingTest = false;
+    _config.setConfig(cfg);
+    Serial.println("[NET] Neu eingetragenes WLAN wird getestet (kurzer Timeout)");
+  } else {
+    _networkCheckTimeoutMs = NETWORK_CHECK_TIMEOUT_MS;
+  }
+
   _wlanConfigured = cfg.wlanSsid.length() > 0;
   if (_wlanConfigured) {
     WiFi.mode(WIFI_MODE_STA);
@@ -153,12 +219,9 @@ void NetworkManager::loop() {
   if (state == SystemState::NETWORK_CHECK) {
     if (networkOk()) {
       _data.setSystemState(SystemState::RUN_NORMAL);
-    } else if (millis() - _networkCheckStartedMillis > NETWORK_CHECK_TIMEOUT_MS) {
-      _data.pushLogEntry("Netzwerk: kein Link nach 5 Minuten, wechsle auf Recovery-WLAN \"installer\"", 3);
-      WiFi.mode(WIFI_MODE_STA);
-      WiFi.disconnect();
-      WiFi.begin(FALLBACK_WLAN_SSID, FALLBACK_WLAN_PSK);
-      _inFallbackWlan = true;
+    } else if (millis() - _networkCheckStartedMillis > _networkCheckTimeoutMs) {
+      _data.pushLogEntry("Netzwerk: kein Link, starte eigenen Access-Point \"installer\"", 3);
+      startFallbackAp();
       _lastFallbackJoinAttemptMillis = millis();
       _data.setSystemState(SystemState::FALLBACK_MODE);
     }
@@ -166,12 +229,15 @@ void NetworkManager::loop() {
     if (networkOk()) {
       _data.setSystemState(SystemState::RUN_NORMAL);
     } else if (millis() - _lastFallbackJoinAttemptMillis > FALLBACK_RETRY_INTERVAL_MS) {
-      WiFi.begin(FALLBACK_WLAN_SSID, FALLBACK_WLAN_PSK);
+      // Seltener Fall: WiFi.softAP() ist beim ersten Versuch fehlgeschlagen -
+      // erneut versuchen.
+      startFallbackAp();
       _lastFallbackJoinAttemptMillis = millis();
     }
   } else if (state == SystemState::RUN_NORMAL && !networkOk()) {
     _data.pushLogEntry("Netzwerk: Verbindung verloren (LAN+WLAN down)", 3);
-    _inFallbackWlan = false;
+    _apActive = false;
+    _networkCheckTimeoutMs = NETWORK_CHECK_TIMEOUT_MS;
     _data.setSystemState(SystemState::NETWORK_CHECK);
     _networkCheckStartedMillis = millis();
   }
@@ -182,6 +248,7 @@ IPAddress NetworkManager::getLanIp() const {
 }
 
 IPAddress NetworkManager::getWlanIp() const {
+  if (_apActive) return WiFi.softAPIP();
   return _wlanGotIp ? WiFi.localIP() : IPAddress(0, 0, 0, 0);
 }
 
@@ -190,6 +257,10 @@ IPAddress NetworkManager::getLanGateway() const {
 }
 
 IPAddress NetworkManager::getWlanGateway() const {
+  // Eigener Fallback-AP hat keinen Gateway/kein Routing ins Internet (siehe
+  // startFallbackAp()) - eigene IP zurueckgeben, konsistent mit der
+  // softAPConfig()-Einstellung.
+  if (_apActive) return WiFi.softAPIP();
   return _wlanGotIp ? WiFi.gatewayIP() : IPAddress(0, 0, 0, 0);
 }
 
@@ -198,6 +269,7 @@ IPAddress NetworkManager::getLanDns() const {
 }
 
 IPAddress NetworkManager::getWlanDns() const {
+  if (_apActive) return IPAddress(0, 0, 0, 0);
   return _wlanGotIp ? WiFi.dnsIP() : IPAddress(0, 0, 0, 0);
 }
 
@@ -210,6 +282,7 @@ String NetworkManager::getWlanMac() const {
 }
 
 String NetworkManager::getWlanSsid() const {
+  if (_apActive) return String(FALLBACK_WLAN_SSID);
   return _wlanGotIp ? WiFi.SSID() : String("");
 }
 
