@@ -611,3 +611,25 @@ Mit `pio run` gebaut und verifiziert (erfolgreich, Flash 86,1 % /
 Änderung, 84,3 % / 1.104.613 B Flash, 16,6 % / 54.368 B RAM, ein Zuwachs
 von +24.032 B Flash / +200 B RAM, nah an der oben geschätzten Spanne).
 Nicht geflasht - kein WT32-ETH01-Board in dieser Session angeschlossen.
+
+## `scripts/flash.ps1`: Mac-Unterstützung geplant, nicht umgesetzt
+
+Auf Anfrage vermerkt für eine künftige Umsetzung: `scripts/flash.ps1` soll
+zusätzlich auf dem Mac lauffähig werden - **ausdrücklich nur für
+Apple-Silicon-Macs (ARM, M1/M2/M3/...)**, nicht für ältere Intel-Macs.
+Noch nicht begonnen, keine Codeänderung in dieser Session. Zu klären bei
+Umsetzung:
+
+- PowerShell selbst läuft auch auf ARM-Macs (PowerShell 7+/`pwsh`, via
+  Homebrew) - denkbar wäre ein direkter Wiederverwendungsversuch von
+  `flash.ps1` unter `pwsh` statt einer Neuimplementierung als
+  separates `flash.sh`.
+- Windows-spezifische Anteile müssten identifiziert und ersetzt werden:
+  winget-basierte Toolinstallation (Python/Git/PlatformIO), COM-Port-
+  Erkennung (unter macOS `/dev/cu.usbserial-*`/`/dev/cu.SLAB_USBtoUART`
+  statt `COMx`), sowie alle Debug-Burning-Hinweise zur USB-Seriell-
+  Adaptererkennung.
+- Gilt für alle vier Projekte gleichermaßen, da `scripts/flash.ps1`
+  identisch in allen vier Repos liegt (siehe "Flash-Skript
+  vereinheitlicht" oben) - eine Mac-Fassung müsste ebenso in alle vier
+  Repos verteilt werden.

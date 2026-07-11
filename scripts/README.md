@@ -58,6 +58,11 @@ Falls PowerShell die Ausführung wegen der Execution Policy verweigert:
 powershell -ExecutionPolicy Bypass -File .\flash.ps1
 ```
 
+**Geplant, noch nicht umgesetzt:** Mac-Unterstützung, ausdrücklich nur für
+Apple-Silicon-Macs (ARM, kein Intel-Mac) - siehe
+[`../docs/entscheidungen.md`](../docs/entscheidungen.md) für offene Fragen
+zur Umsetzung.
+
 ## ../firmware/tools/simulate_json_load.cpp
 
 Siehe [`../firmware/tools/README.md`](../firmware/tools/README.md) –
