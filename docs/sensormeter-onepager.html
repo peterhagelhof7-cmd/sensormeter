@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Sensormeter — One-Pager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1c2430;
+    background: #ffffff;
+    font-size: 10.5px;
+    line-height: 1.32;
+  }
+  .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 0 0 3mm 0; }
+
+  header {
+    background: #0f1f3d;
+    color: #ffffff;
+    padding: 6mm 12mm 4mm 12mm;
+  }
+  .eyebrow {
+    font-size: 8.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9fb3d9;
+    margin-bottom: 2.5mm;
+  }
+  h1 {
+    margin: 0 0 1.5mm 0;
+    font-size: 23px;
+    letter-spacing: 0.02em;
+  }
+  .subtitle { color: #cdd8ec; font-size: 11px; margin-bottom: 3mm; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .badge-orange { background: #c8622a; color: #fff; }
+  .badge-navy { background: #24365c; color: #cdd8ec; }
+
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8mm;
+    padding: 5mm 12mm 0 12mm;
+  }
+  h2 {
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #c8622a;
+    border-bottom: 1px solid #e4e1d8;
+    padding-bottom: 1.2mm;
+    margin: 0 0 2mm 0;
+  }
+  section + section { margin-top: 3.5mm; }
+  p { margin: 0 0 1.5mm 0; }
+  ul { margin: 0; padding-left: 4mm; }
+  li { margin-bottom: 0.8mm; }
+
+  .modgroup { margin-bottom: 2mm; }
+  .modgroup-label {
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8a93a3;
+    margin-bottom: 1mm;
+  }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 2.5px; }
+  .pill {
+    background: #f2f0e9;
+    border: 1px solid #e4e1d8;
+    border-radius: 3px;
+    padding: 1.5px 5px;
+    font-size: 9px;
+    color: #33261b;
+  }
+  .pill-new { background: #eaf3ef; border-color: #b9d9cc; color: #1f5c46; font-weight: 600; }
+
+  .flow-box {
+    border: 1px solid #e4e1d8;
+    border-left: 3px solid #c8622a;
+    border-radius: 3px;
+    padding: 2mm 3mm;
+    margin-bottom: 1.5mm;
+    background: #fbfaf7;
+  }
+  .flow-title { font-weight: 700; font-size: 10px; }
+  .flow-sub { color: #6b7280; font-size: 9px; }
+  .flow-arrow { text-align: center; color: #b0b6c0; font-size: 10px; margin: 0.5mm 0; }
+
+  table.kpi { width: 100%; border-collapse: collapse; }
+  table.kpi td { padding: 1.2mm 0; border-bottom: 1px solid #eeece5; font-size: 10px; }
+  table.kpi td:last-child { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  footer {
+    margin: 3mm 12mm 0 12mm;
+    padding-top: 2mm;
+    border-top: 1px solid #e4e1d8;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 9px;
+    color: #6b7280;
+  }
+  footer a { color: #c8622a; text-decoration: none; }
+  footer .repo { font-weight: 600; color: #1c2430; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">Firmware-Projekt · Hobby / Privat</div>
+  <h1>SENSORMETER</h1>
+  <div class="subtitle">WT32-ETH01 (ESP32 + LAN8720) — kabelgebundenes Ethernet, optional WLAN parallel, DHT11/DHT22, OLED, SNMP, Syslog, MQTT/Home Assistant</div>
+  <div class="badges">
+    <span class="badge badge-orange">v0.9.0-rc3 · Beta</span>
+    <span class="badge badge-navy">P0–P7 vollständig</span>
+    <span class="badge badge-navy">LAN + optional WLAN</span>
+    <span class="badge badge-navy">Sensormeter / Sensormeter PRO</span>
+    <span class="badge badge-navy">Schwesterprojekte: WLAN · Display · PoE</span>
+  </div>
+</header>
+
+<main>
+  <div>
+    <section>
+      <h2>Überblick</h2>
+      <p>Umweltsensor auf Basis des WT32-ETH01-Moduls: interner DHT11,
+      optional zweiter externer DHT22 über RJ45 („Sensormeter PRO"),
+      OLED-Statusanzeige, Webserver mit Verlaufsgraph und Einstellungsseite,
+      lokales OTA-Update, SNMP v1 (read-only) und Syslog-Versand.</p>
+      <p>Primäres Interface ist kabelgebundenes LAN; WLAN kann parallel
+      dazu als zweiter Weg konfiguriert werden. Ohne funktionierendes
+      Netzwerk spannt das Gerät automatisch einen eigenen
+      Einrichtungs-Access-Point auf.</p>
+    </section>
+
+    <section>
+      <h2>Hardware</h2>
+      <ul>
+        <li>WT32-ETH01: ESP32 + integrierter LAN8720-Ethernet-PHY</li>
+        <li>OLED SSD1306, 0,96", 128×64, I2C auf IO32/IO33</li>
+        <li>DHT11 intern; optional DHT22 extern über RJ45-Modularanschluss</li>
+        <li>Flashen über die separate Debug-Burning-Schnittstelle (kein Onboard-USB)</li>
+        <li>GPIO0 fest als Ethernet-Takteingang belegt — kein freier Taster</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Pin-Herkunft &amp; Hardware-Befunde</h2>
+      <p>Verdrahtung gegenüber der ursprünglichen Materialsammlung
+      korrigiert: Display-I2C auf IO32/IO33 statt IO21/IO22 (fest mit dem
+      Ethernet-PHY belegt), RJ45-Pin 5 statt Pin 4 für den externen Sensor
+      (Kollision mit dem internen DHT11-Datenpin). Details:
+      <b>docs/verdrahtungsschema-v1.2.pdf</b>, <b>entscheidungen.md</b>.</p>
+    </section>
+  </div>
+
+  <div>
+    <section>
+      <h2>Software-Architektur</h2>
+
+      <div class="modgroup">
+        <div class="modgroup-label">Anzeige</div>
+        <div class="pill-row">
+          <span class="pill">DisplayManager</span><span class="pill">SensorManager</span>
+        </div>
+      </div>
+
+      <div class="modgroup">
+        <div class="modgroup-label">Netzwerk</div>
+        <div class="pill-row">
+          <span class="pill">NetworkManager</span><span class="pill">TimeManager</span>
+          <span class="pill">WebServerManager</span><span class="pill">OtaManager</span>
+          <span class="pill">SNMPManager</span><span class="pill">SyslogManager</span>
+          <span class="pill pill-new">MqttManager</span>
+        </div>
+      </div>
+
+      <div class="modgroup">
+        <div class="modgroup-label">Persistenz</div>
+        <div class="pill-row">
+          <span class="pill">ConfigManager</span><span class="pill">StorageManager</span>
+          <span class="pill">DataManager</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Datenfluss</h2>
+      <div class="flow-box">
+        <div class="flow-title">Datenquellen</div>
+        <div class="flow-sub">DHT11/DHT22 (60s-Takt) · NTP · LAN/WLAN-Status</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">
+        <div class="flow-title">DataManager (7-Tage-Ringpuffer) / ConfigManager (config.xml)</div>
+        <div class="flow-sub">LittleFS, Default-Fallback bei ungültiger Konfiguration</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">
+        <div class="flow-title">OLED / Webserver / SNMP / Syslog / <b>MQTT-Discovery</b></div>
+        <div class="flow-sub">I2C · HTTP + Chart.js · UDP 161 · UDP 514 · <b>Home-Assistant-Discovery</b></div>
+      </div>
+    </section>
+  </div>
+
+  <div>
+    <section>
+      <h2>Status &amp; Kennzahlen</h2>
+      <table class="kpi">
+        <tr><td>Version</td><td>0.9.0-rc3 (Beta)</td></tr>
+        <tr><td>Phasen umgesetzt</td><td>P0–P7 vollständig</td></tr>
+        <tr><td>Flash je App-Slot</td><td>86,1 %</td></tr>
+        <tr><td>RAM (statisch)</td><td>16,7 %</td></tr>
+        <tr><td>Board-Bringup</td><td>offen (kein Board angeschlossen)</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>Funktionen</h2>
+      <ul>
+        <li>LAN (DHCP/statisch) + optional WLAN parallel, Fallback-Access-Point ohne Netzwerk</li>
+        <li>OLED-Seitenrotation: Systemname/Typ, IPs, Uhrzeit, Sensorwerte, Status, WLAN-Signal</li>
+        <li>Webserver: Hauptseite mit Verlaufsgraph + Syslog-Tabelle, passwortgeschützte Einstellungsseite, REST-API, XML-Import/-Export, lokales OTA</li>
+        <li>SNMP v1 (read-only, Port 161), fester OID-Baum, konfigurierbare Community</li>
+        <li>Syslog (UDP 514): Statusreport je Sensorzyklus + sofortige Fehler-Events</li>
+        <li><b>MQTT/Home-Assistant-Discovery</b> (neu): Temperatur/Luftfeuchte je Sensor, Discovery + State, deaktiviert ohne konfigurierten Broker</li>
+        <li>Kollisions-Check (Ping) und DHCP-Lease-Test vor Übernahme neuer Netzwerkeinstellungen</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Entwicklungsansatz</h2>
+      <ul>
+        <li>Jede Phase per <b>pio run</b> gebaut &amp; verifiziert, Flash-/RAM-Deltas im Entscheidungsprotokoll dokumentiert</li>
+        <li>MQTT-Anbindung als zuvor geprüfter, dokumentierter Portierungs-Kandidat aus sensormeter-poe übernommen, bewusst ohne Relais/Aktor-Rolle</li>
+        <li>Transport über einfachen <b>WiFiClient</b>: alte Arduino-ESP32-Version (2.0.17) kennt keine separate EthernetClient-Klasse, WiFiClient wrapt interface-unabhängige lwIP-Sockets</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Offen</h2>
+      <ul>
+        <li>Board-Bringup: noch kein WT32-ETH01 in dieser Session angeschlossen/geflasht</li>
+        <li>MQTT/Home-Assistant-Verhalten bei gleichzeitig aktivem LAN <b>und</b> WLAN nicht auf echter Hardware verifiziert</li>
+        <li>Sensor-2-CSV-Export (nur Sensor 1 aktuell abgedeckt)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Einstieg</h2>
+      <ul>
+        <li><b>scripts/flash.ps1 -Project sensormeter</b> – Setup + Flash</li>
+        <li><b>docs/lastenheft.txt</b> – Anforderungen inkl. SNMP/Syslog/MQTT</li>
+      </ul>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div>
+    <div class="repo">github.com/peterhagelhof7-cmd/sensormeter</div>
+    <div>Entwickelt mit Unterstützung von Claude (Anthropic) als Coding-Assistent</div>
+  </div>
+  <div style="text-align:right;max-width:90mm;">
+    <b>Kerndokumente im Repo:</b> Lastenheft · Pflichtenheft · Entscheidungsprotokoll ·
+    Implementierungsplan · Admin-Guide · Stückliste · PRTG-/Zabbix-Integration
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

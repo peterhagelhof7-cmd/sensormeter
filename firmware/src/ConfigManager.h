@@ -28,6 +28,7 @@
 //     <sensor2 enabled="false" name="Extern" tempOffset="0.0" humOffset="0.0" calibratedTs="0"/>
 //   </sensors>
 //   <snmp community="public"/>
+//   <mqtt enabled="false" server="" port="1883" user="" password=""/>
 // </config>
 
 struct DeviceConfig {
@@ -79,6 +80,21 @@ struct DeviceConfig {
   String sensor2Name = "Extern";
 
   String snmpCommunity = "public";
+
+  // Home-Assistant-Anbindung ueber MQTT-Discovery (siehe
+  // sensormeter-poe/repo/docs/lastenheft.txt Abschnitt 16 fuer das
+  // vollstaendige Feature-Design - hier nur die Sensor-Rolle, kein
+  // Relais/Aktor, obwohl pins.h die RJ45-Relaispins bereits reserviert
+  // (siehe docs/entscheidungen.md "Portierungs-Kandidaten..." - Relais war
+  // dort nur als "naheliegend" geprueft, nicht beauftragt). Topic-Praefix
+  // wird NICHT gespeichert, sondern wie der mDNS-Hostname zur Laufzeit aus
+  // systemName abgeleitet (NetworkManager::sanitizeHostname) - identisches
+  // Muster zu Sensormeter WLAN.
+  bool mqttEnabled = false;
+  String mqttServer;
+  uint16_t mqttPort = 1883;
+  String mqttUser;
+  String mqttPassword;
 };
 
 class ConfigManager {

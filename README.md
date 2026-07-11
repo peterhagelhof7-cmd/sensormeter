@@ -7,9 +7,10 @@
 </picture>
 
 ESP32-basierter Umweltsensor (Temperatur/Luftfeuchte) mit kabelgebundenem
-Ethernet (WT32-ETH01, LAN8720), OLED-Anzeige, Webserver, SNMP v1 (read-only)
-und Syslog-Versand. Zwei Varianten: **Sensormeter** (1 interner Sensor) und
-**Sensormeter PRO** (zusätzlich 1 externer Sensor über RJ45).
+Ethernet (WT32-ETH01, LAN8720), OLED-Anzeige, Webserver, SNMP v1 (read-only),
+Syslog-Versand und MQTT/Home-Assistant-Discovery. Zwei Varianten:
+**Sensormeter** (1 interner Sensor) und **Sensormeter PRO** (zusätzlich 1
+externer Sensor über RJ45).
 
 [**One-Pager (PDF)**](docs/sensormeter-onepager.pdf) — kompakte Projektübersicht auf einer Seite.
 
@@ -27,13 +28,13 @@ Hardware getestet.
 
 | Datei | Inhalt |
 |---|---|
-| [docs/sensormeter-onepager.pdf](docs/sensormeter-onepager.pdf) | One-Pager: Projektübersicht, Architektur, Kennzahlen auf einer Seite |
+| [docs/sensormeter-onepager.pdf](docs/sensormeter-onepager.pdf) ([HTML](docs/sensormeter-onepager.html)) | One-Pager: Projektübersicht, Architektur, Kennzahlen auf einer Seite |
 | [docs/projektfamilie.html](docs/projektfamilie.html) | Architekturskizze: wie die drei Sensormeter-Projekte zusammenhängen |
 | [docs/lastenheft.txt](docs/lastenheft.txt) | Fachliche Anforderungen: Webseite, Einstellungen, SNMP-OIDs, Netzwerklogik, Zustandsmodell |
 | [docs/pflichtenheft.txt](docs/pflichtenheft.txt) | Technische Umsetzung: FreeRTOS-Tasks, Softwaremodule, Speicherlayout, Fehlerbehandlung |
 | [docs/verdrahtungsschema-v1.2.pdf](docs/verdrahtungsschema-v1.2.pdf) | Aktuelles, korrigiertes Verdrahtungsschema (Pinbelegung WT32-ETH01, Display, DHT11, RJ45-Modularanschluss) |
 | [docs/flash-vorbereitung.pdf](docs/flash-vorbereitung.pdf) | Schritt-für-Schritt-Anleitung zum Flash-bereit-Machen (Boot-Modus, Verkabelung zum Flash-PC) |
-| [docs/admin-guide.html](docs/admin-guide.html) | Admin-Guide: Inbetriebnahme, OLED-Anzeige, Weboberfläche, Fallback-Access-Point, Werksreset, SNMP/Syslog (noch nicht als PDF exportiert) |
+| [docs/admin-guide.pdf](docs/admin-guide.pdf) ([HTML](docs/admin-guide.html)) | Admin-Guide: Inbetriebnahme, OLED-Anzeige, Weboberfläche, Fallback-Access-Point, Werksreset, SNMP/Syslog/MQTT |
 | [docs/pinout-wt32-eth01-v1.4.txt](docs/pinout-wt32-eth01-v1.4.txt) | Rohes Pinout-Referenzblatt des Boards laut Datenblatt |
 | [docs/implementierungsplan.html](docs/implementierungsplan.html) | Visueller Implementierungsplan: Reihenfolge P0–P8 vom Prototyp zur vollständigen Firmware (lokal im Browser öffnen) |
 | [docs/stueckliste.md](docs/stueckliste.md) | Bauteile pro Gerät + einmaliges Flash-Werkzeug |
@@ -49,7 +50,7 @@ Hardware getestet.
 
 `firmware/` ist ein PlatformIO-Projekt (Board `esp32dev`, Framework Arduino).
 
-**Version:** `0.9.0-rc2` (Beta) — Versionsschema siehe
+**Version:** `0.9.0-rc3` (Beta) — Versionsschema siehe
 [docs/entscheidungen.md](docs/entscheidungen.md#versionierung).
 
 Aktueller Stand: **P7 — Syslog, damit alle Phasen (P0–P7) umgesetzt** (siehe
@@ -72,7 +73,7 @@ Repo falls nötig und flasht das per USB angeschlossene Board in einem
 Rutsch. Details: [`scripts/README.md`](scripts/README.md).
 
 Enthalten (P0–P7, vollständig):
-- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`, `SyslogManager`
+- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`, `SyslogManager`, `MqttManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
 - Ethernet (DHCP oder statisch) + optional WLAN parallel, korrigierte Pinbelegung v1.2 zentral in `include/pins.h`
 - Fallback: hat nach 5 Minuten weder LAN noch WLAN eine IP, spannt das
@@ -95,6 +96,7 @@ Enthalten (P0–P7, vollständig):
 - OTA-Update: nur per lokalem `.bin`-Upload auf der Einstellungsseite (kein GitHub-Versionscheck/-Direktinstall — HTTPS-Client hätte ~168 KB Flash gekostet, siehe `docs/entscheidungen.md`); daneben ein Link zu den GitHub-Releases zum manuellen Herunterladen
 - SNMP v1 (read-only, Port 161): feste OID-Struktur unter `.1.3.6.1.4.1.99999.x` (System, Netzwerk, Sensor 1/2, Systemstatus), Community konfigurierbar
 - Syslog (UDP Port 514): Statusreport bei jedem Sensorzyklus, Fehler-Events (Sensor/Netzwerk/NTP) sofort — deaktiviert, solange kein Syslog-Server konfiguriert ist
+- MQTT/Home-Assistant-Discovery: Discovery- und State-Payloads für Temperatur/Luftfeuchte je Sensor, Topic-Präfix wie der mDNS-Hostname zur Laufzeit abgeleitet — deaktiviert, solange kein Broker konfiguriert ist
 
 Damit sind alle im [Implementierungsplan](docs/implementierungsplan.html) vorgesehenen Phasen umgesetzt. Offen bleibt der reale Betrieb auf Hardware (Flashen, Verkabelung nach `docs/verdrahtungsschema-v1.2.pdf` prüfen, längerer Testlauf).
 

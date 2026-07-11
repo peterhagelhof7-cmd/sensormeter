@@ -563,3 +563,51 @@ geprüft, ob diese auch auf Sensormeter (WT32-ETH01) übertragbar wären -
 Vollständige Feature-Beschreibung (Ablauf, Pin-Rollen, MQTT-Discovery-
 Schema) siehe `sensormeter-poe/repo/docs/lastenheft.txt` Abschnitte
 11/14-16.
+
+## MQTT/Home-Assistant-Anbindung implementiert (Sensor-Rolle)
+
+Der oben geprüfte Portierungs-Kandidat "MQTT/Home Assistant" wurde jetzt
+umgesetzt - beschränkt auf die Sensor-Rolle (Discovery + State für
+Temperatur/Luftfeuchte), ohne Relais/Aktor, analog zu Sensormeter WLAN.
+
+- Neuer `MqttManager` (Architekturvorbild: `SyslogManager`), zusätzlich
+  angelehnt an Sensormeter WLANs bereits bestehende MQTT-Umsetzung, aber
+  um Sensor 2 erweitert (`DataManager::getSensor2()`, Discovery/State nur
+  bei aktiviertem `sensor2Enabled`).
+- Neue `DeviceConfig`-Felder `mqttEnabled`/`mqttServer`/`mqttPort`/
+  `mqttUser`/`mqttPassword`, per `<mqtt .../>`-Element in `config.xml`
+  persistiert (Schema-Erweiterung in `ConfigManager.h`/`.cpp`, siehe
+  Admin-Guide Abschnitt 7.1). Topic-Präfix wird **nicht** gespeichert,
+  sondern wie der mDNS-Hostname zur Laufzeit aus dem Systemnamen
+  abgeleitet (`NetworkManager::sanitizeHostname`) - identisches Muster zu
+  Sensormeter WLAN.
+- Discovery-Topics `homeassistant/sensor/<prefix>/<key>/config` (retained,
+  einmalig je Reconnect gesendet), State-Topic `<prefix>/state` (JSON,
+  gesendet bei jedem neuen Sensorzyklus - gleiche Änderungserkennung wie
+  `SyslogManager`, über `lastReadMillis`).
+- **Zwei-Interface-Besonderheit gegenüber Sensormeter WLAN**: dieses
+  Projekt hat zwei mögliche aktive Interfaces (LAN + WLAN), Sensormeter
+  WLAN nur eines. Ein einfacher `WiFiClient` genügt trotzdem als Transport
+  für `PubSubClient`: die hier genutzte alte Arduino-ESP32-Version
+  (2.0.17) besitzt keine separate `EthernetClient`-Klasse -
+  `WiFiClient` ist nur ein dünner Wrapper um lwIP-BSD-Sockets, die
+  unabhängig vom konkreten Netzwerk-Interface funktionieren (lwIP
+  entscheidet das Routing anhand der Ziel-IP, nicht die
+  Applikationsschicht). **Nicht verifiziert**: welches Interface
+  tatsächlich genutzt wird, wenn LAN und WLAN gleichzeitig eine IP haben -
+  auf echter Hardware noch nicht getestet.
+- Einstellungsseite (`WebServerManager.cpp`) um einen neuen Block "MQTT
+  (Home Assistant)" ergänzt (Aktiv-Checkbox, Broker-Adresse, Port,
+  Benutzername, Passwort), REST-API (`/api/config` GET/POST) um die
+  fünf Felder erweitert. Admin-Guide (Abschnitt 4.2, neuer Abschnitt 6.3,
+  config.xml-Schema in 7.1) und One-Pager entsprechend ergänzt.
+- Bewusst **kein** Relais/Aktor über MQTT, obwohl `pins.h` die
+  RJ45-Relaispins bereits reserviert (siehe Eintrag oben,
+  "Portierungs-Kandidaten...") - dort nur als "naheliegend" geprüft, hier
+  nicht beauftragt.
+
+Mit `pio run` gebaut und verifiziert (erfolgreich, Flash 86,1 % /
+1.128.645 B, RAM 16,7 % / 54.568 B - gegenüber dem Stand vor dieser
+Änderung, 84,3 % / 1.104.613 B Flash, 16,6 % / 54.368 B RAM, ein Zuwachs
+von +24.032 B Flash / +200 B RAM, nah an der oben geschätzten Spanne).
+Nicht geflasht - kein WT32-ETH01-Board in dieser Session angeschlossen.
