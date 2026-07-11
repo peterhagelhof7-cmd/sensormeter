@@ -33,6 +33,7 @@ Hardware getestet.
 | [docs/lastenheft.txt](docs/lastenheft.txt) | Fachliche Anforderungen: Webseite, Einstellungen, SNMP-OIDs, Netzwerklogik, Zustandsmodell |
 | [docs/pflichtenheft.txt](docs/pflichtenheft.txt) | Technische Umsetzung: FreeRTOS-Tasks, Softwaremodule, Speicherlayout, Fehlerbehandlung |
 | [docs/verdrahtungsschema-v1.2.pdf](docs/verdrahtungsschema-v1.2.pdf) | Aktuelles, korrigiertes Verdrahtungsschema (Pinbelegung WT32-ETH01, Display, DHT11, RJ45-Modularanschluss) |
+| [docs/verdrahtungsplan.html](docs/verdrahtungsplan.html) | Interaktive Kurzfassung desselben Verkabelungsstands (v1.2) - Klick auf einen Draht im Schema hebt ihn hervor und zeigt Start-/Zielpin |
 | [docs/flash-vorbereitung.pdf](docs/flash-vorbereitung.pdf) | Schritt-für-Schritt-Anleitung zum Flash-bereit-Machen (Boot-Modus, Verkabelung zum Flash-PC) |
 | [docs/admin-guide.pdf](docs/admin-guide.pdf) ([HTML](docs/admin-guide.html)) | Admin-Guide: Inbetriebnahme, OLED-Anzeige, Weboberfläche, Fallback-Access-Point, Werksreset, SNMP/Syslog/MQTT |
 | [docs/pinout-wt32-eth01-v1.4.txt](docs/pinout-wt32-eth01-v1.4.txt) | Rohes Pinout-Referenzblatt des Boards laut Datenblatt |
@@ -103,7 +104,11 @@ Damit sind alle im [Implementierungsplan](docs/implementierungsplan.html) vorges
 
 ## Stand der Verdrahtung
 
-**`docs/verdrahtungsschema-v1.2.pdf` ist der einzig gültige Verdrahtungsstand.**
+**`docs/verdrahtungsschema-v1.2.pdf` ist der einzig gültige Verdrahtungsstand**
+(ausführlich, versioniert, mit Änderungsprotokoll). `docs/verdrahtungsplan.html`
+übernimmt denselben Stand als interaktive Kurzfassung fürs Nachschlagen im
+Browser (Klick auf einen Draht zeigt Start-/Zielpin) - beide Dokumente
+werden bei künftigen Korrekturen synchron gehalten.
 Wichtigste Punkte gegenüber der allerersten Version:
 
 - Display-I2C liegt auf **IO32/IO33** (nicht IO21/IO22 – die sind fest mit

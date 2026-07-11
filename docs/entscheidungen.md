@@ -713,3 +713,32 @@ Mit `pio run` gebaut und verifiziert (Flash 86,6 % / 1.134.697 B, RAM
 17,6 % / 57.768 B - gegenüber dem MQTT-Stand oben, 86,1 % / 1.128.645 B
 Flash, 16,7 % / 54.568 B RAM, ein Zuwachs von +6.052 B Flash / +3.200 B
 RAM, nahezu identisch zum bei Sensormeter WLAN gemessenen Zuwachs).
+
+## Verdrahtungsplan interaktiv: docs/verdrahtungsplan.html ergänzt
+
+Auf Anfrage, familienweit für alle vier Projekte. Anders als bei
+Sensormeter PoE (dort schon als HTML/SVG vorhanden) existierte hier bisher
+nur `docs/verdrahtungsschema-v1.2.pdf` - ein sorgfältig versioniertes,
+mehrseitiges PDF mit vollständigem Änderungsprotokoll (v1.0→v1.1→v1.2),
+aber naturgemäß ohne jede Interaktivität.
+
+Entscheidung: **beide Dokumente behalten**, nicht das PDF ersetzen. Das
+PDF bleibt die ausführliche, versionierte Referenz mit Änderungshistorie
+(sieben Seiten, u. a. mit Pin-für-Pin-Übersicht aller 20 Header-Pins) -
+das neue `docs/verdrahtungsplan.html` ist eine interaktive Kurzfassung
+nach dem bei Sensormeter PoE etablierten Muster (Inline-SVG, 15
+Draht-Pfade, je ein unsichtbarer breiterer "Hit"-Pfad dahinter fürs
+Anklicken, Info-Zeile mit "Von → Nach" bei Klick). Pin-Daten für die
+Kurzfassung direkt aus `verdrahtungsschema-v1.2.pdf` übernommen (Seiten
+2/4/6 - USB-Buchse-Tabelle, RJ45-Modul-Zusammenfassung, Pin-Belegung),
+keine neuen Zuordnungen erfunden.
+
+README.md und die "Stand der Verdrahtung"-Passage ergänzt: das PDF bleibt
+"der einzig gültige Verdrahtungsstand", die HTML-Kurzfassung wird als
+Browser-Companion dazu benannt - beide müssen bei künftigen
+Pin-Korrekturen synchron gehalten werden.
+
+Getestet mit Headless Chrome (`--dump-dom` + synthetischer Klick per
+`MouseEvent`/`dispatchEvent` auf einen der 15 Drähte): korrektes
+Hervorheben, korrekter "Von → Nach"-Text, korrektes Dimmen der übrigen 14
+Drähte. Kein Board nötig, rein clientseitiges HTML/JS ohne Firmware-Bezug.
