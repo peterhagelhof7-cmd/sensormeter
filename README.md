@@ -40,6 +40,8 @@ Hardware getestet.
 | [docs/entscheidungen.md](docs/entscheidungen.md) | Entscheidungsprotokoll: Verkabelungsstand, SNMP-Version, Zabbix-Scope, Repo-Kuration |
 | [docs/ZABBIX.md](docs/ZABBIX.md) | Zabbix-Integration: OIDs, Template-Import, Host-Einrichtung, Trigger |
 | [docs/zabbix-template-sensormeter.yaml](docs/zabbix-template-sensormeter.yaml) | Fertiges Zabbix-Template (optional, zusätzlich zu SNMP v1) |
+| [docs/PRTG.md](docs/PRTG.md) | PRTG-Integration: OIDs, Geräte-Template-Import, Sensor-Übersicht |
+| [docs/prtg-template-sensormeter.odt](docs/prtg-template-sensormeter.odt) | Fertiges PRTG-Geräte-Template für Auto-Discovery |
 | [docs/stromversorgung.md](docs/stromversorgung.md) | Strombudget pro Komponente/Gerät und Netzteilempfehlung |
 | [docs/systemlast.md](docs/systemlast.md) | CPU/RAM/Flash-Last je Phase (gemessen), REST-API-Heap-Last (simuliert), Zielwert-Abgleich gegen Pflichtenheft 8 |
 
