@@ -526,3 +526,40 @@ Default. Abweichend war Sensormeter Display (`admin`) - dort auf
 `installer` vereinheitlicht, siehe `sensormeter-display/docs/entscheidungen.md`.
 Der Benutzername ist bei allen drei Projekten ohnehin fest `admin` (kein
 eigenes Feld).
+
+## Portierungs-Kandidaten aus sensormeter-poe geprüft (nicht umgesetzt)
+
+Für das in Planung befindliche `sensormeter-poe` (ESP32-S3-ETH) wurden im
+Lastenheft/Pflichtenheft vier neue Features festgelegt: BOOT-Taster-
+Bedienung, automatische Sensor-2-Modul-Erkennung (I2C-Scan + DHT-Probe),
+Relais/Aktor-Steuerung, MQTT/Home-Assistant-Anbindung. Auf Anfrage
+geprüft, ob diese auch auf Sensormeter (WT32-ETH01) übertragbar wären -
+**nur geprüft/dokumentiert, nicht implementiert.**
+
+- **BOOT-Taster: nicht übertragbar.** GPIO0 ist beim WT32-ETH01 fest mit
+  dem Ethernet-Takt verdrahtet (bereits an anderer Stelle in diesem Log
+  dokumentiert) - unverändert.
+- **Sensor-2-Auto-Erkennung: übertragbar.** Dieselbe RJ45/I2C-Bus-
+  Architektur (Display + externer Sensor auf gemeinsamem Bus) existiert
+  hier bereits identisch. Ressourcenkosten minimal (reine Scan-Logik).
+- **Relais/Aktor: übertragbar, sogar naheliegend.** `pins.h` reserviert
+  bereits seit der ursprünglichen Verdrahtung `PIN_RJ45_PIN6_RELAY_OUT`
+  und `PIN_RJ45_PIN7_RELAY_FB` (Pin 6/7) - nur bisher nie in Software
+  angesteuert. Ressourcenkosten minimal.
+- **MQTT/Home Assistant: übertragbar, Flash ist der limitierende
+  Faktor.** Empirisch getestet (PubSubClient-Bibliothek mit realistischer
+  Nutzung - setServer/setCallback/connect/publish/subscribe/loop, danach
+  wieder entfernt): **+16.124 Byte Flash, +120 Byte RAM** gegenüber dem
+  Stand von diesem Log-Eintrag (84,3 % / 1.104.613 B Flash, 16,6 % /
+  54.368 B RAM, siehe oben). Bei nur noch ~201 KB freiem Flash (RAM
+  dagegen komfortabel bei 16,6 %) realistisch mit den nötigen
+  Manager-Klassen (MqttManager, RelayManager, SensorDetector) und der
+  Web-UI-Erweiterung auf ~30-50 KB Gesamtkosten geschätzt - passt noch
+  klar in die Reserve, verbraucht aber spürbar davon (~15-25 %).
+  Implementierungsdetail bei einer künftigen Umsetzung: MQTT müsste über
+  das jeweils aktive Interface laufen (LAN priorisiert, WLAN-Fallback)
+  statt fest über `WiFiClient` wie im Testaufbau.
+
+Vollständige Feature-Beschreibung (Ablauf, Pin-Rollen, MQTT-Discovery-
+Schema) siehe `sensormeter-poe/repo/docs/lastenheft.txt` Abschnitte
+11/14-16.
