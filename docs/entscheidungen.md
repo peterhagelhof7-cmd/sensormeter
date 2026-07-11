@@ -774,3 +774,50 @@ korrigiert.
 Getestet: Headless-Chrome-Screenshots hell/dunkel, `getBoundingClientRect()`-
 Vermessung aller vier Karten (keine Überlappung mehr). Rein statisches
 HTML/CSS/SVG ohne Firmware-Bezug, kein Board nötig.
+
+## Serial-Kommandozeile + Werksreset-Umfangsauswahl (Port aus Sensormeter WLAN), Version auf 0.9.0-rc4
+
+Beide Features wurden zuerst in Sensormeter WLAN gebaut und auf echter
+Hardware verifiziert, dann hierher portiert - analog zum Muster, das die
+Versionierungs-Umstellung weiter oben schon vorgezeichnet hat ("analog zu
+Sensormeter WLAN ... dort zuerst eingeführt").
+
+**Serial-Kommandozeile** (`handleSerialCommands()` in `main.cpp`, Abschnitt
+8 im Admin-Guide): `status`, `dhcp <lan|wlan>`, `ip <lan|wlan> <ip> <maske>
+<gateway> [dns]`, `wifi <ssid> <passwort>`, `dump`/`upload`, `reset`/`reset
+all`. Anders als bei Sensormeter WLAN (nur ein Interface) brauchen
+`dhcp`/`ip` hier ein Interface-Argument, da dieses Gerät LAN und optionales
+WLAN parallel betreibt - `wifi` bleibt WLAN-only (Ethernet hat kein
+Zugangsdaten-Konzept). `status` gibt zusätzlich zum WLAN-only-Vorbild auch
+den LAN-Status/-IP sowie Sensor 2 (falls `sensor2Enabled`) aus. Besonders
+relevant hier, da dieses Board (anders als Sensormeter WLAN) keinen
+BOOT-Taster als Werksreset-Weg hat (siehe oben, "Kein Taster-Bedienelement")
+- die Serial-Kommandozeile ist damit der einzige Netzwerk-unabhängige Weg
+für einen Werksreset.
+
+**Werksreset-Umfangsauswahl** (`handleApiFactoryReset()` in
+`WebServerManager.cpp`): ersetzt die bisherigen zwei Buttons ("nur
+Einstellungen" / "Einstellungen + Daten") durch ein Auswahlmenü mit vier
+Umfängen (Alles / Nur Konfiguration / Nur Messwerte / Nur
+Anbieter-Branding), inkl. JS-Bestätigungsdialog, der den gewählten Umfang
+nennt. Der alte alles-oder-Einstellungen-Reset hatte einen Bug: er löschte
+nie die Logo-Datei, selbst beim vollständigen "Einstellungen + Daten"-
+Reset - behoben, "Alles" und "Nur Anbieter-Branding" rufen jetzt
+`_branding.deleteLogo()` auf. "Nur Konfiguration" bewahrt gezielt
+`brandingVendorName`, damit ein reiner Konfigurations-Reset das Branding
+nicht mit entfernt.
+
+Die BOOT-Taster-Logik gibt es hier nicht (s.o.); die Serial-Kommandos
+`reset`/`reset all` bleiben bewusst der einfachere, von der granularen
+Web-Umfangsauswahl unabhängige Codepfad (voller `DeviceConfig()`-Reset ohne
+Branding-Erhalt, keine Logo-Löschung) - wie schon bei Sensormeter WLAN.
+
+Version auf **`0.9.0-rc4`** angehoben (vorher `0.9.0-rc2`/`-rc3`, je nach
+Datei uneinheitlich gepflegt - jetzt in `config.h(.example)`, README und
+Admin-Guide-Badge/OLED-Skizze konsistent), passend zum gemeinsamen Stand
+aller vier Sensormeter-Projekte.
+
+Nur per `pio run` gebaut (kein Board für Sensormeter in dieser Sitzung
+angeschlossen), Build erfolgreich (Flash 87.2%, RAM 17.6%). Noch nicht auf
+echter Hardware verifiziert - offener Punkt für eine spätere Runde, analog
+zum bereits dokumentierten Hardware-Verifizierungs-Rückstand.

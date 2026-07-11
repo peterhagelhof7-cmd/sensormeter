@@ -166,7 +166,7 @@
   </div>
   <div class="subtitle">Admin-Guide — Inbetriebnahme, OLED-Anzeige und Konfiguration über die Weboberfläche</div>
   <div class="badges">
-    <span class="badge badge-orange">v0.9.0-rc3 · Beta</span>
+    <span class="badge badge-orange">v0.9.0-rc4 · Beta</span>
     <span class="badge">WT32-ETH01 · LAN + optional WLAN</span>
     <span class="badge">DHT11/DHT22 · OLED · Webserver · SNMP · Syslog · MQTT/HA · OTA</span>
     <span class="badge">github.com/peterhagelhof7-cmd/sensormeter</span>
@@ -181,6 +181,7 @@
   <div class="toc-row"><a href="#sec5">5. Firmware-Updates</a></div>
   <div class="toc-row"><a href="#sec6">6. SNMP, Syslog, MQTT &amp; Branding (für Netzwerk-Admins)</a></div>
   <div class="toc-row"><a href="#sec7">7. Konfigurations- und Datenexport (config.xml / values.csv)</a></div>
+  <div class="toc-row"><a href="#sec8">8. Serial-Kommandozeile (USB)</a></div>
   <div class="toc-row"><a href="#sec-anhang">Anhang: Troubleshooting</a></div>
 </div>
 
@@ -404,7 +405,7 @@ durch, bis sie komplett zu lesen war, statt die Schrift zu verkleinern.</p>
   <div class="device"><div class="screen">
     <div class="oled-text" style="top:4mm; font-size:4mm; font-weight:700;">LAN OK</div>
     <div class="oled-text" style="top:12mm; font-size:4mm; font-weight:700;">WLAN --</div>
-    <div class="oled-text" style="top:19mm; font-size:3mm;">v0.9.0-rc3</div>
+    <div class="oled-text" style="top:19mm; font-size:3mm;">v0.9.0-rc4</div>
   </div></div>
   <div class="sketch-notes">
     <p><b>Seite 5 — Status</b><br>Zeile 1: LAN-Status
@@ -465,8 +466,10 @@ durch, bis sie komplett zu lesen war, statt die Schrift zu verkleinern.</p>
   Werksreset nutzen: GPIO0 ist beim WT32-ETH01 fest als Takteingang für
   den Ethernet-PHY verdrahtet (<span class="code">ETH_CLOCK_GPIO0_IN</span>)
   und steht nicht als freier Taster zur Verfügung. Werksreset und
-  Seitenwechsel funktionieren hier ausschließlich über die Weboberfläche
-  bzw. die automatische 10s-Rotation.
+  Seitenwechsel funktionieren hier über die Weboberfläche bzw. die
+  automatische 10s-Rotation — zusätzlich lässt sich ein Werksreset auch per
+  USB über die Serial-Kommandozeile auslösen, siehe Abschnitt 8, praktisch
+  falls das Gerät gerade nicht im Netzwerk erreichbar ist.
 </div>
 
 <!-- ============================================================ -->
@@ -605,18 +608,29 @@ gespeichert und das Gerät neu gestartet.</p>
 <p>„XML Export" lädt die aktuelle Konfiguration als
 <span class="code">config.xml</span> herunter. „XML Import" spielt eine
 zuvor exportierte (oder manuell angepasste) Datei zurück — ein Neustart
-danach wird empfohlen. Genauer Aufbau der Datei: Abschnitt 7.1.</p>
+danach wird empfohlen. Genauer Aufbau der Datei: Abschnitt 7.1. Dieselbe
+Export-/Import-Logik steht auch per USB über die Serial-Kommandozeile zur
+Verfügung (Abschnitt 8, Kommandos <span class="code">dump</span>/<span class="code">upload</span>) —
+praktisch, wenn das Gerät gerade nicht im Netzwerk erreichbar ist.</p>
+<p>Ein Auswahlmenü legt fest, welcher Umfang zurückgesetzt wird, bevor der
+Button „Werksreset durchführen" ausgelöst wird (Bestätigungsdialog nennt
+den gewählten Umfang noch einmal):</p>
 <div class="keep">
 <table>
-  <tr><th>Button</th><th>Wirkung</th></tr>
-  <tr><td>Werksreset (nur Einstellungen)</td><td>Setzt <span class="code">config.xml</span> auf Werkswerte zurück (LAN/WLAN-Zugangsdaten, Web-Passwort, Kalibrierung, Syslog/SNMP-Einstellungen). Der 7-Tage-Verlauf bleibt erhalten.</td></tr>
-  <tr><td>Werksreset (Einstellungen + Daten)</td><td>Wie oben, zusätzlich wird der gespeicherte 7-Tage-Verlauf gelöscht. Nicht rückgängig zu machen.</td></tr>
+  <tr><th>Umfang</th><th>Wirkung</th></tr>
+  <tr><td>Alles</td><td>Setzt <span class="code">config.xml</span> auf Werkswerte zurück (LAN/WLAN-Zugangsdaten, Web-Passwort, Kalibrierung beider Sensoren, Syslog/SNMP/MQTT-Einstellungen), löscht den 7-Tage-Verlauf <b>und</b> das Anbieter-Logo. Nicht rückgängig zu machen.</td></tr>
+  <tr><td>Nur Konfiguration</td><td>Wie oben, aber ohne den 7-Tage-Verlauf und ohne Branding zu löschen — der Anbietername bleibt erhalten, das Logo ebenfalls.</td></tr>
+  <tr><td>Nur Messwerte</td><td>Löscht ausschließlich den 7-Tage-Verlauf. <span class="code">config.xml</span> und Branding bleiben vollständig unangetastet.</td></tr>
+  <tr><td>Nur Anbieter-Branding</td><td>Setzt nur den Anbietername zurück und entfernt ein hinterlegtes Logo (identisch zum „Logo entfernen"-Button oben). Alle übrigen Einstellungen und der Verlauf bleiben unangetastet.</td></tr>
 </table>
 <p style="font-size:11px; color:#6b6559;">Anders als bei Sensormeter WLAN
 gibt es hier <b>keinen</b> zusätzlichen Taster-Weg für den Werksreset
 (siehe Abschnitt 3, Hinweis „Kein Taster-Bedienelement") — bei fehlendem
-Netzwerkzugriff bleibt nur der komplette Flash-Löschvorgang über die
-Debug-Burning-Schnittstelle (Abschnitt 1).</p>
+Netzwerkzugriff bleibt die Serial-Kommandozeile per USB (Abschnitt 8,
+Kommandos <span class="code">reset</span>/<span class="code">reset all</span>,
+dort ohne die granulare Umfangsauswahl der Weboberfläche), andernfalls nur
+der komplette Flash-Löschvorgang über die Debug-Burning-Schnittstelle
+(Abschnitt 1).</p>
 </div>
 
 <h3>Firmware</h3>
@@ -872,6 +886,121 @@ CSV-Datei zum Download über den Button „values.csv" auf der Hauptseite
 </div>
 
 <!-- ============================================================ -->
+<h1 class="section" id="sec8"><span class="num">8</span>Serial-Kommandozeile (USB)</h1>
+<p>Zusätzlich zur Weboberfläche lässt sich das Gerät direkt über die
+USB-Verbindung steuern — ohne Netzwerkzugriff, ohne Passwort. Praktisch,
+wenn das Gerät nur per USB, aber nicht per Netzwerk erreichbar ist (z. B.
+falsche WLAN-Zugangsdaten, statische IP in einem fremden Netzsegment) —
+und da dieses Gerät anders als Sensormeter WLAN keinen BOOT-Taster als
+Werksreset-Weg hat (Abschnitt 3, „Kein Taster-Bedienelement"), ist dies
+hier der einzige Netzwerk-unabhängige Weg für einen Werksreset. Baudrate
+115200, jede Zeile mit Enter abschließen.</p>
+
+<div class="callout">
+  <div class="callout-title">Gleiches Vertrauensmodell wie bei Sensormeter WLAN</div>
+  Wer das Gerät per USB-Kabel anschließen kann, gilt als vertrauenswürdig —
+  kein Passwort nötig. Alle Kommandos außer <span class="code">reset</span>/<span class="code">reset all</span>
+  sind nicht destruktiv.
+</div>
+
+<h2>8.1 Kommandoübersicht</h2>
+<p>Anders als bei Sensormeter WLAN (nur WLAN) hat dieses Gerät zwei
+Netzwerk-Interfaces (LAN + optionales WLAN) — <span class="code">dhcp</span>
+und <span class="code">ip</span> nehmen deshalb ein Interface-Argument
+(<span class="code">lan</span> oder <span class="code">wlan</span>).</p>
+<table>
+  <tr><th>Kommando</th><th>Wirkung</th></tr>
+  <tr><td><span class="code">status</span></td><td>Aktuellen Zustand ausgeben (Systemzustand, LAN- und WLAN-Status/IP, WLAN-Signal, beide Sensorwerte falls Sensor 2 aktiv, freier Heap, Laufzeit) — rein lesend, kein Neustart</td></tr>
+  <tr><td><span class="code">dhcp &lt;lan|wlan&gt;</span></td><td>Gewähltes Interface auf DHCP umstellen, statische IP/Maske/Gateway/DNS dieses Interfaces löschen, Gerät startet neu</td></tr>
+  <tr><td><span class="code">ip &lt;lan|wlan&gt; &lt;adresse&gt; &lt;maske&gt; &lt;gateway&gt; [dns]</span></td><td>Statische IP für das gewählte Interface setzen, Gerät startet neu. Anders als die Einstellungsseite ohne Ping-Kollisionsprüfung — bewusst einfach gehalten</td></tr>
+  <tr><td><span class="code">wifi &lt;ssid&gt; &lt;passwort&gt;</span></td><td>Neue WLAN-Zugangsdaten setzen, Gerät startet neu und probiert die Verbindung mit verkürztem Timeout (wie „Verbinden &amp; testen" auf der Einstellungsseite). Kein LAN-Äquivalent, da Ethernet kein Zugangsdaten-Konzept hat</td></tr>
+  <tr><td><span class="code">dump</span></td><td>Aktuelle <span class="code">config.xml</span> als XML ausgeben, eingerahmt von <span class="code">-----BEGIN CONFIG-----</span>/<span class="code">-----END CONFIG-----</span></td></tr>
+  <tr><td><span class="code">upload</span></td><td>Wartet auf eingefügte XML-Zeilen (z. B. eine zuvor per <span class="code">dump</span> gesicherte Konfiguration), Abschluss mit einer Zeile <span class="code">-----END CONFIG-----</span>. Bei gültigem XML wird gespeichert und neu gestartet, bei ungültigem passiert nichts</td></tr>
+  <tr><td><span class="code">reset</span></td><td>Werksreset nur der Konfiguration (wie Umfang „Nur Konfiguration" auf der Einstellungsseite, allerdings ohne dessen Branding-Erhalt — der Anbietername wird mit zurückgesetzt), Gerät startet neu — der 7-Tage-Verlauf bleibt erhalten</td></tr>
+  <tr><td><span class="code">reset all</span></td><td>Wie oben, zusätzlich wird der 7-Tage-Verlauf gelöscht. Nicht rückgängig zu machen</td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="callout-title">Backup vor destruktiven Kommandos</div>
+  Vor <span class="code">reset</span>/<span class="code">reset all</span>
+  empfiehlt sich ein vorheriges <span class="code">dump</span> — die
+  Ausgabe lässt sich danach per <span class="code">upload</span>
+  unverändert zurückspielen, um exakt zum vorherigen Zustand
+  zurückzukehren.
+</div>
+
+<h2>8.2 Nutzung mit Windows-Boardmitteln (ohne Zusatzsoftware)</h2>
+<p>Für einen seriellen Terminal wird üblicherweise ein Zusatzprogramm wie
+PuTTY oder Tera Term verwendet — beides funktioniert, ist aber nicht
+vorinstalliert. Windows bringt mit der <span class="code">.NET</span>-Klasse
+<span class="code">System.IO.Ports.SerialPort</span> bereits alles Nötige
+mit; PowerShell (ab Windows 7 vorinstalliert) reicht für eine vollständige
+interaktive Sitzung, ganz ohne Download.</p>
+
+<h3>COM-Port ermitteln</h3>
+<p>Geräte-Manager öffnen (<span class="code">Win+X</span> →
+Geräte-Manager) → „Anschlüsse (COM &amp; LPT)" — der Port erscheint dort
+als „USB-SERIAL CH340 (COM&lt;n&gt;)" o. ä. (siehe auch Abschnitt 1.2).
+Alternativ per PowerShell auflisten:</p>
+<pre class="code-block">[System.IO.Ports.SerialPort]::GetPortNames()</pre>
+
+<h3>Interaktive Sitzung (empfohlen)</h3>
+<p>Folgendes Skript als <span class="code">.ps1</span>-Datei speichern
+(<span class="code">COM5</span> durch den tatsächlichen Port ersetzen) und
+mit <span class="code">powershell -ExecutionPolicy Bypass -File
+.\seriell.ps1</span> ausführen, oder direkt zeilenweise in ein
+PowerShell-Fenster einfügen:</p>
+<pre class="code-block">$port = New-Object System.IO.Ports.SerialPort "COM5", 115200, "None", 8, "One"
+$port.NewLine = "`n"
+$port.Open()
+Write-Host "Verbunden mit $($port.PortName). Kommando eingeben und Enter druecken."
+Write-Host "Zum Beenden 'exit' eingeben."
+while ($true) {
+    Start-Sleep -Milliseconds 200
+    while ($port.BytesToRead -gt 0) {
+        try { Write-Host $port.ReadLine() } catch {}
+    }
+    $cmd = Read-Host
+    if ($cmd -eq "exit") { break }
+    $port.WriteLine($cmd)
+}
+$port.Close()</pre>
+<p>Das Skript öffnet den Port, gibt eingehende Zeilen laufend aus und
+sendet jede Eingabe als eigenes Kommando — genau wie ein grafisches
+Terminalprogramm, nur ganz ohne Installation. Für
+<span class="code">upload</span> einfach die per <span class="code">dump</span>
+angezeigten Zeilen (inkl. Marker) einzeln einfügen, jede mit Enter
+abschließen.</p>
+
+<h3>Einzelnes Kommando (Kurzform)</h3>
+<p>Für einen schnellen einmaligen Aufruf, z. B. nur den Status abfragen,
+genügt auch ein Einzeiler ohne Schleife:</p>
+<pre class="code-block">$port = New-Object System.IO.Ports.SerialPort "COM5", 115200
+$port.Open(); Start-Sleep -Seconds 6   # Boot-Log abwarten
+$port.DiscardInBuffer()
+$port.WriteLine("status")
+Start-Sleep -Milliseconds 500
+$port.ReadExisting()
+$port.Close()</pre>
+
+<h3>Beispielsitzung: LAN auf statische IP umstellen</h3>
+<p>Zeigt das <span class="code">ip</span>-Kommando mit Interface-Argument
+in der interaktiven Sitzung von oben (Eingaben nach <span class="code">&gt;</span>):</p>
+<pre class="code-block">&gt; status
+[SERIAL] --- Status ---
+Zustand: RUN_NORMAL
+LAN: verbunden
+LAN-IP: 192.168.1.50
+LAN-Modus: DHCP
+WLAN: nicht verbunden
+...
+[SERIAL] --- Ende Status ---
+
+&gt; ip lan 192.168.1.100 255.255.255.0 192.168.1.1
+[SERIAL] Statische IP (lan) gesetzt, starte neu...
+(Geraet startet neu, LAN ist danach unter der neuen Adresse erreichbar)</pre>
+
+<!-- ============================================================ -->
 <h1 class="section" id="sec-anhang">Anhang — Troubleshooting</h1>
 <table>
   <tr><th>Problem</th><th>Mögliche Ursache / Lösung</th></tr>
@@ -883,7 +1012,7 @@ CSV-Datei zum Download über den Button „values.csv" auf der Hauptseite
   <tr><td>Webinterface nicht erreichbar</td><td>IP-Adresse über das OLED (Abschnitt 3, Seite 2) oder <span class="code">http://&lt;systemname&gt;.local/</span> (mDNS) prüfen</td></tr>
   <tr><td>Neue statische IP wird als „belegt" abgelehnt</td><td>Ein anderes Gerät im jeweiligen Netz (LAN oder WLAN) antwortet unter dieser Adresse (Abschnitt 4.2) — im Router/DHCP-Server nachsehen, wer die Adresse belegt, oder eine andere, freie Adresse wählen</td></tr>
   <tr><td>„IP-Einstellungen übernehmen" meldet „Kein DHCP-Server gefunden"</td><td>Im Zielnetz (LAN oder WLAN) ist kein DHCP-Server aktiv, oder das Interface ist gerade nicht verbunden — bei Bedarf stattdessen eine statische IP eintragen, oder DHCP im Router prüfen (Abschnitt 4.2)</td></tr>
-  <tr><td>Web-Login schlägt fehl / Gerät im Netzwerk gar nicht erreichbar</td><td>Benutzername immer „admin"; bei Passwortverlust hilft „Werksreset (nur Einstellungen)" auf der Einstellungsseite (Abschnitt 4.2) — ist auch das nicht erreichbar, bleibt nur der komplette Flash-Löschvorgang über die Debug-Burning-Schnittstelle (kein Taster-Reset wie bei Sensormeter WLAN möglich, siehe Abschnitt 3)</td></tr>
+  <tr><td>Web-Login schlägt fehl / Gerät im Netzwerk gar nicht erreichbar</td><td>Benutzername immer „admin"; bei Passwortverlust hilft ein Werksreset mit Umfang „Nur Konfiguration" oder „Alles" auf der Einstellungsseite (Abschnitt 4.2) — ist auch das nicht erreichbar, per USB das <span class="code">reset</span>-Kommando über die Serial-Kommandozeile nutzen (Abschnitt 8, kein Taster-Reset wie bei Sensormeter WLAN möglich, siehe Abschnitt 3); nur wenn auch USB nicht verfügbar ist, bleibt der komplette Flash-Löschvorgang über die Debug-Burning-Schnittstelle</td></tr>
   <tr><td>SNMP/Syslog liefert keine Daten</td><td>Community-String bzw. Server-IP in den Einstellungen prüfen (Abschnitt 4.2), Firewall auf dem Empfänger prüfen (UDP 161/514)</td></tr>
 </table>
 
