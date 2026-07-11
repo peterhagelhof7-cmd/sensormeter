@@ -633,3 +633,46 @@ Umsetzung:
   identisch in allen vier Repos liegt (siehe "Flash-Skript
   vereinheitlicht" oben) - eine Mac-Fassung müsste ebenso in alle vier
   Repos verteilt werden.
+
+## `scripts/convert-logo.ps1`: Logo-Konverter fürs Anbieter-Branding-Feature
+
+Auf Anfrage umgesetzt: gemeinsames PowerShell-Skript (identisch in allen
+vier Repos, analog `flash.ps1`), das ein beliebiges Anbieter-Logo in das
+fürs Branding-Feature (siehe `sensormeter-wlan/repo/docs/entscheidungen.md`
+"Anbieter-Branding (Weisslabel) implementiert") kompatible Rohformat
+konvertiert. Nutzt .NET `System.Drawing` (Windows PowerShell 5.1, keine
+zusätzliche Installation nötig) statt einer externen Abhängigkeit.
+
+- Fragt zuerst (interaktiv per Menü oder `-Display`-Parameter), für
+  welches der vier Displays konvertiert werden soll, und reduziert dann
+  **sowohl** Auflösung **als auch** Farbtiefe konsequent auf das, was das
+  jeweilige Display tatsächlich darstellen kann: 1-Bit-Monochrom für die
+  drei OLEDs (SSD1306 128×64 bei Sensormeter/Sensormeter WLAN, SH1107
+  128×128 bei Sensormeter PoE), RGB565 für das Farb-TFT bei Sensormeter
+  Display (dort experimentell markiert, da dessen Branding-Firmware noch
+  nicht existiert).
+- Seitenverhältnistreue Einpassung (nicht verzerrt) mit zentrierter,
+  konfigurierbarer Padding-Farbe (Default Schwarz, passend zum
+  OLED-Hintergrund) statt einfachem Strecken/Stauchen.
+- **Gefundener und behobener Bug vor der Verteilung**: PowerShells
+  `-shl`/`-shr`-Operatoren behalten den .NET-Typ des *linken* Operanden
+  bei. `System.Drawing.Color.R`/`.G`/`.B` sind `System.Byte` - ein
+  `Byte -shl 11` beim RGB565-Packen überlief dadurch stillschweigend
+  (8-Bit-Wertebereich) statt auf `Int32` erweitert zu werden. Ein reines
+  Weiß (255,255,255) ergab dadurch `0x00FF` statt der korrekten
+  RGB565-Kodierung `0xFFFF` - im Test sichtbar als blau eingefärbter
+  Hintergrund statt Weiß. Gefunden durch ein generiertes Test-Logo, das
+  Ergebnis unabhängig per Python zurückdekodiert und mit Pillow als PNG
+  gespeichert (zeigte den Fehler visuell sofort). Behoben durch explizite
+  `[int]`-Casts vor jeder Schiebeoperation; die monochrome Konvertierung
+  war von diesem Bug nicht betroffen (dortige Werte bleiben immer
+  innerhalb des Byte-Wertebereichs, daher keine sichtbare Auswirkung,
+  trotzdem zur Robustheit ebenfalls mit `[int]`-Cast versehen).
+- Nach dem Fix für alle vier Display-Profile (inkl. `custom`-Modus mit
+  freier Größe/Farbtiefe) end-to-end getestet: erzeugte `.bin`-Dateien
+  haben exakt die erwartete Byte-Zahl, und der jeweilige Bildinhalt wurde
+  unabhängig zurückdekodiert und pixelgenau mit dem Quellbild
+  abgeglichen (Kreis/Rechteck-Testmuster, sowohl monochrom als auch
+  farbig).
+
+Kein `pio run`-Bezug (reines Offline-Werkzeug, keine Firmware-Änderung).
