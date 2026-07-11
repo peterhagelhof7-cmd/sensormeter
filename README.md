@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/projektfamilie-dark.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/projektfamilie-light.png">
-  <img alt="Sensormeter Projektfamilie: Sensormeter (LAN), Sensormeter WLAN (WLAN) und Sensormeter Display (Touchscreen), verbunden über gemeinsame Architektur und SNMP" src="docs/projektfamilie-light.png">
+  <img alt="Sensormeter Projektfamilie: Sensormeter (LAN), Sensormeter WLAN (WLAN), Sensormeter PoE (LAN+PoE) und Sensormeter Display (Touchscreen), verbunden über gemeinsame Architektur und SNMP" src="docs/projektfamilie-light.png">
 </picture>
 
 ESP32-basierter Umweltsensor (Temperatur/Luftfeuchte) mit kabelgebundenem
@@ -29,7 +29,7 @@ Hardware getestet.
 | Datei | Inhalt |
 |---|---|
 | [docs/sensormeter-onepager.pdf](docs/sensormeter-onepager.pdf) ([HTML](docs/sensormeter-onepager.html)) | One-Pager: Projektübersicht, Architektur, Kennzahlen auf einer Seite |
-| [docs/projektfamilie.html](docs/projektfamilie.html) | Architekturskizze: wie die drei Sensormeter-Projekte zusammenhängen |
+| [docs/projektfamilie.html](docs/projektfamilie.html) | Architekturskizze: wie die vier Sensormeter-Projekte zusammenhängen |
 | [docs/lastenheft.txt](docs/lastenheft.txt) | Fachliche Anforderungen: Webseite, Einstellungen, SNMP-OIDs, Netzwerklogik, Zustandsmodell |
 | [docs/pflichtenheft.txt](docs/pflichtenheft.txt) | Technische Umsetzung: FreeRTOS-Tasks, Softwaremodule, Speicherlayout, Fehlerbehandlung |
 | [docs/verdrahtungsschema-v1.2.pdf](docs/verdrahtungsschema-v1.2.pdf) | Aktuelles, korrigiertes Verdrahtungsschema (Pinbelegung WT32-ETH01, Display, DHT11, RJ45-Modularanschluss) |
