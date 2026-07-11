@@ -66,9 +66,10 @@ pio device monitor   # seriellen Log ansehen (115200 Baud)
 ```
 
 **Auf einem anderen/frischen Windows-PC**: [`scripts/flash.ps1`](scripts/flash.ps1)
-(oder `.cmd` zum Doppelklicken) fragt zuerst, welches der drei
+(oder `.cmd` zum Doppelklicken) fragt zuerst, welches der vier
 Sensormeter-Projekte geflasht werden soll (Sensormeter / Sensormeter WLAN /
-Sensormeter Display – dasselbe Skript liegt identisch in allen drei Repos),
+Sensormeter Display / Sensormeter PoE – dasselbe Skript liegt identisch in
+allen vier Repos),
 richtet danach Python/Git/PlatformIO automatisch ein, klont das gewählte
 Repo falls nötig und flasht das per USB angeschlossene Board in einem
 Rutsch. Details: [`scripts/README.md`](scripts/README.md).
