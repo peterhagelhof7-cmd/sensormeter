@@ -139,6 +139,11 @@ bool ConfigManager::importXml(const String& xml) {
     cfg.mqttPassword = attrOrEmpty(mqtt, "password");
   }
 
+  const XMLElement* branding = root->FirstChildElement("branding");
+  if (branding) {
+    cfg.brandingVendorName = attrOrEmpty(branding, "vendorName");
+  }
+
   cfg.systemType = deriveSystemType(cfg.sensor2Enabled);
   _config = cfg;
   return true;
@@ -215,6 +220,10 @@ String ConfigManager::exportXml() const {
   mqtt->SetAttribute("user", _config.mqttUser.c_str());
   mqtt->SetAttribute("password", _config.mqttPassword.c_str());
   root->InsertEndChild(mqtt);
+
+  XMLElement* branding = doc.NewElement("branding");
+  branding->SetAttribute("vendorName", _config.brandingVendorName.c_str());
+  root->InsertEndChild(branding);
 
   XMLPrinter printer;
   doc.Print(&printer);

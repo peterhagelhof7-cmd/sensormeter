@@ -121,7 +121,7 @@
 <header>
   <div class="eyebrow">Firmware-Projekt · Hobby / Privat</div>
   <h1>SENSORMETER</h1>
-  <div class="subtitle">WT32-ETH01 (ESP32 + LAN8720) — kabelgebundenes Ethernet, optional WLAN parallel, DHT11/DHT22, OLED, SNMP, Syslog, MQTT/Home Assistant</div>
+  <div class="subtitle">WT32-ETH01 (ESP32 + LAN8720) — kabelgebundenes Ethernet, optional WLAN parallel, DHT11/DHT22, OLED, SNMP, Syslog, MQTT/Home Assistant, Anbieter-Branding</div>
   <div class="badges">
     <span class="badge badge-orange">v0.9.0-rc3 · Beta</span>
     <span class="badge badge-navy">P0–P7 vollständig</span>
@@ -183,7 +183,7 @@
           <span class="pill">NetworkManager</span><span class="pill">TimeManager</span>
           <span class="pill">WebServerManager</span><span class="pill">OtaManager</span>
           <span class="pill">SNMPManager</span><span class="pill">SyslogManager</span>
-          <span class="pill pill-new">MqttManager</span>
+          <span class="pill">MqttManager</span><span class="pill pill-new">BrandingManager</span>
         </div>
       </div>
 
@@ -221,8 +221,8 @@
       <table class="kpi">
         <tr><td>Version</td><td>0.9.0-rc3 (Beta)</td></tr>
         <tr><td>Phasen umgesetzt</td><td>P0–P7 vollständig</td></tr>
-        <tr><td>Flash je App-Slot</td><td>86,1 %</td></tr>
-        <tr><td>RAM (statisch)</td><td>16,7 %</td></tr>
+        <tr><td>Flash je App-Slot</td><td>86,6 %</td></tr>
+        <tr><td>RAM (statisch)</td><td>17,6 %</td></tr>
         <tr><td>Board-Bringup</td><td>offen (kein Board angeschlossen)</td></tr>
       </table>
     </section>
@@ -235,7 +235,8 @@
         <li>Webserver: Hauptseite mit Verlaufsgraph + Syslog-Tabelle, passwortgeschützte Einstellungsseite, REST-API, XML-Import/-Export, lokales OTA</li>
         <li>SNMP v1 (read-only, Port 161), fester OID-Baum, konfigurierbare Community</li>
         <li>Syslog (UDP 514): Statusreport je Sensorzyklus + sofortige Fehler-Events</li>
-        <li><b>MQTT/Home-Assistant-Discovery</b> (neu): Temperatur/Luftfeuchte je Sensor, Discovery + State, deaktiviert ohne konfigurierten Broker</li>
+        <li><b>MQTT/Home-Assistant-Discovery</b>: Temperatur/Luftfeuchte je Sensor, Discovery + State, deaktiviert ohne konfigurierten Broker</li>
+        <li><b>Anbieter-Branding</b> (neu): Name + Logo (128×64, 1bpp), eigene OLED-Seite und Web-Header, kein PNG-Decoder nötig (BMP-Synthese on-the-fly)</li>
         <li>Kollisions-Check (Ping) und DHCP-Lease-Test vor Übernahme neuer Netzwerkeinstellungen</li>
       </ul>
     </section>
@@ -246,6 +247,7 @@
         <li>Jede Phase per <b>pio run</b> gebaut &amp; verifiziert, Flash-/RAM-Deltas im Entscheidungsprotokoll dokumentiert</li>
         <li>MQTT-Anbindung als zuvor geprüfter, dokumentierter Portierungs-Kandidat aus sensormeter-poe übernommen, bewusst ohne Relais/Aktor-Rolle</li>
         <li>Transport über einfachen <b>WiFiClient</b>: alte Arduino-ESP32-Version (2.0.17) kennt keine separate EthernetClient-Klasse, WiFiClient wrapt interface-unabhängige lwIP-Sockets</li>
+        <li>Branding-Feature zuerst bei Sensormeter WLAN gebaut und dort auf echter Hardware verifiziert (inkl. eines gefundenen und behobenen LittleFS-Logquirks), danach unverändert hierher portiert</li>
       </ul>
     </section>
 
@@ -254,6 +256,7 @@
       <ul>
         <li>Board-Bringup: noch kein WT32-ETH01 in dieser Session angeschlossen/geflasht</li>
         <li>MQTT/Home-Assistant-Verhalten bei gleichzeitig aktivem LAN <b>und</b> WLAN nicht auf echter Hardware verifiziert</li>
+        <li>Branding-Logo-Upload/-Anzeige mangels Board nicht auf echter Hardware getestet (BMP-Logik unabhängig per Python+Pillow verifiziert)</li>
         <li>Sensor-2-CSV-Export (nur Sensor 1 aktuell abgedeckt)</li>
       </ul>
     </section>

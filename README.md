@@ -8,9 +8,9 @@
 
 ESP32-basierter Umweltsensor (Temperatur/Luftfeuchte) mit kabelgebundenem
 Ethernet (WT32-ETH01, LAN8720), OLED-Anzeige, Webserver, SNMP v1 (read-only),
-Syslog-Versand und MQTT/Home-Assistant-Discovery. Zwei Varianten:
-**Sensormeter** (1 interner Sensor) und **Sensormeter PRO** (zusätzlich 1
-externer Sensor über RJ45).
+Syslog-Versand, MQTT/Home-Assistant-Discovery und optionalem
+Anbieter-Branding (Weisslabel). Zwei Varianten: **Sensormeter** (1 interner
+Sensor) und **Sensormeter PRO** (zusätzlich 1 externer Sensor über RJ45).
 
 [**One-Pager (PDF)**](docs/sensormeter-onepager.pdf) — kompakte Projektübersicht auf einer Seite.
 
@@ -73,7 +73,7 @@ Repo falls nötig und flasht das per USB angeschlossene Board in einem
 Rutsch. Details: [`scripts/README.md`](scripts/README.md).
 
 Enthalten (P0–P7, vollständig):
-- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`, `SyslogManager`, `MqttManager`
+- Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`, `SyslogManager`, `MqttManager`, `BrandingManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`
 - Ethernet (DHCP oder statisch) + optional WLAN parallel, korrigierte Pinbelegung v1.2 zentral in `include/pins.h`
 - Fallback: hat nach 5 Minuten weder LAN noch WLAN eine IP, spannt das
@@ -97,6 +97,7 @@ Enthalten (P0–P7, vollständig):
 - SNMP v1 (read-only, Port 161): feste OID-Struktur unter `.1.3.6.1.4.1.99999.x` (System, Netzwerk, Sensor 1/2, Systemstatus), Community konfigurierbar
 - Syslog (UDP Port 514): Statusreport bei jedem Sensorzyklus, Fehler-Events (Sensor/Netzwerk/NTP) sofort — deaktiviert, solange kein Syslog-Server konfiguriert ist
 - MQTT/Home-Assistant-Discovery: Discovery- und State-Payloads für Temperatur/Luftfeuchte je Sensor, Topic-Präfix wie der mDNS-Hostname zur Laufzeit abgeleitet — deaktiviert, solange kein Broker konfiguriert ist
+- Anbieter-Branding (Weisslabel): freier Anbietername + optionales Logo (128×64, 1bpp, per Web-Upload), eigene OLED-Seite und Web-Header-Anzeige, kein PNG/JPEG-Decoder eingebunden (Logo wird als minimaler BMP on-the-fly ausgeliefert)
 
 Damit sind alle im [Implementierungsplan](docs/implementierungsplan.html) vorgesehenen Phasen umgesetzt. Offen bleibt der reale Betrieb auf Hardware (Flashen, Verkabelung nach `docs/verdrahtungsschema-v1.2.pdf` prüfen, längerer Testlauf).
 

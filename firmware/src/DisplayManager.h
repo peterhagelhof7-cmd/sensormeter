@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "BrandingManager.h"
 #include "ConfigManager.h"
 #include "DataManager.h"
 #include "NetworkManager.h"
@@ -19,7 +20,8 @@
 
 class DisplayManager {
  public:
-  DisplayManager(DataManager& dataManager, ConfigManager& configManager, NetworkManager& networkManager);
+  DisplayManager(DataManager& dataManager, ConfigManager& configManager, NetworkManager& networkManager,
+                 BrandingManager& brandingManager);
 
   void begin();
   void loop();
@@ -28,12 +30,18 @@ class DisplayManager {
   DataManager& _data;
   ConfigManager& _config;
   NetworkManager& _network;
+  BrandingManager& _branding;
 
   bool _initialized = false;
 
   unsigned long _lastPageSwitchMillis = 0;
   int _currentPage = 0;
-  static const int PAGE_COUNT = 6;
+  // Seite 6 (Branding) ist nur Teil der Rotation, wenn tatsaechlich ein
+  // Vendor-Name oder ein Logo konfiguriert ist (siehe pageCount()) - im
+  // unkonfigurierten Default-Fall erscheint dadurch keine leere
+  // Zusatzseite in der Rotation.
+  static const int BASE_PAGE_COUNT = 6;
+  int pageCount() const { return _branding.isActive() ? BASE_PAGE_COUNT + 1 : BASE_PAGE_COUNT; }
 
   unsigned long _lastCountdownTickMillis = 0;
   int _countdownValue = 100;
@@ -57,5 +65,6 @@ class DisplayManager {
   void drawSensorsPage();
   void drawStatusPage();
   void drawSignalPage();
+  void drawBrandingPage();
   void drawFallbackIpPage();
 };

@@ -246,3 +246,75 @@ NTP FAIL → DHCP TEST → RESTORE → ERROR MODE
 - geringe Speicherlast
 - wartbar über Webinterface
 - erweiterbar (Sensor 2)
+
+------------------------------------------------------------
+
+14. HOME-ASSISTANT-INTEGRATION (MQTT)
+
+14.1 Umfang
+Optional zusätzlich per MQTT an Home Assistant angebunden - einer der bei
+sensormeter-poe entworfenen Portierungs-Kandidaten (siehe
+docs/entscheidungen.md), hier auf die Sensor-Rolle beschränkt (kein
+Relais/Aktor, das Board hat keinen RJ45-Modularanschluss mit
+Aktor-Belegung wie Sensormeter PoE). Deaktiviert, solange kein Broker
+konfiguriert ist.
+
+14.2 Home-Assistant-Discovery
+Beim (Wieder-)Verbindungsaufbau werden retained Discovery-Payloads
+veröffentlicht:
+
+homeassistant/sensor/<topic-praefix>/temperature1/config
+homeassistant/sensor/<topic-praefix>/humidity1/config
+homeassistant/sensor/<topic-praefix>/temperature2/config   (nur PRO)
+homeassistant/sensor/<topic-praefix>/humidity2/config      (nur PRO)
+
+<topic-praefix> wird wie der mDNS-Hostname aus dem Systemnamen abgeleitet
+(gleiche Sanitisierung, siehe NetworkManager), nicht separat gespeichert.
+
+14.3 Statuswerte
+
+<topic-praefix>/state   { "temperature1": 21.4, "humidity1": 53.0, ... }
+
+Bereits inklusive der auf der Einstellungsseite konfigurierten
+Kalibrierkorrektur (Abschnitt 6, "Sensoren") - identisch zu Webseite, OLED
+und SNMP.
+
+14.4 Konfiguration (Einstellungsseite, siehe Abschnitt 6)
+- MQTT aktiv (Checkbox)
+- Broker-Adresse, Port (Default 1883)
+- Benutzername/Passwort (optional, für Broker mit Authentifizierung)
+
+------------------------------------------------------------
+
+15. ANBIETER-BRANDING (WEISSLABEL)
+
+15.1 Umfang
+Optionale Weisslabel-Kennzeichnung: frei einstellbarer Anbietername plus
+optionales Logo-Bild, zusätzlich zum weiterhin bestehenden, frei
+editierbaren Systemnamen. Beide unabhängig voneinander optional - leer
+bzw. kein Logo hochgeladen = Feature inaktiv.
+
+15.2 Anzeige
+- OLED: eigene rotierende Seite (siehe Abschnitt 11), nur Teil der
+  Rotation, wenn Anbietername ODER Logo gesetzt ist. Zeigt bevorzugt das
+  Logo vollflächig (128x64 füllt den ganzen Screen), ohne Logo den
+  Anbietername als Textzeile.
+- Weboberfläche: Logo (falls vorhanden) und Anbietername erscheinen im
+  Kopfbereich jeder Seite.
+
+15.3 Logo-Format
+Bewusst kein PNG/JPEG (hätte eine Decoder-Bibliothek und damit
+30-80 KB zusätzliches Flash gekostet): festes Rohformat, 128x64 Pixel,
+1 Bit pro Pixel, MSB-zuerst je Zeile, exakt 1024 Byte - identisch zu dem,
+was Adafruit_GFX::drawBitmap() für die OLED-Seiten ohnehin erwartet.
+Erzeugbar mit scripts/convert-logo.ps1 -Display sensormeter.
+
+15.4 Konfiguration (Einstellungsseite, siehe Abschnitt 6)
+- Anbietername (Textfeld)
+- Logo hochladen (Datei-Upload, .bin, exakt 1024 Byte erwartet)
+- Logo entfernen (Button, nur sichtbar wenn ein Logo hinterlegt ist)
+
+15.5 Web-Auslieferung des Logos
+Eigener Endpunkt GET /branding/logo.bmp liefert das gespeicherte Rohformat
+on-the-fly als minimalen 1-Bit-Windows-BMP aus (kein PNG-Encoder nötig) -
+direkt per <img>-Tag im Browser darstellbar.

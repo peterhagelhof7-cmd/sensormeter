@@ -169,7 +169,7 @@
   <div class="toc-row"><a href="#sec3">3. OLED-Anzeige</a></div>
   <div class="toc-row"><a href="#sec4">4. Konfiguration über die Weboberfläche</a></div>
   <div class="toc-row"><a href="#sec5">5. Firmware-Updates</a></div>
-  <div class="toc-row"><a href="#sec6">6. SNMP, Syslog &amp; MQTT (für Netzwerk-Admins)</a></div>
+  <div class="toc-row"><a href="#sec6">6. SNMP, Syslog, MQTT &amp; Branding (für Netzwerk-Admins)</a></div>
   <div class="toc-row"><a href="#sec7">7. Konfigurations- und Datenexport (config.xml / values.csv)</a></div>
   <div class="toc-row"><a href="#sec-anhang">Anhang: Troubleshooting</a></div>
 </div>
@@ -582,6 +582,15 @@ gespeichert und das Gerät neu gestartet.</p>
   es gibt keinen über MQTT schaltbaren Ausgang. Details siehe Abschnitt 6.3.
 </div>
 
+<h3>Anbieter-Branding</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>Anbietername</td><td>Erscheint zusätzlich zum Systemnamen auf einer eigenen OLED-Seite und im Kopfbereich der Weboberfläche, sobald Name und/oder Logo gesetzt sind.</td></tr>
+  <tr><td>Logo hochladen</td><td>Eigenes Formular unterhalb des Haupt-Speichern-Buttons. Erwartet eine vorkonvertierte Rohdatei: 128×64 Pixel, 1 Bit pro Pixel, MSB-zuerst je Zeile, genau 1024 Byte (kein PNG/JPEG) — erzeugbar mit <span class="code">scripts/convert-logo.ps1</span>.</td></tr>
+  <tr><td>Logo entfernen</td><td>Nur sichtbar, wenn aktuell ein Logo hinterlegt ist.</td></tr>
+</table>
+<p class="hint">Name und/oder Logo sind unabhängig voneinander optional — ohne beides bleibt das Feature vollständig unsichtbar (keine leere OLED-Zusatzseite, kein Kopfbereich-Banner). Details siehe Abschnitt 6.4.</p>
+
 <h3>Konfiguration (XML)</h3>
 <p>„XML Export" lädt die aktuelle Konfiguration als
 <span class="code">config.xml</span> herunter. „XML Import" spielt eine
@@ -631,7 +640,7 @@ pull</span>, sofern keine lokalen Änderungen vorliegen) und flasht per
 Debug-Burning-Schnittstelle neu (Abschnitt 1.2 beachten).</p>
 
 <!-- ============================================================ -->
-<h1 class="section" id="sec6"><span class="num">6</span>SNMP, Syslog &amp; MQTT (für Netzwerk-Admins)</h1>
+<h1 class="section" id="sec6"><span class="num">6</span>SNMP, Syslog, MQTT &amp; Branding (für Netzwerk-Admins)</h1>
 <p>Zusätzlich zur Weboberfläche bietet das Gerät drei maschinenlesbare
 Schnittstellen, z. B. für Monitoring-Systeme, das
 Sensormeter-Display-Projekt oder Home Assistant.</p>
@@ -714,6 +723,33 @@ MQTT-Topics entsprechend.</p>
   sind daher noch nicht auf realer Hardware bestätigt.
 </div>
 
+<h2>6.4 Anbieter-Branding (Weisslabel)</h2>
+<p>Optionale Zusatzkennzeichnung, unabhängig vom Systemnamen: freier
+Anbietername und/oder ein Logo (Abschnitt 4.2). Beides einzeln optional —
+ohne beides bleibt das Gerät unverändert.</p>
+<ul>
+  <li><b>OLED</b>: eigene Seite in der Rotation, nur wenn Name oder Logo
+  gesetzt sind (siehe Abschnitt 3). Zeigt bevorzugt das Logo vollflächig,
+  ohne Logo den Anbietername als Textzeile.</li>
+  <li><b>Weboberfläche</b>: Logo (falls vorhanden) und Anbietername
+  erscheinen im Kopfbereich jeder Seite.</li>
+  <li><b>Logo-Format</b>: 128×64 Pixel, 1 Bit pro Pixel, MSB-zuerst je
+  Zeile, exakt 1024 Byte (kein PNG/JPEG) — erzeugbar mit
+  <span class="code">scripts/convert-logo.ps1 -Display sensormeter</span>.
+  Das Gerät liefert das gespeicherte Logo unter
+  <span class="code">/branding/logo.bmp</span> als Browser-lesbares Bild
+  aus (on-the-fly synthetisierter 1-Bit-BMP, kein PNG/JPEG-Decoder an
+  Bord).</li>
+</ul>
+<div class="callout warn">
+  <div class="callout-title">Nicht auf echter Hardware verifiziert</div>
+  Wie MQTT (Abschnitt 6.3) wurde auch dieses Feature ohne angeschlossenes
+  Board gebaut. Logo-Upload und -Anzeige (OLED wie Weboberfläche) sind
+  daher noch nicht auf realer Hardware bestätigt — die zugrundeliegende
+  BMP-Konstruktionslogik wurde aber unabhängig per Python-Nachbau +
+  Pillow pixelgenau verifiziert (siehe <span class="code">docs/entscheidungen.md</span>).
+</div>
+
 <!-- ============================================================ -->
 <h1 class="section" id="sec7"><span class="num">7</span>Konfigurations- und Datenexport</h1>
 <p>Zwei Dateien lassen sich über die Weboberfläche herunterladen — beide
@@ -760,6 +796,7 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
   <tr><td><span class="code">port</span></td><td>Broker-Port, Default 1883</td></tr>
   <tr><td><span class="code">user</span></td><td>Broker-Benutzername (leer = anonym)</td></tr>
   <tr><td><span class="code">password</span></td><td>Broker-Passwort (Klartext)</td></tr>
+  <tr><td><span class="code">&lt;branding&gt;</span></td><td><span class="code">vendorName</span></td><td>Anbietername (Abschnitt 4.2, 6.4). Das Logo-Bild selbst steht NICHT in dieser Datei, sondern separat als <span class="code">branding-logo.bin</span> auf LittleFS.</td></tr>
 </table>
 </div>
 <p><b>Beispiel</b> (Werte anonymisiert, Sensor 2 aktiviert):</p>
@@ -783,6 +820,7 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
     &lt;/sensors&gt;
     &lt;snmp community="public"/&gt;
     &lt;mqtt enabled="false" server="" port="1883" user="" password=""/&gt;
+    &lt;branding vendorName=""/&gt;
 &lt;/config&gt;</pre>
 <div class="callout warn">
   <div class="callout-title">Enthält Klartext-Zugangsdaten</div>

@@ -86,6 +86,29 @@ Zentrale Datenhaltung:
 - values.csv write
 - JSON buffer für Graph
 
+3.6 MqttManager
+- Home-Assistant-Anbindung per MQTT-Discovery (PubSubClient), siehe
+  docs/lastenheft.txt Abschnitt 14
+- Sensor-Rolle, kein Relais/Aktor (kein RJ45-Modularanschluss mit
+  Aktor-Belegung)
+- topicPrefix() nutzt dieselbe Sanitisierung wie der mDNS-Hostname statt
+  eines eigenen gespeicherten Feldes
+- Transport per WiFiClient (funktioniert interface-unabhängig für LAN und
+  WLAN, da alte Arduino-ESP32-Version 2.0.17 keine separate
+  EthernetClient-Klasse kennt)
+
+3.7 BrandingManager
+- Anbieter-Branding (Weisslabel), siehe docs/lastenheft.txt Abschnitt 15
+- Vendor-Name in config.xml, Logo-Binaerdaten bewusst NICHT dort, sondern
+  als eigene Rohdatei auf LittleFS (/branding-logo.bin, 1024 Byte fest:
+  128x64 1bpp)
+- hasLogo() haelt den Vorhanden-Zustand in einem RAM-Cache statt bei jeder
+  Abfrage LittleFS.exists() aufzurufen (diese Bibliotheksfunktion ist
+  intern als open(path,"r") implementiert, was bei jedem Fehlschlag eine
+  ESP-IDF-VFS-Fehlerzeile im Log erzeugt - siehe docs/entscheidungen.md)
+- Web-Auslieferung ueber WebServerManager: GET /branding/logo.bmp
+  synthetisiert on-the-fly einen minimalen 1-Bit-BMP aus dem Rohformat
+
 ------------------------------------------------------------
 
 4. DATENSPEICHERUNG
@@ -108,6 +131,13 @@ struct HourValue {
 - Systemkonfiguration
 - Netzwerkparameter
 - Sensorparameter
+- MQTT-Parameter (enabled/server/port/user/password)
+- Branding-Parameter (vendorName) - Logo-Binaerdaten NICHT hier, siehe 4.4
+
+4.4 branding-logo.bin
+- Optionale Datei, nur vorhanden wenn ein Logo hochgeladen wurde
+- Rohformat: 128x64 Pixel, 1 Bit pro Pixel, MSB-zuerst je Zeile, exakt
+  1024 Byte - siehe docs/lastenheft.txt Abschnitt 15.3
 
 ------------------------------------------------------------
 

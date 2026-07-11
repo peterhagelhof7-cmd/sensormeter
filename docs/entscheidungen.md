@@ -676,3 +676,40 @@ zusätzliche Installation nötig) statt einer externen Abhängigkeit.
   farbig).
 
 Kein `pio run`-Bezug (reines Offline-Werkzeug, keine Firmware-Änderung).
+
+## Anbieter-Branding (Weisslabel) auf Sensormeter portiert
+
+Auf Anfrage von Sensormeter WLAN (dort erste Umsetzung, siehe dessen
+`docs/entscheidungen.md`) unverändert hierher portiert: neuer
+`BrandingManager` (freier Anbietername + optionales 128x64/1bpp-Logo auf
+LittleFS, kein PNG/JPEG-Decoder), eigene OLED-Rotationsseite (nur Teil der
+Rotation, wenn tatsächlich konfiguriert), Web-Header-Banner, Logo-Upload
+per Multipart (gleiches Tmp-Datei-Muster wie `ConfigManager::save()`),
+Web-Auslieferung als on-the-fly synthetisierter 1-Bit-BMP unter
+`/branding/logo.bmp`.
+
+Identisches Format zu Sensormeter WLAN (beide nutzen dasselbe SSD1306
+128x64) - `scripts/convert-logo.ps1 -Display sensormeter` erzeugt daher
+exakt dieselbe Ausgabedatei wie `-Display wlan`. Der bei Sensormeter WLAN
+gefundene LittleFS-`exists()`-Logquirk (siehe dessen `entscheidungen.md`)
+wurde von Anfang an mit dem dortigen Fix (RAM-Cache statt wiederholtem
+Flash-Zugriff) übernommen, tritt hier also gar nicht erst auf.
+
+Bei dieser Gelegenheit auch die zuvor fehlende MQTT-Dokumentation
+nachgezogen: `docs/lastenheft.txt` hatte trotz bereits umgesetztem MQTT
+(siehe "MQTT/Home-Assistant-Anbindung implementiert" oben) noch keinen
+eigenen Abschnitt - jetzt Abschnitt 14 (MQTT) und Abschnitt 15 (Branding)
+ergänzt, `docs/pflichtenheft.txt` um 3.6 MqttManager/3.7 BrandingManager
+sowie 4.3/4.4 (config.xml/branding-logo.bin) erweitert.
+
+**Nicht auf echter Hardware getestet**: kein WT32-ETH01-Board in dieser
+Session angeschlossen (wie schon bei der MQTT-Umsetzung). Verifiziert
+wurde ausschließlich per `pio run` (erfolgreicher Build) sowie die
+BMP-Konstruktionslogik selbst bereits unabhängig bei Sensormeter WLAN
+(Python+Pillow-Nachbau, siehe dortiges Protokoll) - identischer Code hier
+übernommen, nicht erneut separat verifiziert.
+
+Mit `pio run` gebaut und verifiziert (Flash 86,6 % / 1.134.697 B, RAM
+17,6 % / 57.768 B - gegenüber dem MQTT-Stand oben, 86,1 % / 1.128.645 B
+Flash, 16,7 % / 54.568 B RAM, ein Zuwachs von +6.052 B Flash / +3.200 B
+RAM, nahezu identisch zum bei Sensormeter WLAN gemessenen Zuwachs).
