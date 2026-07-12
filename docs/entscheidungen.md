@@ -906,3 +906,73 @@ Config-Sicherung/-Wiederherstellung (Partitionswechsel verschiebt die
 LittleFS-Partition physisch) ist hier noch nicht auf echter Hardware
 durchlaufen, sollte aber identisch funktionieren - siehe die vollständige
 Beschreibung des Ablaufs in Sensormeter WLANs `entscheidungen.md`.
+
+## Modulerkennung + Relais/Aktor aus sensormeter-poe nachgerüstet, MQTT um Aktor-Rolle erweitert
+
+Setzt die weiter oben dokumentierte Prüfung ("Portierungs-Kandidaten aus
+sensormeter-poe geprüft") um - beide dort als "übertragbar" eingestuften,
+aber unimplementierten Kandidaten (Sensor-2-Auto-Erkennung, Relais/Aktor)
+sind jetzt umgesetzt, dazu die MQTT-Anbindung (bisher nur Sensor-Rolle, s.
+Eintrag "MQTT/Home-Assistant-Anbindung implementiert (Sensor-Rolle)") um
+die Aktor-Rolle erweitert. Der seinerzeit dokumentierte limitierende
+Faktor "Flash" ist inzwischen entschärft: die Partitionstabellen-Umstellung
+weiter oben hat die Reserve von ~201 KB auf ~813 KB vergrößert, lange bevor
+diese Erweiterung überhaupt nötig war.
+
+**Neu `SensorDetector`** (Wort-für-Wort aus
+`sensormeter-poe/repo/firmware/src/SensorDetector.h/.cpp` übernommen, nur
+Kommentar-Querverweise auf sensormeter-poe-spezifische Abschnittsnummern
+entfernt): I2C-Scan (7-Bit-Adressraum, Display-Adresse 0x3C ausgenommen)
+gefolgt von einem DHT22-Leseversuch auf RJ45 Pin 5 bei Fehlschlag. Setzt
+`sensor2Enabled` automatisch bei einem Treffer, nie automatisch zurück auf
+false. Läuft synchron beim Boot (nach `ConfigManager::begin()`, vor
+`displayManager.begin()` - identische Platzierung wie bei sensormeter-poe)
+sowie erneut auf Anfrage über den Button "Erkennung neu starten"
+(`/api/detect/rerun`).
+
+**Neu `RelayManager`** (ebenfalls nahezu wortgleich übernommen): treibt
+`PIN_RJ45_PIN6_RELAY_OUT` (active LOW), liest optional
+`PIN_RJ45_PIN7_RELAY_FB` zurück. Startet nach jedem Boot sicherheitshalber
+mit AUS (kein persistierter Schaltzustand). Einziger Schreibpfad
+(`setOn()`) wird von Weboberfläche (`/api/relay`), REST-API und
+`MqttManager` (`<prefix>/relay/set`) gemeinsam genutzt - identisch zum
+sensormeter-poe-Vorbild.
+
+**`MqttManager` um Aktor-Rolle erweitert**: neuer `RelayManager&`-Konstruktorparameter,
+`subscribeCommandTopics()` (abonniert `<prefix>/relay/set` nur wenn
+`relayEnabled`), `publishRelayState()` (retained, sofort bei Änderung -
+unabhängig vom 60s-Sensorzyklus), Discovery-Payload für eine
+`homeassistant/switch/...`-Entity. Statischer `onMqttMessage()`-Callback +
+Instanz-Zeiger (`PubSubClient` kennt keine Member-Function-Callbacks) -
+dasselbe Muster wie bei sensormeter-poe.
+
+**`DeviceConfig`/`ConfigManager` um `relayEnabled` erweitert**: neues
+`<aktor relayEnabled="false"/>`-Element in `config.xml`, identisches Schema
+zu sensormeter-poe. Kein `mqttTopicPrefix`-Override (anders als
+sensormeter-poe) - hier weiterhin bewusst nur aus `systemName` abgeleitet,
+wie bereits bei der ursprünglichen MQTT-Sensor-Rolle entschieden.
+
+**`WebServerManager`**: neuer Abschnitt "Aktor" auf der Einstellungsseite
+(Checkbox "Relais (Aktor) aktiv", Zustandsanzeige, Schalt-Button), neue
+Zeile "Erkannter Modultyp/Chip" + Button "Erkennung neu starten" im
+Sensoren-Abschnitt, JS-Funktionen `rerunDetection()`/`refreshRelayState()`/
+`toggleRelay()`, `/api/relay` (GET/POST) und `/api/detect/rerun` (POST).
+
+**Bewusst NICHT übertragen: BOOT-Taster** (`ButtonManager`) - bleibt wie in
+der ursprünglichen Prüfung festgestellt technisch unmöglich, GPIO0 ist beim
+WT32-ETH01 fest als Ethernet-Takteingang verdrahtet (siehe Abschnitt "Kein
+Taster-Bedienelement" im Admin-Guide).
+
+Flash-Kosten empirisch gemessen: **+8.700 Byte** (58,2 % → 58,7 %,
+1.145.021 → 1.153.721 Byte) gegenüber dem Stand nach der
+Partitionstabellen-Umstellung - deutlich günstiger als die seinerzeitige
+Schätzung "~30-50 KB Gesamtkosten" (die schätzte MQTT UND Relais/Aktor UND
+Modulerkennung UND Web-UI zusammen von einer damals noch nicht
+implementierten MQTT-Basis aus; hier kam nur noch Relais+Erkennung+Aktor-
+Rolle zur bereits bestehenden MQTT-Sensor-Rolle hinzu). RAM praktisch
+unverändert (17,6 % → 17,7 %).
+
+Nur per `pio run` gebaut (kein Board für Sensormeter in dieser Sitzung
+angeschlossen) - Modulerkennung, Relais-Ansteuerung und MQTT-Aktor-Rolle
+sind damit nur per Code-Review verifiziert, nicht auf echter Hardware
+getestet.

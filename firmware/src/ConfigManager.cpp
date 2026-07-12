@@ -130,6 +130,11 @@ bool ConfigManager::importXml(const String& xml) {
     if (community.length() > 0) cfg.snmpCommunity = community;
   }
 
+  const XMLElement* aktor = root->FirstChildElement("aktor");
+  if (aktor) {
+    cfg.relayEnabled = parseBool(aktor->Attribute("relayEnabled"), cfg.relayEnabled);
+  }
+
   const XMLElement* mqtt = root->FirstChildElement("mqtt");
   if (mqtt) {
     cfg.mqttEnabled = parseBool(mqtt->Attribute("enabled"), cfg.mqttEnabled);
@@ -212,6 +217,10 @@ String ConfigManager::exportXml() const {
   XMLElement* snmp = doc.NewElement("snmp");
   snmp->SetAttribute("community", _config.snmpCommunity.c_str());
   root->InsertEndChild(snmp);
+
+  XMLElement* aktor = doc.NewElement("aktor");
+  aktor->SetAttribute("relayEnabled", _config.relayEnabled ? "true" : "false");
+  root->InsertEndChild(aktor);
 
   XMLElement* mqtt = doc.NewElement("mqtt");
   mqtt->SetAttribute("enabled", _config.mqttEnabled ? "true" : "false");

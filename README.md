@@ -8,9 +8,10 @@
 
 ESP32-basierter Umweltsensor (Temperatur/Luftfeuchte) mit kabelgebundenem
 Ethernet (WT32-ETH01, LAN8720), OLED-Anzeige, Webserver, SNMP v1 (read-only),
-Syslog-Versand, MQTT/Home-Assistant-Discovery und optionalem
-Anbieter-Branding (Weisslabel). Zwei Varianten: **Sensormeter** (1 interner
-Sensor) und **Sensormeter PRO** (zusätzlich 1 externer Sensor über RJ45).
+Syslog-Versand, MQTT/Home-Assistant-Discovery, optionalem RJ45-Relais/Aktor
+mit automatischer Modul-Erkennung und optionalem Anbieter-Branding
+(Weisslabel). Zwei Varianten: **Sensormeter** (1 interner Sensor) und
+**Sensormeter PRO** (zusätzlich 1 externer Sensor über RJ45).
 
 [**One-Pager (PDF)**](docs/sensormeter-onepager.pdf) — kompakte Projektübersicht auf einer Seite.
 
@@ -97,6 +98,8 @@ Enthalten (P0–P7, vollständig):
   `wifi`, `status`, `dump`/`upload`, `reset[ all]`) für Zugriff ohne
   funktionierendes Netzwerk, siehe `docs/admin-guide.html`
 - DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer, je Sensor eine konfigurierbare Kalibrierkorrektur (°C/%, wirkt auf Anzeige, SNMP und CSV gleichermaßen)
+- Automatische RJ45-Modul-Erkennung (I2C-Scan + DHT-Probe beim Boot, erneut auslösbar über die Einstellungsseite): setzt „Sensor 2 aktiv" automatisch, ohne einen manuell deaktivierten Schalter je stillschweigend zu überschreiben
+- Relais/Aktor (RJ45 Pin 6/7, active LOW): rein manuell aktivierbar, unabhängig von Sensor 2 (Pins überschneiden sich nicht), Schaltzustand über Weboberfläche, REST-API (`/api/relay`) und MQTT gemeinsam gesteuert, startet nach jedem Boot sicherheitshalber immer mit AUS
 - OLED SSD1306 (I2C 0x3C): Boot-Screen mit Countdown, danach rotierende
   Seiten (Systemname+Typ/IPs/Uhrzeit/Sensorwerte/Status/WLAN-Signal) im
   10s-Takt, zentriert mit fester größerer Schrift (zu lange Zeilen laufen
@@ -106,7 +109,7 @@ Enthalten (P0–P7, vollständig):
 - OTA-Update: nur per lokalem `.bin`-Upload auf der Einstellungsseite (kein GitHub-Versionscheck/-Direktinstall — HTTPS-Client hätte ~168 KB Flash gekostet, siehe `docs/entscheidungen.md`); daneben ein Link zu den GitHub-Releases zum manuellen Herunterladen
 - SNMP v1 (read-only, Port 161): feste OID-Struktur unter `.1.3.6.1.4.1.99999.x` (System, Netzwerk, Sensor 1/2, Systemstatus), Community konfigurierbar
 - Syslog (UDP Port 514): Statusreport bei jedem Sensorzyklus, Fehler-Events (Sensor/Netzwerk/NTP) sofort — deaktiviert, solange kein Syslog-Server konfiguriert ist
-- MQTT/Home-Assistant-Discovery: Discovery- und State-Payloads für Temperatur/Luftfeuchte je Sensor, Topic-Präfix wie der mDNS-Hostname zur Laufzeit abgeleitet — deaktiviert, solange kein Broker konfiguriert ist
+- MQTT/Home-Assistant-Discovery: Discovery- und State-Payloads für Temperatur/Luftfeuchte je Sensor sowie eine Relais-Switch-Entity (Sensor- **und** Aktor-Rolle), Topic-Präfix wie der mDNS-Hostname zur Laufzeit abgeleitet — deaktiviert, solange kein Broker konfiguriert ist
 - Anbieter-Branding (Weisslabel): freier Anbietername + optionales Logo (128×64, 1bpp, per Web-Upload), eigene OLED-Seite und Web-Header-Anzeige, kein PNG/JPEG-Decoder eingebunden (Logo wird als minimaler BMP on-the-fly ausgeliefert)
 
 Damit sind alle im [Implementierungsplan](docs/implementierungsplan.html) vorgesehenen Phasen umgesetzt. Offen bleibt der reale Betrieb auf Hardware (Flashen, Verkabelung nach `docs/verdrahtungsschema-v1.2.pdf` prüfen, längerer Testlauf).

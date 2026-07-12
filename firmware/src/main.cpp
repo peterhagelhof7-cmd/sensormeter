@@ -17,7 +17,10 @@
 // Abschnitt 16, docs/entscheidungen.md); BrandingManager haelt den
 // optionalen Anbieter-Namen/das Logo (Weisslabel), das DisplayManager als
 // eigene OLED-Seite und WebServerManager im Seiten-Header zeigt, sobald
-// konfiguriert.
+// konfiguriert; SensorDetector scannt beim Boot (parallel zum Netzwerk-
+// Warten) das RJ45-Modul und setzt Sensor 2 automatisch; RelayManager
+// treibt den optionalen Aktor (RJ45 Pin 6/7) - beide portiert aus
+// sensormeter-poe, siehe docs/entscheidungen.md.
 //
 // Damit sind alle Phasen aus docs/implementierungsplan.html (P0-P7)
 // umgesetzt.
@@ -34,7 +37,9 @@
 #include "MqttManager.h"
 #include "NetworkManager.h"
 #include "OtaManager.h"
+#include "RelayManager.h"
 #include "SNMPManager.h"
+#include "SensorDetector.h"
 #include "SensorManager.h"
 #include "StorageManager.h"
 #include "SyslogManager.h"
@@ -54,13 +59,16 @@ StorageManager storageManager;
 NetworkManager networkManager(dataManager, configManager);
 TimeManager timeManager(dataManager, networkManager);
 SensorManager sensorManager(dataManager, configManager);
+SensorDetector sensorDetector(dataManager, configManager);
+RelayManager relayManager(dataManager, configManager);
 BrandingManager brandingManager(configManager);
 DisplayManager displayManager(dataManager, configManager, networkManager, brandingManager);
 OtaManager otaManager;
-WebServerManager webServerManager(dataManager, configManager, networkManager, otaManager, brandingManager);
+WebServerManager webServerManager(dataManager, configManager, networkManager, otaManager, relayManager,
+                                   sensorDetector, brandingManager);
 SNMPManager snmpManager(dataManager, configManager, networkManager);
 SyslogManager syslogManager(dataManager, configManager, networkManager);
-MqttManager mqttManager(dataManager, configManager, networkManager);
+MqttManager mqttManager(dataManager, configManager, networkManager, relayManager);
 
 // Serial-Kommandozeile fuer den Fall, dass das Geraet nur per USB, aber
 // nicht per Netzwerk erreichbar ist. Bewusst dasselbe Vertrauensmodell wie
@@ -86,7 +94,7 @@ MqttManager mqttManager(dataManager, configManager, networkManager);
 //                                  abgewartet wird, bevor auf reine
 //                                  LAN-Nutzung zurueckgefallen wird)
 //   status                        aktuellen Zustand ausgeben (LAN, WLAN,
-//                                  IP, Signal, beide Sensoren, Heap,
+//                                  IP, Signal, beide Sensoren, Relais, Heap,
 //                                  Laufzeit) - liest nur, aendert nichts,
 //                                  kein Neustart
 //   dump                          aktuelle config.xml als XML ausgeben,
@@ -282,6 +290,8 @@ void handleSerialCommands() {
           Serial.println("kein gueltiger Messwert");
         }
       }
+      Serial.print("Relais: ");
+      Serial.println(cfg.relayEnabled ? (relayManager.isOn() ? "EIN" : "AUS") : "deaktiviert");
       Serial.print("Freier Heap: ");
       Serial.print(ESP.getFreeHeap() / 1024);
       Serial.println(" kB");
@@ -335,10 +345,21 @@ void setup() {
   configManager.begin();
   timeManager.begin();
   sensorManager.begin();
+  relayManager.begin();
   brandingManager.begin();
-  displayManager.begin();
   syslogManager.begin();
   mqttManager.begin();
+
+  // Modul-Erkennung VOR displayManager.begin(), aber NACH ConfigManager
+  // (braucht ggf. bereits gespeicherte sensor2Enabled-Werte als Ausgangs-
+  // punkt) - laeuft synchron und dauert nur wenige hundert Millisekunden
+  // (I2C-Scan + ggf. ein DHT-Leseversuch), verzoegert den danach
+  // beginnenden Boot-Countdown (Netzwerk-Warten) dadurch nicht spuerbar,
+  // analog sensormeter-poe (siehe docs/entscheidungen.md).
+  sensorDetector.begin();
+  sensorDetector.runDetection();
+
+  displayManager.begin();
 
   networkManager.begin();  // setzt Zustand auf INIT, dann NETWORK_CHECK
   webServerManager.begin();  // async - kein eigener loop()-Aufruf noetig

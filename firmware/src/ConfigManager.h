@@ -28,6 +28,7 @@
 //     <sensor2 enabled="false" name="Extern" tempOffset="0.0" humOffset="0.0" calibratedTs="0"/>
 //   </sensors>
 //   <snmp community="public"/>
+//   <aktor relayEnabled="false"/>
 //   <mqtt enabled="false" server="" port="1883" user="" password=""/>
 //   <branding vendorName=""/>
 // </config>
@@ -82,15 +83,21 @@ struct DeviceConfig {
 
   String snmpCommunity = "public";
 
+  // Relais (Aktor) - rein manuell, keine Auto-Erkennung moeglich (analog
+  // sensormeter-poe/repo/docs/lastenheft.txt Abschnitt 15.3), unabhaengig
+  // von sensor2Enabled (RJ45-Pins ueberschneiden sich nicht, siehe pins.h).
+  // Der aktuelle Schaltzustand selbst wird NICHT persistiert -
+  // RelayManager startet nach jedem Boot sicherheitshalber immer mit AUS,
+  // siehe dortige Begruendung.
+  bool relayEnabled = false;
+
   // Home-Assistant-Anbindung ueber MQTT-Discovery (siehe
   // sensormeter-poe/repo/docs/lastenheft.txt Abschnitt 16 fuer das
-  // vollstaendige Feature-Design - hier nur die Sensor-Rolle, kein
-  // Relais/Aktor, obwohl pins.h die RJ45-Relaispins bereits reserviert
-  // (siehe docs/entscheidungen.md "Portierungs-Kandidaten..." - Relais war
-  // dort nur als "naheliegend" geprueft, nicht beauftragt). Topic-Praefix
-  // wird NICHT gespeichert, sondern wie der mDNS-Hostname zur Laufzeit aus
-  // systemName abgeleitet (NetworkManager::sanitizeHostname) - identisches
-  // Muster zu Sensormeter WLAN.
+  // vollstaendige Feature-Design), jetzt inklusive Aktor-Rolle (Relais,
+  // siehe docs/entscheidungen.md). Topic-Praefix wird NICHT gespeichert,
+  // sondern wie der mDNS-Hostname zur Laufzeit aus systemName abgeleitet
+  // (NetworkManager::sanitizeHostname) - identisches Muster zu Sensormeter
+  // WLAN.
   bool mqttEnabled = false;
   String mqttServer;
   uint16_t mqttPort = 1883;

@@ -7,6 +7,8 @@
 #include "DataManager.h"
 #include "NetworkManager.h"
 #include "OtaManager.h"
+#include "RelayManager.h"
+#include "SensorDetector.h"
 
 // Webserver (Pflichtenheft "WebServerTask"): Hauptseite (Status, Graph,
 // Syslog-Tabelle, CSV-Download), passwortgeschuetzte Einstellungsseite,
@@ -22,7 +24,8 @@
 class WebServerManager {
  public:
   WebServerManager(DataManager& dataManager, ConfigManager& configManager,
-                    NetworkManager& networkManager, OtaManager& otaManager, BrandingManager& brandingManager);
+                    NetworkManager& networkManager, OtaManager& otaManager, RelayManager& relayManager,
+                    SensorDetector& sensorDetector, BrandingManager& brandingManager);
 
   void begin();
 
@@ -31,6 +34,8 @@ class WebServerManager {
   ConfigManager& _config;
   NetworkManager& _network;
   OtaManager& _ota;
+  RelayManager& _relay;
+  SensorDetector& _detector;
   BrandingManager& _branding;
 
   AsyncWebServer _server;
@@ -73,6 +78,12 @@ class WebServerManager {
   // Uebernehmen - bei DHCP per echtem Lease-Test, bei statischer IP per
   // Ping (ipRespondsToPing()) - und speichert + startet neu nur bei Erfolg.
   void handleApiNetworkApply(AsyncWebServerRequest* request);
+
+  // Relais (Aktor) - REST-API fuer Web/MQTT-gemeinsamen Schreibpfad
+  // (RelayManager::setOn()) sowie erneuter Modul-Erkennungslauf auf Anfrage.
+  void handleApiRelayGet(AsyncWebServerRequest* request);
+  void handleApiRelayPost(AsyncWebServerRequest* request);
+  void handleApiDetectRerun(AsyncWebServerRequest* request);
 
   // Anbieter-Branding: Logo-Upload (Streaming, analog handleApiConfigImportUpload/
   // OTA-Upload), Logo-Auslieferung als on-the-fly synthetisiertes 1-Bit-BMP

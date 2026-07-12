@@ -565,7 +565,31 @@ gespeichert und das Gerät neu gestartet.</p>
   <tr><td>Sensor 2 (extern) aktiv</td><td>Aktiviert den optionalen zweiten Sensor (DHT22 über RJ45) — schaltet den Systemtyp automatisch auf „Sensormeter PRO" um.</td></tr>
   <tr><td>Sensor-2-Name</td><td>Freier Anzeigename für Sensor 2 (Default „Extern"), erscheint auf OLED, Weboberfläche und SNMP.</td></tr>
   <tr><td>Sensor 2 Korrektur Temperatur/Feuchte</td><td>Wie Sensor 1, für den externen Sensor.</td></tr>
+  <tr><td>Erkannter Modultyp/Chip</td><td>Nur-Anzeige — Ergebnis der automatischen RJ45-Modul-Erkennung (siehe Callout unten).</td></tr>
 </table>
+<div class="callout">
+  <div class="callout-title">Automatische Modul-Erkennung</div>
+  Läuft einmal beim Boot (parallel zur Netzwerk-Wartezeit) sowie erneut auf
+  Anfrage über den Button „Erkennung neu starten": scannt den RJ45-I2C-Bus
+  und probiert bei Fehlschlag einen DHT-Leseversuch. Findet die Erkennung
+  ein Modul, wird „Sensor 2 aktiv" automatisch gesetzt — ein bereits
+  manuell deaktivierter Schalter wird dabei NIE stillschweigend wieder
+  aktiviert. Erkannt wird nur die Modul-<b>Kategorie</b> (DHT-Sensor /
+  I2C-Sensor inkl. Chipname bei bekannter Adresse / kein Sensor) —
+  <b>nicht</b> DHT-11 vs. DHT-22 (unzuverlässig) und <b>nicht</b> das
+  Vorhandensein eines Relais-Moduls (kein auswertbares Rück-Signal, siehe
+  Abschnitt „Aktor" unten).
+</div>
+
+<h3>Aktor</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>Relais (Aktor) aktiv</td><td>Rein manuell — ein Relais-Modul kann nicht automatisch erkannt werden. Unabhängig von „Sensor 2 aktiv", da sich die RJ45-Pins nicht überschneiden — ein Kombi-Modul mit Sensor UND Relais ist möglich.</td></tr>
+  <tr><td>Aktueller Zustand + „Relais schalten"</td><td>Zeigt den zuletzt kommandierten Schaltzustand und schaltet ihn um. Startet nach jedem Neustart sicherheitshalber immer mit AUS (kein persistierter Zustand) — ein wieder angelaufenes Gerät reaktiviert einen zuvor eingeschalteten Verbraucher nicht stumm.</td></tr>
+</table>
+<p class="hint">Derselbe Schreibpfad (<span class="code">/api/relay</span>)
+wird von der Weboberfläche, der REST-API und — falls MQTT aktiv ist — von
+Home Assistant genutzt (Abschnitt 6.3).</p>
 
 <h3>Syslog</h3>
 <table>
@@ -587,13 +611,9 @@ gespeichert und das Gerät neu gestartet.</p>
   <tr><td>Port</td><td>MQTT-Port des Brokers. Default: <span class="code">1883</span> (unverschlüsseltes MQTT).</td></tr>
   <tr><td>Benutzername / Passwort</td><td>Nur nötig, falls der Broker eine Anmeldung verlangt — leer lassen bei anonymem Zugriff.</td></tr>
 </table>
-<div class="callout">
-  <div class="callout-title">Kein Relais/Aktor über MQTT</div>
-  Anders als das für Sensormeter PoE entworfene MQTT-Konzept (siehe
-  <span class="code">sensormeter-poe/repo/docs/lastenheft.txt</span>
-  Abschnitt 16) veröffentlicht dieses Gerät ausschließlich Sensordaten —
-  es gibt keinen über MQTT schaltbaren Ausgang. Details siehe Abschnitt 6.3.
-</div>
+<p class="hint">Meldet Sensor 1/2 sowie — falls „Relais (Aktor) aktiv" oben
+angehakt ist — eine Relais-Switch-Entity über Home-Assistant-MQTT-Discovery
+an, siehe Abschnitt 6.3.</p>
 
 <h3>Anbieter-Branding</h3>
 <table>
@@ -733,6 +753,12 @@ manuelle YAML-Konfiguration auf der Home-Assistant-Seite.</p>
       <td>Wie oben für Sensor 2 — nur gesendet, wenn Sensor 2 aktiviert ist (Abschnitt 4.2, „Sensormeter PRO")</td></tr>
   <tr><td><span class="code">&lt;prefix&gt;/state</span></td>
       <td>JSON-Statuspayload mit den aktuellen Messwerten, gesendet bei jedem neuen Sensorzyklus (alle 60s)</td></tr>
+  <tr><td><span class="code">homeassistant/switch/&lt;prefix&gt;/relay/config</span></td>
+      <td>Discovery-Payload für den Relais-Schalter — nur gesendet, wenn „Relais (Aktor) aktiv" (Abschnitt 4.2) angehakt ist</td></tr>
+  <tr><td><span class="code">&lt;prefix&gt;/relay/state</span></td>
+      <td>Aktueller Schaltzustand („ON"/„OFF", retained), sofort bei jeder Änderung gesendet — unabhängig vom 60s-Sensorzyklus</td></tr>
+  <tr><td><span class="code">&lt;prefix&gt;/relay/set</span></td>
+      <td>Command-Topic, abonniert wenn das Relais aktiv ist — Home Assistant sendet hier „ON"/„OFF" hin, derselbe Schreibpfad wie Weboberfläche/REST-API (Abschnitt 4.2 „Aktor")</td></tr>
 </table>
 <p><span class="code">&lt;prefix&gt;</span> wird — wie der mDNS-Hostname
 (Abschnitt 4.1) — zur Laufzeit aus dem Systemnamen abgeleitet und nicht
@@ -815,6 +841,7 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
   <tr><td><span class="code">humOffset</span></td><td>Feuchte-Korrektur in %</td></tr>
   <tr><td><span class="code">calibratedTs</span></td><td>Unix-Zeitstempel der letzten Kalibrierung</td></tr>
   <tr><td><span class="code">&lt;snmp&gt;</span></td><td><span class="code">community</span></td><td>SNMP-Community-String</td></tr>
+  <tr><td><span class="code">&lt;aktor&gt;</span></td><td><span class="code">relayEnabled</span></td><td>„true"/„false" — Relais (Aktor) aktiv (Abschnitt 4.2 „Aktor"). Der Schaltzustand selbst wird NICHT persistiert, siehe dort.</td></tr>
   <tr><td rowspan="5"><span class="code">&lt;mqtt&gt;</span></td><td><span class="code">enabled</span></td><td>„true"/„false" — MQTT-Anbindung aktiv (Abschnitt 4.2, 6.3)</td></tr>
   <tr><td><span class="code">server</span></td><td>Broker-Adresse (IP oder Hostname)</td></tr>
   <tr><td><span class="code">port</span></td><td>Broker-Port, Default 1883</td></tr>
@@ -843,6 +870,7 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
         &lt;sensor2 enabled="true" name="Extern" tempOffset="0" humOffset="0" calibratedTs="0"/&gt;
     &lt;/sensors&gt;
     &lt;snmp community="public"/&gt;
+    &lt;aktor relayEnabled="false"/&gt;
     &lt;mqtt enabled="false" server="" port="1883" user="" password=""/&gt;
     &lt;branding vendorName=""/&gt;
 &lt;/config&gt;</pre>
@@ -910,7 +938,7 @@ und <span class="code">ip</span> nehmen deshalb ein Interface-Argument
 (<span class="code">lan</span> oder <span class="code">wlan</span>).</p>
 <table>
   <tr><th>Kommando</th><th>Wirkung</th></tr>
-  <tr><td><span class="code">status</span></td><td>Aktuellen Zustand ausgeben (Systemzustand, LAN- und WLAN-Status/IP, WLAN-Signal, beide Sensorwerte falls Sensor 2 aktiv, freier Heap, Laufzeit) — rein lesend, kein Neustart</td></tr>
+  <tr><td><span class="code">status</span></td><td>Aktuellen Zustand ausgeben (Systemzustand, LAN- und WLAN-Status/IP, WLAN-Signal, beide Sensorwerte falls Sensor 2 aktiv, Relais-Zustand, freier Heap, Laufzeit) — rein lesend, kein Neustart</td></tr>
   <tr><td><span class="code">dhcp &lt;lan|wlan&gt;</span></td><td>Gewähltes Interface auf DHCP umstellen, statische IP/Maske/Gateway/DNS dieses Interfaces löschen, Gerät startet neu</td></tr>
   <tr><td><span class="code">ip &lt;lan|wlan&gt; &lt;adresse&gt; &lt;maske&gt; &lt;gateway&gt; [dns]</span></td><td>Statische IP für das gewählte Interface setzen, Gerät startet neu. Anders als die Einstellungsseite ohne Ping-Kollisionsprüfung — bewusst einfach gehalten</td></tr>
   <tr><td><span class="code">wifi &lt;ssid&gt; &lt;passwort&gt;</span></td><td>Neue WLAN-Zugangsdaten setzen, Gerät startet neu und probiert die Verbindung mit verkürztem Timeout (wie „Verbinden &amp; testen" auf der Einstellungsseite). Kein LAN-Äquivalent, da Ethernet kein Zugangsdaten-Konzept hat</td></tr>

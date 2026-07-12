@@ -6,10 +6,17 @@ namespace {
 const unsigned long RECONNECT_INTERVAL_MS = 5000;
 }  // namespace
 
-MqttManager::MqttManager(DataManager& dataManager, ConfigManager& configManager, NetworkManager& networkManager)
-    : _data(dataManager), _config(configManager), _network(networkManager), _client(_transport) {}
+MqttManager* MqttManager::_instance = nullptr;
+
+MqttManager::MqttManager(DataManager& dataManager, ConfigManager& configManager, NetworkManager& networkManager,
+                          RelayManager& relayManager)
+    : _data(dataManager), _config(configManager), _network(networkManager), _relay(relayManager),
+      _client(_transport) {
+  _instance = this;
+}
 
 void MqttManager::begin() {
+  _client.setCallback(onMqttMessage);
   Serial.println("[MQTT] Grundgeruest bereit");
 }
 
@@ -20,6 +27,23 @@ bool MqttManager::mqttEnabled() const {
 
 String MqttManager::topicPrefix() const {
   return NetworkManager::sanitizeHostname(_config.getConfig().systemName);
+}
+
+void MqttManager::onMqttMessage(char* topic, uint8_t* payload, unsigned int length) {
+  if (!_instance) return;
+  String payloadStr;
+  payloadStr.reserve(length);
+  for (unsigned int i = 0; i < length; i++) payloadStr += (char)payload[i];
+  _instance->handleMessage(String(topic), payloadStr);
+}
+
+void MqttManager::handleMessage(const String& topic, const String& payload) {
+  String relayCommandTopic = topicPrefix() + "/relay/set";
+  if (topic != relayCommandTopic) return;
+
+  // Gleicher Schreibpfad wie Web/REST - Home Assistant schickt
+  // standardmaessig die Payloads "ON"/"OFF" fuer eine Switch-Entity.
+  _relay.setOn(payload == "ON");
 }
 
 void MqttManager::ensureConnected() {
@@ -47,7 +71,15 @@ void MqttManager::ensureConnected() {
     Serial.println("[MQTT] Verbunden mit Broker " + cfg.mqttServer);
     _discoverySent = false;  // nach jedem (Re-)Connect neu ankuendigen -
                               // guenstig genug, kein Persistenz-Aufwand noetig
+    _relayStateKnown = false;  // Relais-Zustand nach Reconnect erneut publizieren
+    subscribeCommandTopics();
   }
+}
+
+void MqttManager::subscribeCommandTopics() {
+  if (!_config.getConfig().relayEnabled) return;
+  String relayCommandTopic = topicPrefix() + "/relay/set";
+  _client.subscribe(relayCommandTopic.c_str());
 }
 
 void MqttManager::publishDiscovery() {
@@ -56,7 +88,15 @@ void MqttManager::publishDiscovery() {
   String stateTopic = prefix + "/state";
 
   // Gemeinsamer "device"-Block, damit Home Assistant alle Entities einem
-  // Geraet zuordnet statt loser Sensoren.
+  // Geraet zuordnet statt loser Sensoren/Schalter.
+  auto deviceBlock = [&](JsonDocument& doc) {
+    JsonObject device = doc["device"].to<JsonObject>();
+    device["identifiers"][0] = prefix;
+    device["name"] = cfg.systemName;
+    device["manufacturer"] = "Sensormeter-Familie";
+    device["model"] = cfg.systemType;
+  };
+
   auto publishSensorDiscovery = [&](const char* key, const char* name, const char* deviceClass,
                                      const char* unit, const char* valueTemplate) {
     JsonDocument doc;
@@ -66,11 +106,7 @@ void MqttManager::publishDiscovery() {
     doc["state_topic"] = stateTopic;
     doc["value_template"] = valueTemplate;
     doc["unique_id"] = prefix + "_" + key;
-    JsonObject device = doc["device"].to<JsonObject>();
-    device["identifiers"][0] = prefix;
-    device["name"] = cfg.systemName;
-    device["manufacturer"] = "Sensormeter-Familie";
-    device["model"] = cfg.systemType;
+    deviceBlock(doc);
 
     String payload;
     serializeJson(doc, payload);
@@ -90,8 +126,29 @@ void MqttManager::publishDiscovery() {
                             "{{ value_json.humidity2 }}");
   }
 
+  if (cfg.relayEnabled) {
+    JsonDocument doc;
+    doc["name"] = "Relais";
+    doc["state_topic"] = prefix + "/relay/state";
+    doc["command_topic"] = prefix + "/relay/set";
+    doc["unique_id"] = prefix + "_relay";
+    deviceBlock(doc);
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = "homeassistant/switch/" + prefix + "/relay/config";
+    _client.publish(topic.c_str(), payload.c_str(), true);
+  }
+
   _discoverySent = true;
   Serial.println("[MQTT] Discovery-Payloads gesendet");
+}
+
+void MqttManager::publishRelayState() {
+  String topic = topicPrefix() + "/relay/state";
+  _client.publish(topic.c_str(), _relay.isOn() ? "ON" : "OFF", true);  // retain, damit HA den
+                                                                        // Zustand nach einem
+                                                                        // Neustart sofort kennt
 }
 
 void MqttManager::publishState() {
@@ -137,5 +194,16 @@ void MqttManager::loop() {
   if (currentReadMillis != 0 && currentReadMillis != _lastSensorReadMillisSeen) {
     _lastSensorReadMillisSeen = currentReadMillis;
     publishState();
+  }
+
+  // Relais-Zustand sofort bei Aenderung publizieren, unabhaengig vom
+  // Sensorzyklus.
+  if (_config.getConfig().relayEnabled) {
+    bool on = _relay.isOn();
+    if (!_relayStateKnown || on != _lastRelayOnSeen) {
+      _relayStateKnown = true;
+      _lastRelayOnSeen = on;
+      publishRelayState();
+    }
   }
 }

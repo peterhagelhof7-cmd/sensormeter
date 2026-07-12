@@ -115,11 +115,14 @@ void buildLogoBmp(const uint8_t* xbm, size_t xbmLen, int width, int height, uint
 
 WebServerManager::WebServerManager(DataManager& dataManager, ConfigManager& configManager,
                                     NetworkManager& networkManager, OtaManager& otaManager,
+                                    RelayManager& relayManager, SensorDetector& sensorDetector,
                                     BrandingManager& brandingManager)
     : _data(dataManager),
       _config(configManager),
       _network(networkManager),
       _ota(otaManager),
+      _relay(relayManager),
+      _detector(sensorDetector),
       _branding(brandingManager),
       _server(80) {}
 
@@ -333,6 +336,23 @@ String WebServerManager::buildSettingsPageBody() const {
           "value=\"" + String(cfg.sensor2HumOffset, 1) + "\"></label>";
   html += "<div class=\"row\"><span>Sensor 2 zuletzt kalibriert</span><span>" +
           formatCalibratedTs(cfg.sensor2CalibratedTs) + "</span></div>";
+  html += "<div class=\"row\"><span>Erkannter Modultyp/Chip</span><span>" + _detector.detectedDescription() +
+          "</span></div>";
+  html += "<button type=\"button\" onclick=\"rerunDetection()\">Erkennung neu starten</button> "
+          "<span id=\"detectStatus\"></span>";
+  html += "<p class=\"hint\">Scannt den RJ45-I2C-Bus bzw. probiert einen DHT-Leseversuch - findet die Erkennung "
+          "ein Modul, wird \"Sensor 2 aktiv\" automatisch gesetzt (bleibt manuell wieder abschaltbar). Ein "
+          "Relais-Modul laesst sich damit NICHT erkennen (siehe Aktor-Abschnitt unten).</p>";
+  html += "</div>";
+
+  html += "<div class=\"block\"><h2>Aktor</h2>";
+  html += "<label><input type=\"checkbox\" name=\"relayEnabled\" " + String(cfg.relayEnabled ? "checked" : "") +
+          "> Relais (Aktor) aktiv</label>";
+  html += "<p class=\"hint\">Rein manuell - ein Relais-Modul kann nicht automatisch erkannt werden (siehe "
+          "Sensoren-Abschnitt oben). Unabhaengig von \"Sensor 2 aktiv\", da sich die RJ45-Pins nicht "
+          "ueberschneiden - ein Kombi-Modul mit Sensor UND Relais ist moeglich.</p>";
+  html += "<div class=\"row\"><span>Aktueller Zustand</span><span id=\"relayState\">-</span></div>";
+  html += "<button type=\"button\" onclick=\"toggleRelay()\">Relais schalten</button>";
   html += "</div>";
 
   html += "<div class=\"block\"><h2>Syslog</h2>";
@@ -442,6 +462,18 @@ String WebServerManager::buildSettingsPageBody() const {
           "branding:'Wirklich das Anbieter-Branding (Name + Logo) entfernen?'"
           "};"
           "return confirm(m[s]||'Wirklich zuruecksetzen?');}";
+  html += "function rerunDetection(){"
+          "document.getElementById('detectStatus').innerText='Erkennung laeuft...';"
+          "fetch('/api/detect/rerun',{method:'POST'}).then(r=>r.text()).then(t=>{"
+          "document.getElementById('detectStatus').innerText=t;location.reload();});}";
+  html += "function refreshRelayState(){"
+          "fetch('/api/relay').then(r=>r.json()).then(d=>{"
+          "document.getElementById('relayState').innerText=d.enabled?(d.on?'EIN':'AUS'):'deaktiviert';});}";
+  html += "function toggleRelay(){"
+          "fetch('/api/relay').then(r=>r.json()).then(d=>{"
+          "const body=new URLSearchParams({on:d.on?'0':'1'});"
+          "fetch('/api/relay',{method:'POST',body}).then(refreshRelayState);});}";
+  html += "refreshRelayState();";
   html += "</script>";
 
   return html;
@@ -617,6 +649,7 @@ void WebServerManager::handleApiConfigGet(AsyncWebServerRequest* request) {
   doc["sensor2CalibratedTs"] = cfg.sensor2CalibratedTs;
   doc["syslogServer"] = cfg.syslogServer;
   doc["snmpCommunity"] = cfg.snmpCommunity;
+  doc["relayEnabled"] = cfg.relayEnabled;
   doc["mqttEnabled"] = cfg.mqttEnabled;
   doc["mqttServer"] = cfg.mqttServer;
   doc["mqttPort"] = cfg.mqttPort;
@@ -691,6 +724,8 @@ void WebServerManager::handleApiConfigPost(AsyncWebServerRequest* request) {
     String community = request->getParam("snmpCommunity", true)->value();
     if (community.length() > 0) cfg.snmpCommunity = community;
   }
+
+  cfg.relayEnabled = request->hasParam("relayEnabled", true);
 
   cfg.mqttEnabled = request->hasParam("mqttEnabled", true);
   if (request->hasParam("mqttServer", true)) cfg.mqttServer = request->getParam("mqttServer", true)->value();
@@ -969,6 +1004,30 @@ void WebServerManager::handleApiNetworkApply(AsyncWebServerRequest* request) {
   ESP.restart();
 }
 
+void WebServerManager::handleApiRelayGet(AsyncWebServerRequest* request) {
+  if (!checkAuth(request)) return;
+  JsonDocument doc;
+  doc["enabled"] = _config.getConfig().relayEnabled;
+  doc["on"] = _relay.isOn();
+  doc["feedback"] = _relay.feedbackOn();
+  String out;
+  serializeJson(doc, out);
+  request->send(200, "application/json", out);
+}
+
+void WebServerManager::handleApiRelayPost(AsyncWebServerRequest* request) {
+  if (!checkAuth(request)) return;
+  bool on = request->hasParam("on", true) && request->getParam("on", true)->value() == "1";
+  _relay.setOn(on);
+  request->send(200, "application/json", String("{\"on\":") + (_relay.isOn() ? "true" : "false") + "}");
+}
+
+void WebServerManager::handleApiDetectRerun(AsyncWebServerRequest* request) {
+  if (!checkAuth(request)) return;
+  _detector.runDetection();
+  request->send(200, "text/plain", "Erkannt: " + _detector.detectedDescription());
+}
+
 void WebServerManager::handleApiBrandingLogoUpload(AsyncWebServerRequest* request, const String& filename,
                                                     size_t index, uint8_t* data, size_t len, bool final) {
   if (!checkAuth(request)) return;
@@ -1034,6 +1093,10 @@ void WebServerManager::begin() {
   _server.on("/api/wifi/connect", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiWifiConnect(r); });
   _server.on("/api/factory-reset", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiFactoryReset(r); });
   _server.on("/api/network/apply", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiNetworkApply(r); });
+
+  _server.on("/api/relay", HTTP_GET, [this](AsyncWebServerRequest* r) { handleApiRelayGet(r); });
+  _server.on("/api/relay", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiRelayPost(r); });
+  _server.on("/api/detect/rerun", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiDetectRerun(r); });
 
   _server.on(
       "/api/ota/upload", HTTP_POST,

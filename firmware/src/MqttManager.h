@@ -6,15 +6,15 @@
 #include "ConfigManager.h"
 #include "DataManager.h"
 #include "NetworkManager.h"
+#include "RelayManager.h"
 
 // Home-Assistant-Anbindung ueber MQTT-Discovery (siehe
 // sensormeter-poe/repo/docs/lastenheft.txt Abschnitt 16 fuer das
-// vollstaendige Feature-Design, hier auf die Sensor-Rolle beschraenkt -
-// kein Relais/Aktor, siehe docs/entscheidungen.md "Portierungs-Kandidaten
-// aus sensormeter-poe geprueft"). Deaktiviert, solange kein Broker
-// konfiguriert ist (mqttEnabled=false, Default). Publiziert bei jedem
-// Sensorzyklus (erkannt wie bei SyslogManager an einer Aenderung von
-// lastReadMillis) - Discovery-Payload nur einmal je (Re-)Connect.
+// vollstaendige Feature-Design). Deaktiviert, solange kein Broker
+// konfiguriert ist (mqttEnabled=false, Default). Publiziert Sensorwerte bei
+// jedem Sensorzyklus (erkannt wie bei SyslogManager an einer Aenderung von
+// lastReadMillis), Relais-Zustand sofort bei Aenderung - Discovery-Payload
+// nur einmal je (Re-)Connect.
 //
 // Anders als bei Sensormeter WLAN (nur WLAN) hat dieses Projekt zwei
 // moegliche aktive Interfaces (LAN + WLAN). WiFiClient() ist trotzdem
@@ -29,15 +29,19 @@
 
 class MqttManager {
  public:
-  MqttManager(DataManager& dataManager, ConfigManager& configManager, NetworkManager& networkManager);
+  MqttManager(DataManager& dataManager, ConfigManager& configManager, NetworkManager& networkManager,
+              RelayManager& relayManager);
 
   void begin();
   void loop();
+
+  String topicPrefix() const;
 
  private:
   DataManager& _data;
   ConfigManager& _config;
   NetworkManager& _network;
+  RelayManager& _relay;
 
   WiFiClient _transport;
   PubSubClient _client;
@@ -45,10 +49,17 @@ class MqttManager {
   bool _discoverySent = false;
   unsigned long _lastSensorReadMillisSeen = 0;
   unsigned long _lastReconnectAttemptMillis = 0;
+  bool _lastRelayOnSeen = false;
+  bool _relayStateKnown = false;
 
   bool mqttEnabled() const;
   void ensureConnected();
   void publishDiscovery();
   void publishState();
-  String topicPrefix() const;
+  void publishRelayState();
+  void subscribeCommandTopics();
+
+  static MqttManager* _instance;
+  static void onMqttMessage(char* topic, uint8_t* payload, unsigned int length);
+  void handleMessage(const String& topic, const String& payload);
 };
