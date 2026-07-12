@@ -877,3 +877,32 @@ Nur per `pio run` gebaut (kein Board für Sensormeter in dieser Sitzung
 angeschlossen) - beide Zweige (Logo fehlt → automatisch schreiben; Logo
 vorhanden → nichts tun) nur per Code-Review verifiziert, nicht auf echter
 Hardware getestet.
+
+## Partitionstabelle auf `min_spiffs.csv` umgestellt (Flash-Reserve deutlich vergrößert)
+
+Analog zu Sensormeter WLAN (dort zuerst umgesetzt und auf echter Hardware
+verifiziert, siehe dessen `entscheidungen.md`): das implizite
+`default.csv`-Schema reservierte eine Datenpartition, die genauso groß war
+wie eine der beiden OTA-App-Partitionen (~1,31 MB), obwohl nur `config.xml`,
+`history.csv` und optional ein 1 KB Branding-Logo tatsächlich genutzt
+werden - bei 87,4 % Flash-Auslastung der mit Abstand größte ungenutzte
+Block.
+
+Umgestellt auf `min_spiffs.csv` (`board_build.partitions`, mitgeliefert im
+Framework-Paket, kein eigenes File nötig): `app0`/`app1` je `0x1E0000`
+(≈1,88 MB statt ≈1,31 MB), `spiffs` nur noch `0x20000` (128 KB statt
+≈1,31 MB). Zusätzlich `board_build.filesystem = littlefs` ergänzt (fehlte
+hier bisher, war schon bei Sensormeter WLAN gesetzt) - ohne das baut
+`pio run --target uploadfs` fälschlich ein SPIFFS-Image statt eines
+LittleFS-Images.
+
+**Ergebnis: Flash-Auslastung von 87,4 % auf 58,2 % gefallen**
+(1.145.021 von jetzt 1.966.080 statt vorher 1.310.720 Byte), RAM
+unverändert (17,6 %).
+
+Nur per `pio run` gebaut (kein Board angeschlossen) - der eigentliche
+Flash-Vorgang inkl. der bei Sensormeter WLAN nötig gewordenen
+Config-Sicherung/-Wiederherstellung (Partitionswechsel verschiebt die
+LittleFS-Partition physisch) ist hier noch nicht auf echter Hardware
+durchlaufen, sollte aber identisch funktionieren - siehe die vollständige
+Beschreibung des Ablaufs in Sensormeter WLANs `entscheidungen.md`.
