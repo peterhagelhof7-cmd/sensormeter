@@ -74,6 +74,11 @@ richtet danach Python/Git/PlatformIO automatisch ein, klont das gewählte
 Repo falls nötig und flasht das per USB angeschlossene Board in einem
 Rutsch. Details: [`scripts/README.md`](scripts/README.md).
 
+**Auf macOS (nur Apple Silicon) oder Linux**: [`scripts/flash.sh`](scripts/flash.sh)
+– Bash-Pendant zu `flash.ps1`, gleicher Ablauf, nur Werkzeug-Installation
+über Homebrew/Paketmanager statt winget. Deckt nur das Flashen ab, kein
+`convert-logo`/`snmp-load`-Äquivalent.
+
 Enthalten (P0–P7, vollständig):
 - Modulgerüst: `DataManager`, `ConfigManager`, `NetworkManager`, `TimeManager`, `StorageManager`, `SensorManager`, `DisplayManager`, `WebServerManager`, `OtaManager`, `SNMPManager`, `SyslogManager`, `MqttManager`, `BrandingManager`
 - Boot-Zustandsautomat (`BOOT → INIT → NETWORK_CHECK → RUN_NORMAL / FALLBACK_MODE`), siehe `include/SystemState.h`

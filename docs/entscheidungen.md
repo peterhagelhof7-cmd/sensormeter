@@ -612,27 +612,53 @@ Mit `pio run` gebaut und verifiziert (erfolgreich, Flash 86,1 % /
 von +24.032 B Flash / +200 B RAM, nah an der oben geschätzten Spanne).
 Nicht geflasht - kein WT32-ETH01-Board in dieser Session angeschlossen.
 
-## `scripts/flash.ps1`: Mac-Unterstützung geplant, nicht umgesetzt
+## `scripts/flash.sh`: Mac-/Linux-Unterstützung umgesetzt
 
-Auf Anfrage vermerkt für eine künftige Umsetzung: `scripts/flash.ps1` soll
-zusätzlich auf dem Mac lauffähig werden - **ausdrücklich nur für
-Apple-Silicon-Macs (ARM, M1/M2/M3/...)**, nicht für ältere Intel-Macs.
-Noch nicht begonnen, keine Codeänderung in dieser Session. Zu klären bei
-Umsetzung:
+Die zuvor hier vermerkte Mac-Unterstützung für `scripts/flash.ps1` ist
+jetzt umgesetzt - als eigenständiges `scripts/flash.sh` statt einem
+direkten `pwsh`-Wiederverwendungsversuch (portabler, keine PowerShell-
+Installation auf dem Zielsystem nötig), zusätzlich gleich auch für Linux
+statt nur macOS. Deckt bewusst NUR den Flash-Vorgang ab - kein
+`convert-logo.sh`/`snmp-load.sh`-Äquivalent (auf Anfrage explizit
+ausgeschlossen).
 
-- PowerShell selbst läuft auch auf ARM-Macs (PowerShell 7+/`pwsh`, via
-  Homebrew) - denkbar wäre ein direkter Wiederverwendungsversuch von
-  `flash.ps1` unter `pwsh` statt einer Neuimplementierung als
-  separates `flash.sh`.
-- Windows-spezifische Anteile müssten identifiziert und ersetzt werden:
-  winget-basierte Toolinstallation (Python/Git/PlatformIO), COM-Port-
-  Erkennung (unter macOS `/dev/cu.usbserial-*`/`/dev/cu.SLAB_USBtoUART`
-  statt `COMx`), sowie alle Debug-Burning-Hinweise zur USB-Seriell-
-  Adaptererkennung.
-- Gilt für alle vier Projekte gleichermaßen, da `scripts/flash.ps1`
-  identisch in allen vier Repos liegt (siehe "Flash-Skript
-  vereinheitlicht" oben) - eine Mac-Fassung müsste ebenso in alle vier
-  Repos verteilt werden.
+Gleicher Ablauf wie `flash.ps1` (Projekt wählen → Python/Git/PlatformIO
+prüfen/installieren → Repo klonen/aktualisieren → `config.h` anlegen →
+`pio run` → `pio run --target upload`), plattformspezifisch ersetzt:
+
+- **Werkzeug-Installation**: Homebrew (`brew install python`/`git`) auf
+  macOS statt winget - Homebrew selbst wird NICHT automatisch installiert
+  (ein unbeaufsichtigtes `curl | bash` erschien zu riskant), das Skript
+  bricht mit einem Verweis auf https://brew.sh ab, falls `brew` fehlt. Auf
+  Linux wird der vorhandene Paketmanager erkannt (`apt`/`dnf`/`pacman`/
+  `zypper`) und der jeweils passende Installationsbefehl verwendet.
+- **Serielle Geräte** statt COM-Ports: `/dev/cu.*` (macOS),
+  `/dev/ttyUSB*`/`/dev/ttyACM*` (Linux).
+- **Apple-Silicon-Pflicht weiterhin durchgesetzt, jetzt im Code**: prüft
+  `uname -m` unter Darwin und bricht bei `x86_64` (Intel-Mac) mit
+  Fehlermeldung ab - identische Einschränkung wie ursprünglich hier
+  vermerkt, nur jetzt tatsächlich erzwungen statt nur dokumentiert.
+- **PEP-668-Fallback**: neuere Debian-/Ubuntu-Versionen markieren das
+  System-Python als "externally-managed" und verweigern ein einfaches
+  `pip install` - das Skript erkennt genau diesen Fehler und wiederholt
+  nur für das `platformio`-Paket selbst mit `--break-system-packages`.
+- **Projekt-Metadaten als `case`-Funktionen statt assoziativem Array**,
+  damit das Skript auch unter macOS' Standard-`/bin/bash` 3.2 läuft (kein
+  `declare -A` dort, erst ab Bash 4).
+
+Gilt für alle vier Projekte gleichermaßen, `scripts/flash.sh` liegt
+identisch in allen vier Repos (wie `flash.ps1`, siehe "Flash-Skript
+vereinheitlicht" oben).
+
+**Verifiziert:** `bash -n`-Syntaxprüfung sowie ein per Betriebssystem-
+Erkennungs-Patch simulierter Linux-Testlauf gegen einen echten,
+bestehenden Checkout (in dieser Windows/Git-Bash-Umgebung, da kein
+Mac/Linux-Rechner verfügbar war) - komplette Ablauf-Kette (Tool-Erkennung,
+`git pull`, `config.h`-Prüfung, `pio run`, `--skip-upload`-Exit,
+interaktives Projekt-Menü inkl. Fehleingabe-Behandlung) erfolgreich
+durchlaufen. Die echten macOS-arm64-/Linux-nativen Zweige (Homebrew-/
+apt-Installation, `/dev/cu.*`-/`/dev/ttyUSB*`-Auflistung) sind NICHT auf
+echter Mac-/Linux-Hardware getestet.
 
 ## `scripts/convert-logo.ps1`: Logo-Konverter fürs Anbieter-Branding-Feature
 
