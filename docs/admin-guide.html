@@ -598,8 +598,12 @@ genau eines gleichzeitig, manuell gewählt).</p>
 <h4>Kategorie 2 — Direkt-Module</h4>
 <table>
   <tr><th>Feld</th><th>Bedeutung</th></tr>
-  <tr><td>Relais aktiv (Pin 6/7)</td><td>Rein manuell — ein Relais-Modul kann nicht automatisch erkannt werden. Unabhängig vom Pin-5-Modultyp, da sich die RJ45-Pins nicht überschneiden — ein Kombi-Modul mit Sensor/Kontakt UND Relais ist möglich.</td></tr>
-  <tr><td>Aktueller Zustand + „Relais schalten"</td><td>Zeigt den zuletzt kommandierten Schaltzustand und schaltet ihn um. Startet nach jedem Neustart sicherheitshalber immer mit AUS (kein persistierter Zustand) — ein wieder angelaufenes Gerät reaktiviert einen zuvor eingeschalteten Verbraucher nicht stumm.</td></tr>
+  <tr><td>Relais aktiv (Pin 6/7)</td><td>Manuelles Schalten — ein Relais-Modul kann nicht automatisch <b>erkannt</b> werden. Unabhängig vom Pin-5-Modultyp, da sich die RJ45-Pins nicht überschneiden — ein Kombi-Modul mit Sensor/Kontakt UND Relais ist möglich.</td></tr>
+  <tr><td>Aktueller Zustand + „Relais schalten"</td><td>Zeigt den zuletzt kommandierten Schaltzustand und schaltet ihn um. Startet nach jedem Neustart sicherheitshalber immer mit AUS (kein persistierter Zustand) — ein wieder angelaufenes Gerät reaktiviert einen zuvor eingeschalteten Verbraucher nicht stumm. Zeigt zusätzlich „(automatisch)", solange „Automatisch schalten" aktiv ist.</td></tr>
+  <tr><td>Automatisch schalten</td><td>Auswahl „Nein" (Default, rein manuell) oder „Sensor" — blendet bei „Sensor" die Felder Quelle/Wert/Bedingung/Schwellenwert bzw. Zustand ein. Wird bei jedem Durchlauf neu ausgewertet und überschreibt dabei ein manuelles Schalten.</td></tr>
+  <tr><td>Quelle (Automatik)</td><td>Nur bei „Automatisch schalten" = „Sensor" sichtbar. Auswahl „Sensor 1 (intern)" / „Sensor 2 (extern)" / „Kontakt" als Datenquelle für die Schaltbedingung.</td></tr>
+  <tr><td>Wert / Bedingung / Schwellenwert</td><td>Nur bei Quelle „Sensor 1"/„Sensor 2" sichtbar. „Wert" wählt Temperatur oder Luftfeuchte, „Bedingung" größer/kleiner als, „Schwellenwert" den Vergleichswert — Relais schaltet EIN, sobald der Messwert die Bedingung erfüllt.</td></tr>
+  <tr><td>Zustand (Automatik)</td><td>Nur bei Quelle „Kontakt" sichtbar. Relais schaltet EIN, sobald der Kontakt den gewählten Zustand (Offen/Geschlossen) erreicht.</td></tr>
   <tr><td>Modultyp Pin 5</td><td>Auswahl „Sensor" oder „Kontakt" — beide Belegungen liegen auf demselben Pin und schließen sich gegenseitig aus. Blendet je nach Auswahl die passenden Felder ein.</td></tr>
   <tr><td>Sensor 2 (extern) aktiv</td><td>Nur bei Modultyp „Sensor" sichtbar. Aktiviert den optionalen zweiten Sensor (DHT22 über RJ45) — schaltet den Systemtyp automatisch auf „Sensormeter PRO" um.</td></tr>
   <tr><td>Sensor-2-Name</td><td>Freier Anzeigename für Sensor 2 (Default „Extern"), erscheint auf OLED, Weboberfläche und SNMP.</td></tr>
@@ -616,7 +620,19 @@ lokal — noch keine MQTT-/SNMP-Anbindung (anders als Sensor 1/2 und das
 Relais), da ein binärer Zustand nicht in deren Temperatur/Feuchte- bzw.
 Schalter-Schema passt. Derselbe Schreibpfad (<span class="code">/api/relay</span>)
 für das Relais wird von der Weboberfläche, der REST-API und — falls MQTT
-aktiv ist — von Home Assistant genutzt (Abschnitt 6.3).</p>
+aktiv ist — von Home Assistant genutzt (Abschnitt 6.3), auch bei aktiver
+Automatik (die Automatik ruft intern denselben Schreibpfad auf).</p>
+<div class="callout">
+  <div class="callout-title">Automatisches Schalten</div>
+  Wird bei jedem Durchlauf neu ausgewertet (nicht nur beim Speichern) und
+  überschreibt dabei ein zuvor manuell gesetztes „Relais schalten" — für
+  dauerhaft manuelle Steuerung „Automatisch schalten" auf „Nein" stellen.
+  Liefert die gewählte Quelle keinen gültigen Wert (Sensor nicht aktiv,
+  Pin-5-Modultyp passt nicht zur gewählten Quelle, noch kein Messwert seit
+  dem letzten Neustart), bleibt der zuletzt kommandierte Zustand bewusst
+  unverändert — kein automatisches Abschalten bei einem vorübergehend
+  fehlenden Messwert.
+</div>
 
 <h3>Syslog</h3>
 <table>
@@ -871,7 +887,13 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
   <tr><td><span class="code">name</span></td><td>Anzeigename des Kontakts (max. 20 Zeichen, Default „Kontakt")</td></tr>
   <tr><td><span class="code">alarmAt</span></td><td>„open"/„closed"/„change" — welcher Zustand als Alarm gilt (Default „open")</td></tr>
   <tr><td><span class="code">&lt;snmp&gt;</span></td><td><span class="code">community</span></td><td>SNMP-Community-String</td></tr>
-  <tr><td><span class="code">&lt;aktor&gt;</span></td><td><span class="code">relayEnabled</span></td><td>„true"/„false" — Relais (Aktor) aktiv (Abschnitt 4.2 „Aktor"). Der Schaltzustand selbst wird NICHT persistiert, siehe dort.</td></tr>
+  <tr><td rowspan="7"><span class="code">&lt;aktor&gt;</span></td><td><span class="code">relayEnabled</span></td><td>„true"/„false" — Relais (Aktor) aktiv (Abschnitt 4.2 „Externe Schnittstelle" → Kategorie 2). Der Schaltzustand selbst wird NICHT persistiert, siehe dort.</td></tr>
+  <tr><td><span class="code">autoMode</span></td><td>„off"/„sensor" — automatisches Schalten (Default „off")</td></tr>
+  <tr><td><span class="code">autoSource</span></td><td>„sensor1"/„sensor2"/„contact" — Datenquelle der Automatik</td></tr>
+  <tr><td><span class="code">autoValue</span></td><td>„temp"/„humidity" — nur bei Quelle sensor1/sensor2</td></tr>
+  <tr><td><span class="code">autoCompare</span></td><td>„above"/„below" — nur bei Quelle sensor1/sensor2</td></tr>
+  <tr><td><span class="code">autoThreshold</span></td><td>Schwellenwert (Fließkommazahl) — nur bei Quelle sensor1/sensor2</td></tr>
+  <tr><td><span class="code">autoContactState</span></td><td>„open"/„closed" — nur bei Quelle contact</td></tr>
   <tr><td rowspan="5"><span class="code">&lt;mqtt&gt;</span></td><td><span class="code">enabled</span></td><td>„true"/„false" — MQTT-Anbindung aktiv (Abschnitt 4.2, 6.3)</td></tr>
   <tr><td><span class="code">server</span></td><td>Broker-Adresse (IP oder Hostname)</td></tr>
   <tr><td><span class="code">port</span></td><td>Broker-Port, Default 1883</td></tr>
@@ -901,7 +923,8 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
     &lt;/sensors&gt;
     &lt;kontakt pin5Mode="sensor" name="Kontakt" alarmAt="open"/&gt;
     &lt;snmp community="public"/&gt;
-    &lt;aktor relayEnabled="false"/&gt;
+    &lt;aktor relayEnabled="false" autoMode="off" autoSource="sensor1" autoValue="temp"
+           autoCompare="above" autoThreshold="25.0" autoContactState="closed"/&gt;
     &lt;mqtt enabled="false" server="" port="1883" user="" password=""/&gt;
     &lt;branding vendorName=""/&gt;
 &lt;/config&gt;</pre>

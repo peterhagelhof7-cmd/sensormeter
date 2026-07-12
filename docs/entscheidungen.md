@@ -1097,3 +1097,53 @@ gesamt unverändert auf Prozent-Ebene), RAM unverändert bei 17,7 %.
 Nur per `pio run` gebaut (kein Board angeschlossen) - Restrukturierung und
 `alarmAt`-Logik damit nur per Code-Review verifiziert, nicht auf echter
 Hardware getestet.
+
+## 2026-07-12 — Relais: optionales automatisches Schalten nach Sensor-/Kontakt-Bedingung
+
+Vor der Firmware-Umsetzung wie zuvor zunächst im lokalen Mock-Webserver
+erprobt (`evaluate_relay_auto()`), danach 1:1 übernommen. Ergänzt das
+bisher rein manuelle Relais um eine optionale automatische Schaltbedingung
+- das manuelle Schalten (`/api/relay` POST) bleibt unverändert möglich,
+wird aber bei aktiver Automatik beim nächsten Durchlauf wieder
+überschrieben (bewusst kein "Vorrang für die letzte Aktion" - siehe
+Hinweistext auf der Einstellungsseite).
+
+**Neue `DeviceConfig`-Felder** (Default `relayAutoMode = "off"` -
+bestehende Installationen verhalten sich dadurch unverändert manuell):
+`relayAutoMode` (`"off"`|`"sensor"`), `relayAutoSource`
+(`"sensor1"`|`"sensor2"`|`"contact"`), `relayAutoValue`
+(`"temp"`|`"humidity"`), `relayAutoCompare` (`"above"`|`"below"`),
+`relayAutoThreshold` (float), `relayAutoContactState`
+(`"open"`|`"closed"`). Alles gebündelt im bestehenden `<aktor>`-Element
+(keine neue XML-Wurzel nötig, gehört logisch zum Relais).
+
+**`RelayManager` bekommt neuen `ContactManager&`-Konstruktorparameter**
+(Reihenfolge in `main.cpp` entsprechend umgestellt: `contactManager` jetzt
+vor `relayManager` deklariert) sowie eine neue `loop()`-Methode, die bei
+`relayAutoMode == "sensor"` jeden Durchlauf neu auswertet: Quelle
+`"contact"` vergleicht `ContactManager::isClosed()` gegen
+`relayAutoContactState`; Quelle `"sensor1"/"sensor2"` liest
+`DataManager::getSensor1()/getSensor2()` und vergleicht `temperature`
+oder `humidity` (je `relayAutoValue`) per `relayAutoCompare` gegen
+`relayAutoThreshold`. Liefert die Quelle keinen gültigen Wert (Sensor
+nicht aktiv, `pin5Mode` passt nicht, `reading.valid == false`), bleibt
+der zuletzt kommandierte Zustand bewusst unverändert - kein
+Aus-Fallback, um kein unbeabsichtigtes Abschalten bei einem vorübergehend
+fehlenden Messwert auszulösen. Nutzt intern weiterhin `setOn()` (bereits
+No-Op-sicher bei `relayEnabled == false` und bei unverändertem Zustand),
+kein zusätzlicher Schreibpfad nötig.
+
+**`WebServerManager`**: neues Auswahlfeld "Automatisch schalten"
+(Nein/Sensor) direkt unter dem bestehenden Relais-Bereich in Kategorie 2,
+blendet per JS (`toggleRelayAuto()`/`toggleRelayAutoSource()`) die
+passenden Folgefelder ein (Quelle → je nach Quelle Wert/Bedingung/
+Schwellenwert für Sensor 1/2, oder Zustand für Kontakt). `/api/relay`
+liefert zusätzlich `auto` (bool), Zustandsanzeige ergänzt um
+"(automatisch)", wenn aktiv.
+
+Flash-Kosten (Sensormeter, WT32-ETH01) empirisch gemessen: **+6.680 Byte**
+(59,0 % → 59,4 %, 1.160.501 → 1.167.181 Byte), RAM unverändert bei 17,7 %.
+
+Nur per `pio run` gebaut (kein Board angeschlossen) - automatische
+Schaltlogik damit nur per Code-Review verifiziert, nicht auf echter
+Hardware getestet.

@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "ConfigManager.h"
+#include "ContactManager.h"
 #include "DataManager.h"
 
 // Relais/Aktor-Steuerung (portiert aus
@@ -21,9 +22,19 @@
 
 class RelayManager {
  public:
-  RelayManager(DataManager& dataManager, ConfigManager& configManager);
+  RelayManager(DataManager& dataManager, ConfigManager& configManager, ContactManager& contactManager);
 
   void begin();
+
+  // Wertet bei cfg.relayAutoMode == "sensor" die konfigurierte Bedingung
+  // (relayAutoSource/-Value/-Compare/-Threshold bzw. -ContactState) neu aus
+  // und ruft bei Bedarf setOn() auf - ueberschreibt dadurch einen zuletzt
+  // manuell gesetzten Zustand. Liefert die gewaehlte Quelle keinen
+  // gueltigen Wert (Sensor nicht aktiv, pin5Mode passt nicht, o.ae.), bleibt
+  // der aktuelle Zustand unveraendert (siehe ConfigManager). Ohne Wirkung
+  // bei cfg.relayAutoMode == "off" (Default, unveraendertes rein manuelles
+  // Verhalten).
+  void loop();
 
   // Ohne Wirkung, wenn cfg.relayEnabled == false (Sicherheitsnetz - Aufrufer
   // sollten den Schalter in der jeweiligen Oberflaeche ohnehin ausblenden).
@@ -38,5 +49,6 @@ class RelayManager {
  private:
   DataManager& _data;
   ConfigManager& _config;
+  ContactManager& _contact;
   bool _relayOn = false;
 };

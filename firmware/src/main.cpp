@@ -22,7 +22,10 @@
 // treibt den optionalen Aktor (RJ45 Pin 6/7) - beide portiert aus
 // sensormeter-poe, siehe docs/entscheidungen.md; ContactManager liest RJ45
 // Pin 5 wahlweise als Tuerkontakt statt als DHT22-Dateneingang (rein manuell
-// gewaehlt ueber cfg.pin5Mode, siehe docs/entscheidungen.md).
+// gewaehlt ueber cfg.pin5Mode, siehe docs/entscheidungen.md); RelayManager
+// kann das Relais zusaetzlich automatisch anhand eines Sensor-Schwellenwerts
+// oder des Kontaktzustands schalten (cfg.relayAutoMode, siehe docs/
+// entscheidungen.md).
 //
 // Damit sind alle Phasen aus docs/implementierungsplan.html (P0-P7)
 // umgesetzt.
@@ -63,8 +66,8 @@ NetworkManager networkManager(dataManager, configManager);
 TimeManager timeManager(dataManager, networkManager);
 SensorManager sensorManager(dataManager, configManager);
 SensorDetector sensorDetector(dataManager, configManager);
-RelayManager relayManager(dataManager, configManager);
 ContactManager contactManager(dataManager, configManager);
+RelayManager relayManager(dataManager, configManager, contactManager);
 BrandingManager brandingManager(configManager);
 DisplayManager displayManager(dataManager, configManager, networkManager, brandingManager);
 OtaManager otaManager;
@@ -382,6 +385,7 @@ void loop() {
   timeManager.loop();
   sensorManager.loop();
   contactManager.loop();
+  relayManager.loop();
   displayManager.loop();
   snmpManager.loop();
   syslogManager.loop();
