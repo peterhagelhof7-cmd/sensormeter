@@ -130,10 +130,8 @@ bool ConfigManager::importXml(const String& xml) {
     if (mode == "sensor" || mode == "contact") cfg.pin5Mode = mode;
     String contactName = attrOrEmpty(kontakt, "name");
     if (contactName.length() > 0) cfg.contactName = contactName.substring(0, 20);
-    String messageOpen = attrOrEmpty(kontakt, "messageOpen");
-    if (messageOpen.length() > 0) cfg.contactMessageOpen = messageOpen;
-    String messageClosed = attrOrEmpty(kontakt, "messageClosed");
-    if (messageClosed.length() > 0) cfg.contactMessageClosed = messageClosed;
+    String alarmAt = attrOrEmpty(kontakt, "alarmAt");
+    if (alarmAt == "open" || alarmAt == "closed" || alarmAt == "change") cfg.contactAlarmAt = alarmAt;
   }
 
   const XMLElement* snmp = root->FirstChildElement("snmp");
@@ -229,8 +227,7 @@ String ConfigManager::exportXml() const {
   XMLElement* kontakt = doc.NewElement("kontakt");
   kontakt->SetAttribute("pin5Mode", _config.pin5Mode.c_str());
   kontakt->SetAttribute("name", _config.contactName.c_str());
-  kontakt->SetAttribute("messageOpen", _config.contactMessageOpen.c_str());
-  kontakt->SetAttribute("messageClosed", _config.contactMessageClosed.c_str());
+  kontakt->SetAttribute("alarmAt", _config.contactAlarmAt.c_str());
   root->InsertEndChild(kontakt);
 
   XMLElement* snmp = doc.NewElement("snmp");

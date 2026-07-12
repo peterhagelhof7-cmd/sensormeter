@@ -22,12 +22,15 @@ void ContactManager::loop() {
 
   _closed = closed;
   if (_stateKnown) {
-    _data.pushLogEntry(cfg.contactName + ": " + stateText());
+    _justChanged = true;
+    _data.pushLogEntry(cfg.contactName + ": " + stateLabel());
   }
   _stateKnown = true;
 }
 
-String ContactManager::stateText() const {
-  const DeviceConfig& cfg = _config.getConfig();
-  return _closed ? cfg.contactMessageClosed : cfg.contactMessageOpen;
+bool ContactManager::alarmActive() const {
+  const String& alarmAt = _config.getConfig().contactAlarmAt;
+  if (alarmAt == "change") return _justChanged;
+  if (alarmAt == "closed") return _closed;
+  return !_closed;  // "open" (Default)
 }

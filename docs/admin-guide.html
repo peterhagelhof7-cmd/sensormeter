@@ -32,6 +32,7 @@
   h1.section .num { color: #c8622a; margin-right: 2mm; }
   h2 { font-size: 13.5px; color: #8f4a1e; margin: 6mm 0 2mm 0; page-break-after: avoid; break-after: avoid; }
   h3 { font-size: 12px; color: #1c2430; margin: 4mm 0 1.5mm 0; page-break-after: avoid; break-after: avoid; }
+  h4 { font-size: 10.5px; color: #8f4a1e; text-transform: uppercase; letter-spacing: .03em; margin: 3.5mm 0 1mm 0; page-break-after: avoid; break-after: avoid; }
   p { margin: 0 0 3mm 0; }
   ul, ol { margin: 0 0 3mm 0; padding-left: 5mm; }
   li { margin-bottom: 1.2mm; }
@@ -562,55 +563,60 @@ gespeichert und das Gerät neu gestartet.</p>
 <table>
   <tr><th>Feld</th><th>Bedeutung</th></tr>
   <tr><td>Sensor 1 (intern) Korrektur Temperatur/Feuchte</td><td>Ganzzahliger Korrekturwert (°C/%, positiv oder negativ) für den internen DHT11, falls er systematisch abweicht. Zeitpunkt der letzten Änderung wird darunter angezeigt.</td></tr>
-  <tr><td>Modultyp RJ45 Pin 5</td><td>Auswahl „Sensor (DHT22, Sensor 2)" oder „Kontakt (Tür/Fenster)" — beide Belegungen liegen auf demselben Pin und schließen sich gegenseitig aus, siehe Callout unten. Blendet je nach Auswahl die passenden Felder ein (Sensor-2-Felder bzw. Kontakt-Felder, Abschnitt „Kontakt" unten).</td></tr>
-  <tr><td>Sensor 2 (extern) aktiv</td><td>Nur bei Modultyp „Sensor" sichtbar. Aktiviert den optionalen zweiten Sensor (DHT22 über RJ45) — schaltet den Systemtyp automatisch auf „Sensormeter PRO" um.</td></tr>
-  <tr><td>Sensor-2-Name</td><td>Freier Anzeigename für Sensor 2 (Default „Extern"), erscheint auf OLED, Weboberfläche und SNMP.</td></tr>
-  <tr><td>Sensor 2 Korrektur Temperatur/Feuchte</td><td>Wie Sensor 1, für den externen Sensor.</td></tr>
-  <tr><td>Erkannter Modultyp/Chip</td><td>Nur-Anzeige — Ergebnis der automatischen RJ45-Modul-Erkennung (siehe Callout unten).</td></tr>
+</table>
+
+<h3>Externe Schnittstelle</h3>
+<p>Gegliedert nach den zwei RJ45-Modulkategorien (siehe
+<span class="code">sensormeter-family/repo/module-design/README.md</span>):
+Kategorie 1 (I2C-Bus, mehrere Module gleichzeitig möglich, rein automatisch
+erkannt) und Kategorie 2 (Direkt-Module auf dediziertem Einzelpin, jeweils
+genau eines gleichzeitig, manuell gewählt).</p>
+
+<h4>Kategorie 1 — Bus-Modul (I2C)</h4>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>Erkannter Modultyp/Chip</td><td>Nur-Anzeige — Ergebnis der automatischen RJ45-Modul-Erkennung (siehe Callout unten). Immer sichtbar, unabhängig vom Kategorie-2-Modultyp unten.</td></tr>
 </table>
 <div class="callout">
   <div class="callout-title">Automatische Modul-Erkennung</div>
   Läuft einmal beim Boot (parallel zur Netzwerk-Wartezeit) sowie erneut auf
   Anfrage über den Button „Erkennung neu starten": scannt den RJ45-I2C-Bus
-  und probiert bei Fehlschlag einen DHT-Leseversuch (nur, wenn Modultyp
-  „Sensor" gewählt ist). Findet die Erkennung ein Modul, wird „Sensor 2
-  aktiv" automatisch gesetzt — ein bereits manuell deaktivierter Schalter
-  wird dabei NIE stillschweigend wieder aktiviert. Erkannt wird nur die
+  (Pin 3/4) — unabhängig vom Kategorie-2-Modultyp, da I2C ein echter Bus ist
+  und die Pins sich nicht überschneiden. Probiert zusätzlich bei
+  Fehlschlag einen DHT-Leseversuch auf Pin 5 (nur, wenn Modultyp „Sensor"
+  gewählt ist). Findet die Erkennung ein Modul, wird „Sensor 2 aktiv"
+  automatisch gesetzt — ein bereits manuell deaktivierter Schalter wird
+  dabei NIE stillschweigend wieder aktiviert. Erkannt wird nur die
   Modul-<b>Kategorie</b> (DHT-Sensor / I2C-Sensor inkl. Chipname bei
   bekannter Adresse / kein Sensor) — <b>nicht</b> DHT-11 vs. DHT-22
   (unzuverlässig) und <b>nicht</b> das Vorhandensein eines Relais-Moduls
   oder eines Kontaktmoduls (kein auswertbares Rück-Signal bzw. kein
-  zuverlässiger Erkennungsweg, siehe Abschnitte „Aktor" und „Kontakt"
-  unten). Der Modultyp selbst (Sensor/Kontakt) wird daher immer rein
-  manuell gewählt.
+  zuverlässiger Erkennungsweg). Der Kategorie-2-Modultyp (Sensor/Kontakt)
+  wird daher immer rein manuell gewählt.
 </div>
 
-<h3>Kontakt</h3>
+<h4>Kategorie 2 — Direkt-Module</h4>
 <table>
   <tr><th>Feld</th><th>Bedeutung</th></tr>
-  <tr><td>Name</td><td>Freier Anzeigename für den Kontakt (max. 20 Zeichen), z. B. „Haustür" oder „Fenster Büro".</td></tr>
-  <tr><td>Meldung bei geöffnetem Kontakt</td><td>Freier Text, der bei offenem Kontakt angezeigt/protokolliert wird (Default „Offen").</td></tr>
-  <tr><td>Meldung bei geschlossenem Kontakt</td><td>Freier Text, der bei geschlossenem Kontakt angezeigt/protokolliert wird (Default „Geschlossen").</td></tr>
-  <tr><td>Aktueller Zustand</td><td>Nur-Anzeige, aktualisiert per <span class="code">/api/contact</span>.</td></tr>
+  <tr><td>Relais aktiv (Pin 6/7)</td><td>Rein manuell — ein Relais-Modul kann nicht automatisch erkannt werden. Unabhängig vom Pin-5-Modultyp, da sich die RJ45-Pins nicht überschneiden — ein Kombi-Modul mit Sensor/Kontakt UND Relais ist möglich.</td></tr>
+  <tr><td>Aktueller Zustand + „Relais schalten"</td><td>Zeigt den zuletzt kommandierten Schaltzustand und schaltet ihn um. Startet nach jedem Neustart sicherheitshalber immer mit AUS (kein persistierter Zustand) — ein wieder angelaufenes Gerät reaktiviert einen zuvor eingeschalteten Verbraucher nicht stumm.</td></tr>
+  <tr><td>Modultyp Pin 5</td><td>Auswahl „Sensor" oder „Kontakt" — beide Belegungen liegen auf demselben Pin und schließen sich gegenseitig aus. Blendet je nach Auswahl die passenden Felder ein.</td></tr>
+  <tr><td>Sensor 2 (extern) aktiv</td><td>Nur bei Modultyp „Sensor" sichtbar. Aktiviert den optionalen zweiten Sensor (DHT22 über RJ45) — schaltet den Systemtyp automatisch auf „Sensormeter PRO" um.</td></tr>
+  <tr><td>Sensor-2-Name</td><td>Freier Anzeigename für Sensor 2 (Default „Extern"), erscheint auf OLED, Weboberfläche und SNMP.</td></tr>
+  <tr><td>Sensor 2 Korrektur Temperatur/Feuchte</td><td>Wie Sensor 1, für den externen Sensor.</td></tr>
+  <tr><td>Name (Kontakt)</td><td>Nur bei Modultyp „Kontakt" sichtbar. Freier Anzeigename für den Kontakt (max. 20 Zeichen), z. B. „Haustür" oder „Fenster Büro".</td></tr>
+  <tr><td>Alarm bei</td><td>Nur bei Modultyp „Kontakt" sichtbar. Auswahl „Offen" / „Geschlossen" / „Zustandswechsel" — legt fest, welcher Zustand als Alarm gilt (Default „Offen"). „Zustandswechsel" ist kantengetriggert: gilt bei jedem Wechsel offen/geschlossen, unabhängig vom absoluten Zustand, und wird nach der ersten Anzeige wieder zurückgesetzt (kein Dauer-Alarm).</td></tr>
+  <tr><td>Aktueller Zustand (Kontakt)</td><td>Nur-Anzeige, aktualisiert per <span class="code">/api/contact</span>. Zeigt „Offen"/„Geschlossen", ergänzt um „(Alarm)" falls der aktuelle Zustand gemäß „Alarm bei" einen Alarm darstellt.</td></tr>
 </table>
-<p class="hint">Nur sichtbar/wirksam bei Modultyp „Kontakt" (Abschnitt
-„Sensoren" oben). Rein manuelle Auswahl — ein offener Kontakt ist
+<p class="hint">Modultyp-Auswahl rein manuell — ein offener Kontakt ist
 elektrisch nicht von „kein Modul gesteckt" unterscheidbar, daher keine
 Auto-Erkennung möglich. Jeder Zustandswechsel wird ins lokale
-Ereignisprotokoll geschrieben (Abschnitt 5.3). Aktuell rein lokal — noch
-keine MQTT-/SNMP-Anbindung (anders als Sensor 1/2 und das Relais), da ein
-binärer Zustand nicht in deren Temperatur/Feuchte- bzw. Schalter-Schema
-passt.</p>
-
-<h3>Aktor</h3>
-<table>
-  <tr><th>Feld</th><th>Bedeutung</th></tr>
-  <tr><td>Relais (Aktor) aktiv</td><td>Rein manuell — ein Relais-Modul kann nicht automatisch erkannt werden. Unabhängig von „Sensor 2 aktiv", da sich die RJ45-Pins nicht überschneiden — ein Kombi-Modul mit Sensor UND Relais ist möglich.</td></tr>
-  <tr><td>Aktueller Zustand + „Relais schalten"</td><td>Zeigt den zuletzt kommandierten Schaltzustand und schaltet ihn um. Startet nach jedem Neustart sicherheitshalber immer mit AUS (kein persistierter Zustand) — ein wieder angelaufenes Gerät reaktiviert einen zuvor eingeschalteten Verbraucher nicht stumm.</td></tr>
-</table>
-<p class="hint">Derselbe Schreibpfad (<span class="code">/api/relay</span>)
-wird von der Weboberfläche, der REST-API und — falls MQTT aktiv ist — von
-Home Assistant genutzt (Abschnitt 6.3).</p>
+Ereignisprotokoll geschrieben (Abschnitt 5.3). Der Kontakt ist aktuell rein
+lokal — noch keine MQTT-/SNMP-Anbindung (anders als Sensor 1/2 und das
+Relais), da ein binärer Zustand nicht in deren Temperatur/Feuchte- bzw.
+Schalter-Schema passt. Derselbe Schreibpfad (<span class="code">/api/relay</span>)
+für das Relais wird von der Weboberfläche, der REST-API und — falls MQTT
+aktiv ist — von Home Assistant genutzt (Abschnitt 6.3).</p>
 
 <h3>Syslog</h3>
 <table>
@@ -861,10 +867,9 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
   <tr><td><span class="code">tempOffset</span></td><td>Temperatur-Korrektur in °C (externer DHT22)</td></tr>
   <tr><td><span class="code">humOffset</span></td><td>Feuchte-Korrektur in %</td></tr>
   <tr><td><span class="code">calibratedTs</span></td><td>Unix-Zeitstempel der letzten Kalibrierung</td></tr>
-  <tr><td rowspan="4"><span class="code">&lt;kontakt&gt;</span></td><td><span class="code">pin5Mode</span></td><td>„sensor"/„contact" — Belegung von RJ45 Pin 5 (Abschnitt 4.2 „Sensoren"/„Kontakt"). Schließt sich mit Sensor 2 gegenseitig aus.</td></tr>
+  <tr><td rowspan="3"><span class="code">&lt;kontakt&gt;</span></td><td><span class="code">pin5Mode</span></td><td>„sensor"/„contact" — Belegung von RJ45 Pin 5 (Abschnitt 4.2 „Externe Schnittstelle" → Kategorie 2). Schließt sich mit Sensor 2 gegenseitig aus.</td></tr>
   <tr><td><span class="code">name</span></td><td>Anzeigename des Kontakts (max. 20 Zeichen, Default „Kontakt")</td></tr>
-  <tr><td><span class="code">messageOpen</span></td><td>Meldungstext bei offenem Kontakt (Default „Offen")</td></tr>
-  <tr><td><span class="code">messageClosed</span></td><td>Meldungstext bei geschlossenem Kontakt (Default „Geschlossen")</td></tr>
+  <tr><td><span class="code">alarmAt</span></td><td>„open"/„closed"/„change" — welcher Zustand als Alarm gilt (Default „open")</td></tr>
   <tr><td><span class="code">&lt;snmp&gt;</span></td><td><span class="code">community</span></td><td>SNMP-Community-String</td></tr>
   <tr><td><span class="code">&lt;aktor&gt;</span></td><td><span class="code">relayEnabled</span></td><td>„true"/„false" — Relais (Aktor) aktiv (Abschnitt 4.2 „Aktor"). Der Schaltzustand selbst wird NICHT persistiert, siehe dort.</td></tr>
   <tr><td rowspan="5"><span class="code">&lt;mqtt&gt;</span></td><td><span class="code">enabled</span></td><td>„true"/„false" — MQTT-Anbindung aktiv (Abschnitt 4.2, 6.3)</td></tr>
@@ -894,7 +899,7 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
         &lt;sensor1 tempOffset="0" humOffset="0" calibratedTs="0"/&gt;
         &lt;sensor2 enabled="true" name="Extern" tempOffset="0" humOffset="0" calibratedTs="0"/&gt;
     &lt;/sensors&gt;
-    &lt;kontakt pin5Mode="sensor" name="Kontakt" messageOpen="Offen" messageClosed="Geschlossen"/&gt;
+    &lt;kontakt pin5Mode="sensor" name="Kontakt" alarmAt="open"/&gt;
     &lt;snmp community="public"/&gt;
     &lt;aktor relayEnabled="false"/&gt;
     &lt;mqtt enabled="false" server="" port="1883" user="" password=""/&gt;

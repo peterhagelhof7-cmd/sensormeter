@@ -182,6 +182,10 @@ String WebServerManager::buildPageShell(const String& title, const String& bodyC
   html += ".brand{display:flex;align-items:center;justify-content:center;gap:10px;"
           "margin:0 auto 10px;max-width:680px;font-size:12.5px;color:#6b6559;}";
   html += ".brand img{height:28px;width:auto;}";
+  html += ".subsection{background:#f7f5f1;border:1px solid #e4e1d8;border-radius:6px;"
+          "padding:6px 16px 14px;margin:16px 0 6px;}";
+  html += ".subsection h3{font-size:12px;color:#8f4a1e;margin:12px 0 4px;"
+          "text-transform:uppercase;letter-spacing:.04em;}";
   html += "</style></head><body>";
   if (_branding.isActive()) {
     html += "<div class=\"brand\">";
@@ -241,10 +245,14 @@ String WebServerManager::buildMainPageBody() const {
   html += "<div class=\"row\"><span>Intern</span><span>" +
           (s1.valid ? String(s1.temperature, 1) + " C / " + String(s1.humidity, 0) + " %" : String("-")) +
           "</span></div>";
-  if (cfg.sensor2Enabled) {
+  if (cfg.sensor2Enabled && cfg.pin5Mode == "sensor") {
     html += "<div class=\"row\"><span>" + cfg.sensor2Name + "</span><span>" +
             (s2.valid ? String(s2.temperature, 1) + " C / " + String(s2.humidity, 0) + " %" : String("-")) +
             "</span></div>";
+  }
+  if (cfg.pin5Mode == "contact") {
+    html += "<div class=\"row\"><span>" + cfg.contactName + "</span><span>" + _contact.stateLabel() +
+            (_contact.alarmActive() ? " (Alarm)" : "") + "</span></div>";
   }
   html += "</div>";
 
@@ -328,14 +336,42 @@ String WebServerManager::buildSettingsPageBody() const {
           "value=\"" + String(cfg.sensor1HumOffset, 1) + "\"></label>";
   html += "<div class=\"row\"><span>Sensor 1 zuletzt kalibriert</span><span>" +
           formatCalibratedTs(cfg.sensor1CalibratedTs) + "</span></div>";
-  html += "<label>Modultyp RJ45 Pin 5<select name=\"pin5Mode\" id=\"pin5Mode\" onchange=\"togglePin5Mode()\">"
+  html += "</div>";
+
+  html += "<div class=\"block\"><h2>Externe Schnittstelle</h2>";
+  html += "<p class=\"hint\">Gegliedert nach den zwei RJ45-Modulkategorien (siehe "
+          "sensormeter-family/repo/module-design/README.md): Kategorie 1 (I2C-Bus, mehrere Module "
+          "gleichzeitig moeglich, rein automatisch erkannt) und Kategorie 2 (Direkt-Module auf dediziertem "
+          "Einzelpin, jeweils genau eines gleichzeitig, manuell gewaehlt).</p>";
+
+  html += "<div class=\"subsection\"><h3>Kategorie 1 &ndash; Bus-Modul (I2C)</h3>";
+  html += "<div class=\"row\"><span>Erkannter Modultyp/Chip</span><span>" + _detector.detectedDescription() +
+          "</span></div>";
+  html += "<button type=\"button\" onclick=\"rerunDetection()\">Erkennung neu starten</button> "
+          "<span id=\"detectStatus\"></span>";
+  html += "<p class=\"hint\">Scannt den RJ45-I2C-Bus (Pin 3/4) - unabhaengig vom Kategorie-2-Modultyp unten, "
+          "da I2C ein echter Bus ist und die Pins sich nicht ueberschneiden. Findet die Erkennung zusaetzlich "
+          "per DHT-Leseversuch einen Sensor auf Pin 5 (nur wenn Modultyp &bdquo;Sensor&ldquo; gewaehlt ist), "
+          "wird &bdquo;Sensor 2 aktiv&ldquo; automatisch gesetzt (bleibt manuell wieder abschaltbar).</p>";
+  html += "</div>";
+
+  html += "<div class=\"subsection\"><h3>Kategorie 2 &ndash; Direkt-Module</h3>";
+  html += "<label><input type=\"checkbox\" name=\"relayEnabled\" " + String(cfg.relayEnabled ? "checked" : "") +
+          "> Relais aktiv (Pin 6/7)</label>";
+  html += "<div class=\"row\"><span>Aktueller Zustand</span><span id=\"relayState\">-</span></div>";
+  html += "<button type=\"button\" onclick=\"toggleRelay()\">Relais schalten</button>";
+  html += "<p class=\"hint\">Rein manuell - ein Relais-Modul kann nicht automatisch erkannt werden. "
+          "Unabhaengig vom Pin-5-Modultyp unten, da sich die RJ45-Pins nicht ueberschneiden - ein Kombi-Modul "
+          "mit Sensor/Kontakt UND Relais ist moeglich.</p>";
+
+  html += "<label>Modultyp Pin 5<select name=\"pin5Mode\" id=\"pin5Mode\" onchange=\"togglePin5Mode()\">"
           "<option value=\"sensor\"" + String(cfg.pin5Mode == "sensor" ? " selected" : "") +
-          ">Sensor (DHT22, Sensor 2)</option>"
+          ">Sensor</option>"
           "<option value=\"contact\"" + String(cfg.pin5Mode == "contact" ? " selected" : "") +
-          ">Kontakt (Tür/Fenster)</option>"
+          ">Kontakt</option>"
           "</select></label>";
   html += "<p class=\"hint\">Beide Belegungen liegen auf demselben Pin und schliessen sich gegenseitig aus - "
-          "siehe sensormeter-family/repo/module-design/README.md.</p>";
+          "genau ein Kategorie-2-Modul pro Pin gleichzeitig.</p>";
 
   html += "<div id=\"pin5SensorFields\">";
   html += "<label><input type=\"checkbox\" name=\"sensor2Enabled\" " + String(cfg.sensor2Enabled ? "checked" : "") +
@@ -347,36 +383,23 @@ String WebServerManager::buildSettingsPageBody() const {
           "value=\"" + String(cfg.sensor2HumOffset, 1) + "\"></label>";
   html += "<div class=\"row\"><span>Sensor 2 zuletzt kalibriert</span><span>" +
           formatCalibratedTs(cfg.sensor2CalibratedTs) + "</span></div>";
-  html += "<div class=\"row\"><span>Erkannter Modultyp/Chip</span><span>" + _detector.detectedDescription() +
-          "</span></div>";
-  html += "<button type=\"button\" onclick=\"rerunDetection()\">Erkennung neu starten</button> "
-          "<span id=\"detectStatus\"></span>";
-  html += "<p class=\"hint\">Scannt den RJ45-I2C-Bus bzw. probiert einen DHT-Leseversuch - findet die Erkennung "
-          "ein Modul, wird \"Sensor 2 aktiv\" automatisch gesetzt (bleibt manuell wieder abschaltbar). Ein "
-          "Relais-Modul laesst sich damit NICHT erkennen (siehe Aktor-Abschnitt unten).</p>";
   html += "</div>";
 
   html += "<div id=\"pin5ContactFields\">";
   html += "<label>Name<input type=\"text\" name=\"contactName\" value=\"" + cfg.contactName +
           "\" maxlength=\"20\"></label>";
-  html += "<label>Meldung bei geöffnetem Kontakt<input type=\"text\" name=\"contactMessageOpen\" value=\"" +
-          cfg.contactMessageOpen + "\" maxlength=\"30\"></label>";
-  html += "<label>Meldung bei geschlossenem Kontakt<input type=\"text\" name=\"contactMessageClosed\" value=\"" +
-          cfg.contactMessageClosed + "\" maxlength=\"30\"></label>";
+  html += "<label>Alarm bei<select name=\"contactAlarmAt\">"
+          "<option value=\"open\"" + String(cfg.contactAlarmAt == "open" ? " selected" : "") + ">Offen</option>"
+          "<option value=\"closed\"" + String(cfg.contactAlarmAt == "closed" ? " selected" : "") + ">Geschlossen</option>"
+          "<option value=\"change\"" + String(cfg.contactAlarmAt == "change" ? " selected" : "") + ">Zustandswechsel</option>"
+          "</select></label>";
   html += "<div class=\"row\"><span>Aktueller Zustand</span><span id=\"contactState\">-</span></div>";
   html += "<p class=\"hint\">Rein manuelle Auswahl, keine Auto-Erkennung moeglich - ein offener Kontakt ist "
-          "elektrisch nicht von \"kein Modul gesteckt\" unterscheidbar.</p>";
+          "elektrisch nicht von \"kein Modul gesteckt\" unterscheidbar. &bdquo;Zustandswechsel&ldquo; gilt bei "
+          "jedem Wechsel offen/geschlossen, unabhaengig vom absoluten Zustand.</p>";
   html += "</div>";
-
-  html += "<div class=\"block\"><h2>Aktor</h2>";
-  html += "<label><input type=\"checkbox\" name=\"relayEnabled\" " + String(cfg.relayEnabled ? "checked" : "") +
-          "> Relais (Aktor) aktiv</label>";
-  html += "<p class=\"hint\">Rein manuell - ein Relais-Modul kann nicht automatisch erkannt werden (siehe "
-          "Sensoren-Abschnitt oben). Unabhaengig von \"Sensor 2 aktiv\", da sich die RJ45-Pins nicht "
-          "ueberschneiden - ein Kombi-Modul mit Sensor UND Relais ist moeglich.</p>";
-  html += "<div class=\"row\"><span>Aktueller Zustand</span><span id=\"relayState\">-</span></div>";
-  html += "<button type=\"button\" onclick=\"toggleRelay()\">Relais schalten</button>";
-  html += "</div>";
+  html += "</div>";  // .subsection Kategorie 2
+  html += "</div>";  // .block Externe Schnittstelle
 
   html += "<div class=\"block\"><h2>Syslog</h2>";
   html += "<label>Syslog-Server-IP<input type=\"text\" name=\"syslogServer\" value=\"" + cfg.syslogServer + "\"></label>";
@@ -680,8 +703,7 @@ void WebServerManager::handleApiConfigGet(AsyncWebServerRequest* request) {
   doc["sensor2CalibratedTs"] = cfg.sensor2CalibratedTs;
   doc["pin5Mode"] = cfg.pin5Mode;
   doc["contactName"] = cfg.contactName;
-  doc["contactMessageOpen"] = cfg.contactMessageOpen;
-  doc["contactMessageClosed"] = cfg.contactMessageClosed;
+  doc["contactAlarmAt"] = cfg.contactAlarmAt;
   doc["syslogServer"] = cfg.syslogServer;
   doc["snmpCommunity"] = cfg.snmpCommunity;
   doc["relayEnabled"] = cfg.relayEnabled;
@@ -753,11 +775,9 @@ void WebServerManager::handleApiConfigPost(AsyncWebServerRequest* request) {
   if (request->hasParam("contactName", true)) {
     cfg.contactName = request->getParam("contactName", true)->value().substring(0, 20);
   }
-  if (request->hasParam("contactMessageOpen", true)) {
-    cfg.contactMessageOpen = request->getParam("contactMessageOpen", true)->value();
-  }
-  if (request->hasParam("contactMessageClosed", true)) {
-    cfg.contactMessageClosed = request->getParam("contactMessageClosed", true)->value();
+  if (request->hasParam("contactAlarmAt", true)) {
+    String alarmAt = request->getParam("contactAlarmAt", true)->value();
+    if (alarmAt == "open" || alarmAt == "closed" || alarmAt == "change") cfg.contactAlarmAt = alarmAt;
   }
 
   if (cfg.sensor1TempOffset != oldSensor1TempOffset || cfg.sensor1HumOffset != oldSensor1HumOffset) {
@@ -1084,7 +1104,15 @@ void WebServerManager::handleApiContactGet(AsyncWebServerRequest* request) {
   doc["mode"] = cfg.pin5Mode;
   doc["name"] = cfg.contactName;
   doc["closed"] = _contact.isClosed();
-  doc["stateText"] = _contact.stateText();
+  doc["alarmAt"] = cfg.contactAlarmAt;
+  String text = _contact.stateLabel();
+  if (_contact.alarmActive()) text += " (Alarm)";
+  // Kantengetriggerten "Zustandswechsel"-Alarm nach dieser Anzeige quittieren,
+  // damit er nicht bei jedem Seitenaufruf/Polling erneut erscheint - siehe
+  // ContactManager::acknowledgeChange(). Bei "open"/"closed" wirkungslos
+  // (die dortigen Alarme sind zustandsgetriggert, nicht kantengetriggert).
+  _contact.acknowledgeChange();
+  doc["stateText"] = text;
   String out;
   serializeJson(doc, out);
   request->send(200, "application/json", out);

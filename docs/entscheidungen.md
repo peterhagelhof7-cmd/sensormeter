@@ -1033,3 +1033,67 @@ echter Hardware getestet. Offen: das zugehörige Hardware-Modul-Dokument
 `sensormeter-family/repo/module-design/tuerkontakt-modul.md` existiert
 noch nicht (nur als Absatz in `module-design/README.md` vorgemerkt) sowie
 eine mögliche spätere MQTT-`binary_sensor`-Discovery/SNMP-OID-Anbindung.
+
+## 2026-07-12 — Einstellungsseite neu gegliedert ("Externe Schnittstelle" nach Kategorie 1/2), Kontakt-Meldungstexte durch "Alarm bei" ersetzt
+
+Vor der Firmware-Umsetzung zunächst in einem lokalen Mock-Webserver
+(Python-Skript im Scratchpad, kein Repo-Bestandteil) visuell erprobt -
+siehe Gesprächsverlauf. Zwei Nutzer-Feedbackrunden führten zur jetzigen
+Form, danach 1:1 in die echte Firmware übernommen:
+
+**Bug gefunden und behoben**: "Erkannter Modultyp/Chip" (deckt sowohl
+Kategorie-1-I2C- als auch den DHT-Fallback-Erkennungsversuch ab) steckte
+bisher im bedingt sichtbaren `pin5SensorFields`-Block und verschwand damit,
+sobald Modultyp "Kontakt" gewählt war - obwohl die I2C-Erkennung (Pin 3/4)
+komplett unabhängig vom Pin-5-Modultyp läuft und laut Durchschleif-Regel
+(`sensormeter-family/repo/module-design/README.md`) ein Kategorie-1- UND
+ein Kategorie-2-Modul gleichzeitig in derselben Kette stecken können.
+
+**Neue Gliederung**: "Sensoren" enthält jetzt nur noch Sensor 1 (intern).
+Neuer Abschnitt "Externe Schnittstelle" mit zwei optisch abgegrenzten
+Unterabschnitten (CSS-Klasse `.subsection`, heller Hintergrund/Rahmen
+innerhalb des Blocks): "Kategorie 1 – Bus-Modul (I2C)" (Erkennungsanzeige +
+Button, jetzt immer sichtbar) und "Kategorie 2 – Direkt-Module" (Relais-
+Checkbox/Zustand/Schalt-Button, gefolgt vom Pin-5-"Modultyp"-Pulldown mit
+den bekannten bedingten Sensor-/Kontakt-Feldern). Der bisherige
+eigenständige "Aktor"-Block entfällt (Inhalt zieht in die Kategorie-2-
+Unterabschnitt um).
+
+**`contactMessageOpen`/`contactMessageClosed` (freier Text) ersetzt durch
+`contactAlarmAt`** (`"open"` | `"closed"` | `"change"`, Default `"open"`):
+einfacher und eindeutiger für eine reine Zustandsmeldung als zwei frei
+editierbare Meldungstexte. `"open"`/`"closed"` sind zustandsgetriggert
+(Alarm bleibt sichtbar, solange der Zustand anhält), `"change"` ist
+kantengetriggert (Alarm nur einmalig nach einem tatsächlichen Wechsel).
+`ContactManager` bekommt dafür `_justChanged` (in `loop()` bei jedem
+Zustandswechsel gesetzt) sowie `alarmActive()` (reiner Peek, keine
+Seiteneffekte) und `acknowledgeChange()` (löscht `_justChanged` - wird
+NUR von `WebServerManager::handleApiContactGet()` aufgerufen, NICHT von
+der Hauptseite oder dem Serial-Status, damit deren reine Anzeige das
+kantengetriggerte Flag nicht versehentlich vor dem eigentlichen
+API-Abruf konsumiert). `stateText()` wurde durch `stateLabel()` (reiner
+Text "Offen"/"Geschlossen", nicht konsumierend) ersetzt; die
+Alarm-Kennzeichnung ("(Alarm)") wird jetzt von den Aufrufern selbst
+angehängt.
+
+`config.xml`: `<kontakt>` verliert `messageOpen`/`messageClosed`, bekommt
+stattdessen `alarmAt`. Kein automatischer Migrationspfad für bestehende
+`config.xml`-Dateien nötig, da das Feature erst in derselben Sitzung
+eingeführt und noch nicht auf echter Hardware im Feld war (siehe voriger
+Abschnitt).
+
+Gleichzeitig auch **erstmals nach `sensormeter-poe` (Waveshare
+ESP32-S3-ETH) portiert** (dort existierte pin5Mode/Kontakt bislang gar
+nicht) - siehe dortige `docs/entscheidungen.md` für den vollständigen
+Portierungs-Eintrag; hier nur der Vollständigkeit halber vermerkt, dass ab
+jetzt beide Projekte identischen Code für `ConfigManager`/`ContactManager`/
+`WebServerManager` in diesem Bereich verwenden (wie schon bei
+SensorDetector/RelayManager zuvor).
+
+Flash-Kosten (Sensormeter, WT32-ETH01) empirisch gemessen: **+1.328 Byte**
+gegenüber dem vorherigen Kontakt-Stand (1.159.173 → 1.160.501 Byte, 59,0 %
+gesamt unverändert auf Prozent-Ebene), RAM unverändert bei 17,7 %.
+
+Nur per `pio run` gebaut (kein Board angeschlossen) - Restrukturierung und
+`alarmAt`-Logik damit nur per Code-Review verifiziert, nicht auf echter
+Hardware getestet.

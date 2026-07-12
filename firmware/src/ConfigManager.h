@@ -27,7 +27,7 @@
 //     <sensor1 tempOffset="0.0" humOffset="0.0" calibratedTs="0"/>
 //     <sensor2 enabled="false" name="Extern" tempOffset="0.0" humOffset="0.0" calibratedTs="0"/>
 //   </sensors>
-//   <kontakt pin5Mode="sensor" name="Kontakt" messageOpen="Offen" messageClosed="Geschlossen"/>
+//   <kontakt pin5Mode="sensor" name="Kontakt" alarmAt="open"/>
 //   <snmp community="public"/>
 //   <aktor relayEnabled="false"/>
 //   <mqtt enabled="false" server="" port="1883" user="" password=""/>
@@ -96,10 +96,15 @@ struct DeviceConfig {
   // offen/geschlossen liefert und NICHT in dessen Temperatur/Feuchte-Schema
   // passt (siehe module-design/README.md, "Wichtiger Unterschied zu
   // Sensor 2"). contactName wird in der Weboberflaeche auf 20 Zeichen
-  // begrenzt (siehe WebServerManager::handleApiConfigPost).
+  // begrenzt (siehe WebServerManager::handleApiConfigPost). contactAlarmAt
+  // legt fest, welcher Zustand als Alarm gilt (statt frei editierbarer
+  // Meldungstexte - einfacher und eindeutiger fuer eine reine Zustandsmeldung):
+  // "open" = Alarm bei offenem Kontakt (Default, typisch fuer Tuer/Fenster),
+  // "closed" = Alarm bei geschlossenem Kontakt, "change" = Alarm bei JEDEM
+  // Zustandswechsel, unabhaengig vom absoluten Zustand (kantengetriggert,
+  // siehe ContactManager).
   String contactName = "Kontakt";
-  String contactMessageOpen = "Offen";
-  String contactMessageClosed = "Geschlossen";
+  String contactAlarmAt = "open";  // "open" | "closed" | "change"
 
   String snmpCommunity = "public";
 

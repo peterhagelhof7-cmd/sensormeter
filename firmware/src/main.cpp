@@ -298,7 +298,8 @@ void handleSerialCommands() {
       Serial.println(cfg.relayEnabled ? (relayManager.isOn() ? "EIN" : "AUS") : "deaktiviert");
       if (cfg.pin5Mode == "contact") {
         Serial.print("Kontakt (" + cfg.contactName + "): ");
-        Serial.println(contactManager.stateText());
+        Serial.print(contactManager.stateLabel());
+        Serial.println(contactManager.alarmActive() ? " (Alarm)" : "");
       }
       Serial.print("Freier Heap: ");
       Serial.print(ESP.getFreeHeap() / 1024);
