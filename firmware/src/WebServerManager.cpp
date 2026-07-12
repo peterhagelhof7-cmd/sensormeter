@@ -116,13 +116,14 @@ void buildLogoBmp(const uint8_t* xbm, size_t xbmLen, int width, int height, uint
 WebServerManager::WebServerManager(DataManager& dataManager, ConfigManager& configManager,
                                     NetworkManager& networkManager, OtaManager& otaManager,
                                     RelayManager& relayManager, SensorDetector& sensorDetector,
-                                    BrandingManager& brandingManager)
+                                    ContactManager& contactManager, BrandingManager& brandingManager)
     : _data(dataManager),
       _config(configManager),
       _network(networkManager),
       _ota(otaManager),
       _relay(relayManager),
       _detector(sensorDetector),
+      _contact(contactManager),
       _branding(brandingManager),
       _server(80) {}
 
@@ -327,6 +328,16 @@ String WebServerManager::buildSettingsPageBody() const {
           "value=\"" + String(cfg.sensor1HumOffset, 1) + "\"></label>";
   html += "<div class=\"row\"><span>Sensor 1 zuletzt kalibriert</span><span>" +
           formatCalibratedTs(cfg.sensor1CalibratedTs) + "</span></div>";
+  html += "<label>Modultyp RJ45 Pin 5<select name=\"pin5Mode\" id=\"pin5Mode\" onchange=\"togglePin5Mode()\">"
+          "<option value=\"sensor\"" + String(cfg.pin5Mode == "sensor" ? " selected" : "") +
+          ">Sensor (DHT22, Sensor 2)</option>"
+          "<option value=\"contact\"" + String(cfg.pin5Mode == "contact" ? " selected" : "") +
+          ">Kontakt (Tür/Fenster)</option>"
+          "</select></label>";
+  html += "<p class=\"hint\">Beide Belegungen liegen auf demselben Pin und schliessen sich gegenseitig aus - "
+          "siehe sensormeter-family/repo/module-design/README.md.</p>";
+
+  html += "<div id=\"pin5SensorFields\">";
   html += "<label><input type=\"checkbox\" name=\"sensor2Enabled\" " + String(cfg.sensor2Enabled ? "checked" : "") +
           "> Sensor 2 (extern) aktiv</label>";
   html += "<label>Sensor-2-Name<input type=\"text\" name=\"sensor2Name\" value=\"" + cfg.sensor2Name + "\"></label>";
@@ -343,6 +354,18 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "<p class=\"hint\">Scannt den RJ45-I2C-Bus bzw. probiert einen DHT-Leseversuch - findet die Erkennung "
           "ein Modul, wird \"Sensor 2 aktiv\" automatisch gesetzt (bleibt manuell wieder abschaltbar). Ein "
           "Relais-Modul laesst sich damit NICHT erkennen (siehe Aktor-Abschnitt unten).</p>";
+  html += "</div>";
+
+  html += "<div id=\"pin5ContactFields\">";
+  html += "<label>Name<input type=\"text\" name=\"contactName\" value=\"" + cfg.contactName +
+          "\" maxlength=\"20\"></label>";
+  html += "<label>Meldung bei geöffnetem Kontakt<input type=\"text\" name=\"contactMessageOpen\" value=\"" +
+          cfg.contactMessageOpen + "\" maxlength=\"30\"></label>";
+  html += "<label>Meldung bei geschlossenem Kontakt<input type=\"text\" name=\"contactMessageClosed\" value=\"" +
+          cfg.contactMessageClosed + "\" maxlength=\"30\"></label>";
+  html += "<div class=\"row\"><span>Aktueller Zustand</span><span id=\"contactState\">-</span></div>";
+  html += "<p class=\"hint\">Rein manuelle Auswahl, keine Auto-Erkennung moeglich - ein offener Kontakt ist "
+          "elektrisch nicht von \"kein Modul gesteckt\" unterscheidbar.</p>";
   html += "</div>";
 
   html += "<div class=\"block\"><h2>Aktor</h2>";
@@ -474,6 +497,14 @@ String WebServerManager::buildSettingsPageBody() const {
           "const body=new URLSearchParams({on:d.on?'0':'1'});"
           "fetch('/api/relay',{method:'POST',body}).then(refreshRelayState);});}";
   html += "refreshRelayState();";
+  html += "function togglePin5Mode(){"
+          "var isContact=document.getElementById('pin5Mode').value==='contact';"
+          "document.getElementById('pin5SensorFields').style.display=isContact?'none':'';"
+          "document.getElementById('pin5ContactFields').style.display=isContact?'':'none';}";
+  html += "function refreshContactState(){"
+          "fetch('/api/contact').then(r=>r.json()).then(d=>{"
+          "document.getElementById('contactState').innerText=d.mode==='contact'?d.stateText:'-';});}";
+  html += "togglePin5Mode();refreshContactState();";
   html += "</script>";
 
   return html;
@@ -647,6 +678,10 @@ void WebServerManager::handleApiConfigGet(AsyncWebServerRequest* request) {
   doc["sensor2TempOffset"] = cfg.sensor2TempOffset;
   doc["sensor2HumOffset"] = cfg.sensor2HumOffset;
   doc["sensor2CalibratedTs"] = cfg.sensor2CalibratedTs;
+  doc["pin5Mode"] = cfg.pin5Mode;
+  doc["contactName"] = cfg.contactName;
+  doc["contactMessageOpen"] = cfg.contactMessageOpen;
+  doc["contactMessageClosed"] = cfg.contactMessageClosed;
   doc["syslogServer"] = cfg.syslogServer;
   doc["snmpCommunity"] = cfg.snmpCommunity;
   doc["relayEnabled"] = cfg.relayEnabled;
@@ -709,6 +744,20 @@ void WebServerManager::handleApiConfigPost(AsyncWebServerRequest* request) {
   }
   if (request->hasParam("sensor2HumOffset", true)) {
     cfg.sensor2HumOffset = request->getParam("sensor2HumOffset", true)->value().toFloat();
+  }
+
+  if (request->hasParam("pin5Mode", true)) {
+    String mode = request->getParam("pin5Mode", true)->value();
+    if (mode == "sensor" || mode == "contact") cfg.pin5Mode = mode;
+  }
+  if (request->hasParam("contactName", true)) {
+    cfg.contactName = request->getParam("contactName", true)->value().substring(0, 20);
+  }
+  if (request->hasParam("contactMessageOpen", true)) {
+    cfg.contactMessageOpen = request->getParam("contactMessageOpen", true)->value();
+  }
+  if (request->hasParam("contactMessageClosed", true)) {
+    cfg.contactMessageClosed = request->getParam("contactMessageClosed", true)->value();
   }
 
   if (cfg.sensor1TempOffset != oldSensor1TempOffset || cfg.sensor1HumOffset != oldSensor1HumOffset) {
@@ -1028,6 +1077,19 @@ void WebServerManager::handleApiDetectRerun(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", "Erkannt: " + _detector.detectedDescription());
 }
 
+void WebServerManager::handleApiContactGet(AsyncWebServerRequest* request) {
+  if (!checkAuth(request)) return;
+  const DeviceConfig& cfg = _config.getConfig();
+  JsonDocument doc;
+  doc["mode"] = cfg.pin5Mode;
+  doc["name"] = cfg.contactName;
+  doc["closed"] = _contact.isClosed();
+  doc["stateText"] = _contact.stateText();
+  String out;
+  serializeJson(doc, out);
+  request->send(200, "application/json", out);
+}
+
 void WebServerManager::handleApiBrandingLogoUpload(AsyncWebServerRequest* request, const String& filename,
                                                     size_t index, uint8_t* data, size_t len, bool final) {
   if (!checkAuth(request)) return;
@@ -1097,6 +1159,7 @@ void WebServerManager::begin() {
   _server.on("/api/relay", HTTP_GET, [this](AsyncWebServerRequest* r) { handleApiRelayGet(r); });
   _server.on("/api/relay", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiRelayPost(r); });
   _server.on("/api/detect/rerun", HTTP_POST, [this](AsyncWebServerRequest* r) { handleApiDetectRerun(r); });
+  _server.on("/api/contact", HTTP_GET, [this](AsyncWebServerRequest* r) { handleApiContactGet(r); });
 
   _server.on(
       "/api/ota/upload", HTTP_POST,

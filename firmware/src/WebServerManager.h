@@ -4,6 +4,7 @@
 #include <ESPAsyncWebServer.h>
 #include "BrandingManager.h"
 #include "ConfigManager.h"
+#include "ContactManager.h"
 #include "DataManager.h"
 #include "NetworkManager.h"
 #include "OtaManager.h"
@@ -25,7 +26,8 @@ class WebServerManager {
  public:
   WebServerManager(DataManager& dataManager, ConfigManager& configManager,
                     NetworkManager& networkManager, OtaManager& otaManager, RelayManager& relayManager,
-                    SensorDetector& sensorDetector, BrandingManager& brandingManager);
+                    SensorDetector& sensorDetector, ContactManager& contactManager,
+                    BrandingManager& brandingManager);
 
   void begin();
 
@@ -36,6 +38,7 @@ class WebServerManager {
   OtaManager& _ota;
   RelayManager& _relay;
   SensorDetector& _detector;
+  ContactManager& _contact;
   BrandingManager& _branding;
 
   AsyncWebServer _server;
@@ -84,6 +87,11 @@ class WebServerManager {
   void handleApiRelayGet(AsyncWebServerRequest* request);
   void handleApiRelayPost(AsyncWebServerRequest* request);
   void handleApiDetectRerun(AsyncWebServerRequest* request);
+
+  // Kontakt (Tuerkontakt/Reed, RJ45 Pin 5 im Modus "contact") - reiner
+  // Lesepfad fuer die Einstellungsseite, kein POST noetig (Zustand kommt
+  // vom Modul, nicht von einer Nutzeraktion wie beim Relais).
+  void handleApiContactGet(AsyncWebServerRequest* request);
 
   // Anbieter-Branding: Logo-Upload (Streaming, analog handleApiConfigImportUpload/
   // OTA-Upload), Logo-Auslieferung als on-the-fly synthetisiertes 1-Bit-BMP

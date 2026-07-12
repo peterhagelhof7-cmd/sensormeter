@@ -124,6 +124,18 @@ bool ConfigManager::importXml(const String& xml) {
     }
   }
 
+  const XMLElement* kontakt = root->FirstChildElement("kontakt");
+  if (kontakt) {
+    String mode = attrOrEmpty(kontakt, "pin5Mode");
+    if (mode == "sensor" || mode == "contact") cfg.pin5Mode = mode;
+    String contactName = attrOrEmpty(kontakt, "name");
+    if (contactName.length() > 0) cfg.contactName = contactName.substring(0, 20);
+    String messageOpen = attrOrEmpty(kontakt, "messageOpen");
+    if (messageOpen.length() > 0) cfg.contactMessageOpen = messageOpen;
+    String messageClosed = attrOrEmpty(kontakt, "messageClosed");
+    if (messageClosed.length() > 0) cfg.contactMessageClosed = messageClosed;
+  }
+
   const XMLElement* snmp = root->FirstChildElement("snmp");
   if (snmp) {
     String community = attrOrEmpty(snmp, "community");
@@ -213,6 +225,13 @@ String ConfigManager::exportXml() const {
   sensor2->SetAttribute("humOffset", _config.sensor2HumOffset);
   sensor2->SetAttribute("calibratedTs", _config.sensor2CalibratedTs);
   sensors->InsertEndChild(sensor2);
+
+  XMLElement* kontakt = doc.NewElement("kontakt");
+  kontakt->SetAttribute("pin5Mode", _config.pin5Mode.c_str());
+  kontakt->SetAttribute("name", _config.contactName.c_str());
+  kontakt->SetAttribute("messageOpen", _config.contactMessageOpen.c_str());
+  kontakt->SetAttribute("messageClosed", _config.contactMessageClosed.c_str());
+  root->InsertEndChild(kontakt);
 
   XMLElement* snmp = doc.NewElement("snmp");
   snmp->SetAttribute("community", _config.snmpCommunity.c_str());

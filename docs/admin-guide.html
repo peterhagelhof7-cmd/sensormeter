@@ -562,7 +562,8 @@ gespeichert und das Gerät neu gestartet.</p>
 <table>
   <tr><th>Feld</th><th>Bedeutung</th></tr>
   <tr><td>Sensor 1 (intern) Korrektur Temperatur/Feuchte</td><td>Ganzzahliger Korrekturwert (°C/%, positiv oder negativ) für den internen DHT11, falls er systematisch abweicht. Zeitpunkt der letzten Änderung wird darunter angezeigt.</td></tr>
-  <tr><td>Sensor 2 (extern) aktiv</td><td>Aktiviert den optionalen zweiten Sensor (DHT22 über RJ45) — schaltet den Systemtyp automatisch auf „Sensormeter PRO" um.</td></tr>
+  <tr><td>Modultyp RJ45 Pin 5</td><td>Auswahl „Sensor (DHT22, Sensor 2)" oder „Kontakt (Tür/Fenster)" — beide Belegungen liegen auf demselben Pin und schließen sich gegenseitig aus, siehe Callout unten. Blendet je nach Auswahl die passenden Felder ein (Sensor-2-Felder bzw. Kontakt-Felder, Abschnitt „Kontakt" unten).</td></tr>
+  <tr><td>Sensor 2 (extern) aktiv</td><td>Nur bei Modultyp „Sensor" sichtbar. Aktiviert den optionalen zweiten Sensor (DHT22 über RJ45) — schaltet den Systemtyp automatisch auf „Sensormeter PRO" um.</td></tr>
   <tr><td>Sensor-2-Name</td><td>Freier Anzeigename für Sensor 2 (Default „Extern"), erscheint auf OLED, Weboberfläche und SNMP.</td></tr>
   <tr><td>Sensor 2 Korrektur Temperatur/Feuchte</td><td>Wie Sensor 1, für den externen Sensor.</td></tr>
   <tr><td>Erkannter Modultyp/Chip</td><td>Nur-Anzeige — Ergebnis der automatischen RJ45-Modul-Erkennung (siehe Callout unten).</td></tr>
@@ -571,15 +572,35 @@ gespeichert und das Gerät neu gestartet.</p>
   <div class="callout-title">Automatische Modul-Erkennung</div>
   Läuft einmal beim Boot (parallel zur Netzwerk-Wartezeit) sowie erneut auf
   Anfrage über den Button „Erkennung neu starten": scannt den RJ45-I2C-Bus
-  und probiert bei Fehlschlag einen DHT-Leseversuch. Findet die Erkennung
-  ein Modul, wird „Sensor 2 aktiv" automatisch gesetzt — ein bereits
-  manuell deaktivierter Schalter wird dabei NIE stillschweigend wieder
-  aktiviert. Erkannt wird nur die Modul-<b>Kategorie</b> (DHT-Sensor /
-  I2C-Sensor inkl. Chipname bei bekannter Adresse / kein Sensor) —
-  <b>nicht</b> DHT-11 vs. DHT-22 (unzuverlässig) und <b>nicht</b> das
-  Vorhandensein eines Relais-Moduls (kein auswertbares Rück-Signal, siehe
-  Abschnitt „Aktor" unten).
+  und probiert bei Fehlschlag einen DHT-Leseversuch (nur, wenn Modultyp
+  „Sensor" gewählt ist). Findet die Erkennung ein Modul, wird „Sensor 2
+  aktiv" automatisch gesetzt — ein bereits manuell deaktivierter Schalter
+  wird dabei NIE stillschweigend wieder aktiviert. Erkannt wird nur die
+  Modul-<b>Kategorie</b> (DHT-Sensor / I2C-Sensor inkl. Chipname bei
+  bekannter Adresse / kein Sensor) — <b>nicht</b> DHT-11 vs. DHT-22
+  (unzuverlässig) und <b>nicht</b> das Vorhandensein eines Relais-Moduls
+  oder eines Kontaktmoduls (kein auswertbares Rück-Signal bzw. kein
+  zuverlässiger Erkennungsweg, siehe Abschnitte „Aktor" und „Kontakt"
+  unten). Der Modultyp selbst (Sensor/Kontakt) wird daher immer rein
+  manuell gewählt.
 </div>
+
+<h3>Kontakt</h3>
+<table>
+  <tr><th>Feld</th><th>Bedeutung</th></tr>
+  <tr><td>Name</td><td>Freier Anzeigename für den Kontakt (max. 20 Zeichen), z. B. „Haustür" oder „Fenster Büro".</td></tr>
+  <tr><td>Meldung bei geöffnetem Kontakt</td><td>Freier Text, der bei offenem Kontakt angezeigt/protokolliert wird (Default „Offen").</td></tr>
+  <tr><td>Meldung bei geschlossenem Kontakt</td><td>Freier Text, der bei geschlossenem Kontakt angezeigt/protokolliert wird (Default „Geschlossen").</td></tr>
+  <tr><td>Aktueller Zustand</td><td>Nur-Anzeige, aktualisiert per <span class="code">/api/contact</span>.</td></tr>
+</table>
+<p class="hint">Nur sichtbar/wirksam bei Modultyp „Kontakt" (Abschnitt
+„Sensoren" oben). Rein manuelle Auswahl — ein offener Kontakt ist
+elektrisch nicht von „kein Modul gesteckt" unterscheidbar, daher keine
+Auto-Erkennung möglich. Jeder Zustandswechsel wird ins lokale
+Ereignisprotokoll geschrieben (Abschnitt 5.3). Aktuell rein lokal — noch
+keine MQTT-/SNMP-Anbindung (anders als Sensor 1/2 und das Relais), da ein
+binärer Zustand nicht in deren Temperatur/Feuchte- bzw. Schalter-Schema
+passt.</p>
 
 <h3>Aktor</h3>
 <table>
@@ -840,6 +861,10 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
   <tr><td><span class="code">tempOffset</span></td><td>Temperatur-Korrektur in °C (externer DHT22)</td></tr>
   <tr><td><span class="code">humOffset</span></td><td>Feuchte-Korrektur in %</td></tr>
   <tr><td><span class="code">calibratedTs</span></td><td>Unix-Zeitstempel der letzten Kalibrierung</td></tr>
+  <tr><td rowspan="4"><span class="code">&lt;kontakt&gt;</span></td><td><span class="code">pin5Mode</span></td><td>„sensor"/„contact" — Belegung von RJ45 Pin 5 (Abschnitt 4.2 „Sensoren"/„Kontakt"). Schließt sich mit Sensor 2 gegenseitig aus.</td></tr>
+  <tr><td><span class="code">name</span></td><td>Anzeigename des Kontakts (max. 20 Zeichen, Default „Kontakt")</td></tr>
+  <tr><td><span class="code">messageOpen</span></td><td>Meldungstext bei offenem Kontakt (Default „Offen")</td></tr>
+  <tr><td><span class="code">messageClosed</span></td><td>Meldungstext bei geschlossenem Kontakt (Default „Geschlossen")</td></tr>
   <tr><td><span class="code">&lt;snmp&gt;</span></td><td><span class="code">community</span></td><td>SNMP-Community-String</td></tr>
   <tr><td><span class="code">&lt;aktor&gt;</span></td><td><span class="code">relayEnabled</span></td><td>„true"/„false" — Relais (Aktor) aktiv (Abschnitt 4.2 „Aktor"). Der Schaltzustand selbst wird NICHT persistiert, siehe dort.</td></tr>
   <tr><td rowspan="5"><span class="code">&lt;mqtt&gt;</span></td><td><span class="code">enabled</span></td><td>„true"/„false" — MQTT-Anbindung aktiv (Abschnitt 4.2, 6.3)</td></tr>
@@ -869,6 +894,7 @@ bzw. Werks-Default aktiv statt eines Fehlers.</p>
         &lt;sensor1 tempOffset="0" humOffset="0" calibratedTs="0"/&gt;
         &lt;sensor2 enabled="true" name="Extern" tempOffset="0" humOffset="0" calibratedTs="0"/&gt;
     &lt;/sensors&gt;
+    &lt;kontakt pin5Mode="sensor" name="Kontakt" messageOpen="Offen" messageClosed="Geschlossen"/&gt;
     &lt;snmp community="public"/&gt;
     &lt;aktor relayEnabled="false"/&gt;
     &lt;mqtt enabled="false" server="" port="1883" user="" password=""/&gt;
@@ -938,7 +964,7 @@ und <span class="code">ip</span> nehmen deshalb ein Interface-Argument
 (<span class="code">lan</span> oder <span class="code">wlan</span>).</p>
 <table>
   <tr><th>Kommando</th><th>Wirkung</th></tr>
-  <tr><td><span class="code">status</span></td><td>Aktuellen Zustand ausgeben (Systemzustand, LAN- und WLAN-Status/IP, WLAN-Signal, beide Sensorwerte falls Sensor 2 aktiv, Relais-Zustand, freier Heap, Laufzeit) — rein lesend, kein Neustart</td></tr>
+  <tr><td><span class="code">status</span></td><td>Aktuellen Zustand ausgeben (Systemzustand, LAN- und WLAN-Status/IP, WLAN-Signal, beide Sensorwerte falls Sensor 2 aktiv, Relais-Zustand, Kontakt-Zustand falls Modultyp „Kontakt", freier Heap, Laufzeit) — rein lesend, kein Neustart</td></tr>
   <tr><td><span class="code">dhcp &lt;lan|wlan&gt;</span></td><td>Gewähltes Interface auf DHCP umstellen, statische IP/Maske/Gateway/DNS dieses Interfaces löschen, Gerät startet neu</td></tr>
   <tr><td><span class="code">ip &lt;lan|wlan&gt; &lt;adresse&gt; &lt;maske&gt; &lt;gateway&gt; [dns]</span></td><td>Statische IP für das gewählte Interface setzen, Gerät startet neu. Anders als die Einstellungsseite ohne Ping-Kollisionsprüfung — bewusst einfach gehalten</td></tr>
   <tr><td><span class="code">wifi &lt;ssid&gt; &lt;passwort&gt;</span></td><td>Neue WLAN-Zugangsdaten setzen, Gerät startet neu und probiert die Verbindung mit verkürztem Timeout (wie „Verbinden &amp; testen" auf der Einstellungsseite). Kein LAN-Äquivalent, da Ethernet kein Zugangsdaten-Konzept hat</td></tr>

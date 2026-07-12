@@ -20,7 +20,9 @@
 // konfiguriert; SensorDetector scannt beim Boot (parallel zum Netzwerk-
 // Warten) das RJ45-Modul und setzt Sensor 2 automatisch; RelayManager
 // treibt den optionalen Aktor (RJ45 Pin 6/7) - beide portiert aus
-// sensormeter-poe, siehe docs/entscheidungen.md.
+// sensormeter-poe, siehe docs/entscheidungen.md; ContactManager liest RJ45
+// Pin 5 wahlweise als Tuerkontakt statt als DHT22-Dateneingang (rein manuell
+// gewaehlt ueber cfg.pin5Mode, siehe docs/entscheidungen.md).
 //
 // Damit sind alle Phasen aus docs/implementierungsplan.html (P0-P7)
 // umgesetzt.
@@ -32,6 +34,7 @@
 
 #include "BrandingManager.h"
 #include "ConfigManager.h"
+#include "ContactManager.h"
 #include "DataManager.h"
 #include "DisplayManager.h"
 #include "MqttManager.h"
@@ -61,11 +64,12 @@ TimeManager timeManager(dataManager, networkManager);
 SensorManager sensorManager(dataManager, configManager);
 SensorDetector sensorDetector(dataManager, configManager);
 RelayManager relayManager(dataManager, configManager);
+ContactManager contactManager(dataManager, configManager);
 BrandingManager brandingManager(configManager);
 DisplayManager displayManager(dataManager, configManager, networkManager, brandingManager);
 OtaManager otaManager;
 WebServerManager webServerManager(dataManager, configManager, networkManager, otaManager, relayManager,
-                                   sensorDetector, brandingManager);
+                                   sensorDetector, contactManager, brandingManager);
 SNMPManager snmpManager(dataManager, configManager, networkManager);
 SyslogManager syslogManager(dataManager, configManager, networkManager);
 MqttManager mqttManager(dataManager, configManager, networkManager, relayManager);
@@ -94,9 +98,9 @@ MqttManager mqttManager(dataManager, configManager, networkManager, relayManager
 //                                  abgewartet wird, bevor auf reine
 //                                  LAN-Nutzung zurueckgefallen wird)
 //   status                        aktuellen Zustand ausgeben (LAN, WLAN,
-//                                  IP, Signal, beide Sensoren, Relais, Heap,
-//                                  Laufzeit) - liest nur, aendert nichts,
-//                                  kein Neustart
+//                                  IP, Signal, beide Sensoren, Relais,
+//                                  Kontakt, Heap, Laufzeit) - liest nur,
+//                                  aendert nichts, kein Neustart
 //   dump                          aktuelle config.xml als XML ausgeben,
 //                                  eingerahmt von BEGIN/END-Markern
 //   upload                        wartet auf eingefuegte XML-Zeilen (z.B.
@@ -292,6 +296,10 @@ void handleSerialCommands() {
       }
       Serial.print("Relais: ");
       Serial.println(cfg.relayEnabled ? (relayManager.isOn() ? "EIN" : "AUS") : "deaktiviert");
+      if (cfg.pin5Mode == "contact") {
+        Serial.print("Kontakt (" + cfg.contactName + "): ");
+        Serial.println(contactManager.stateText());
+      }
       Serial.print("Freier Heap: ");
       Serial.print(ESP.getFreeHeap() / 1024);
       Serial.println(" kB");
@@ -346,6 +354,7 @@ void setup() {
   timeManager.begin();
   sensorManager.begin();
   relayManager.begin();
+  contactManager.begin();
   brandingManager.begin();
   syslogManager.begin();
   mqttManager.begin();
@@ -371,6 +380,7 @@ void loop() {
   networkManager.loop();
   timeManager.loop();
   sensorManager.loop();
+  contactManager.loop();
   displayManager.loop();
   snmpManager.loop();
   syslogManager.loop();

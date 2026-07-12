@@ -27,6 +27,7 @@
 //     <sensor1 tempOffset="0.0" humOffset="0.0" calibratedTs="0"/>
 //     <sensor2 enabled="false" name="Extern" tempOffset="0.0" humOffset="0.0" calibratedTs="0"/>
 //   </sensors>
+//   <kontakt pin5Mode="sensor" name="Kontakt" messageOpen="Offen" messageClosed="Geschlossen"/>
 //   <snmp community="public"/>
 //   <aktor relayEnabled="false"/>
 //   <mqtt enabled="false" server="" port="1883" user="" password=""/>
@@ -80,6 +81,25 @@ struct DeviceConfig {
 
   bool sensor2Enabled = false;
   String sensor2Name = "Extern";
+
+  // RJ45 Pin 5 wird wahlweise als Sensor-2-DHT-Dateneingang ODER als
+  // Tuerkontakt-Eingang genutzt (Kategorie-2-Direktmodul, siehe
+  // sensormeter-family/repo/module-design/README.md "Durchschleif-Regel")
+  // - beide Belegungen liegen elektrisch auf demselben Pin und schliessen
+  // sich daher gegenseitig aus. "sensor" (Default) entspricht dem
+  // bisherigen Verhalten unveraendert; sensor2Enabled bleibt der Ein/Aus-
+  // Schalter INNERHALB des Sensor-Modus (siehe SensorManager/SensorDetector).
+  String pin5Mode = "sensor";  // "sensor" | "contact"
+
+  // Kontakt-Eingang (nur wirksam, wenn pin5Mode == "contact") - eigener,
+  // binaerer Datenpfad statt Wiederverwendung von Sensor 2, da ein Kontakt
+  // offen/geschlossen liefert und NICHT in dessen Temperatur/Feuchte-Schema
+  // passt (siehe module-design/README.md, "Wichtiger Unterschied zu
+  // Sensor 2"). contactName wird in der Weboberflaeche auf 20 Zeichen
+  // begrenzt (siehe WebServerManager::handleApiConfigPost).
+  String contactName = "Kontakt";
+  String contactMessageOpen = "Offen";
+  String contactMessageClosed = "Geschlossen";
 
   String snmpCommunity = "public";
 

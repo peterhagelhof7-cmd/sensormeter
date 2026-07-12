@@ -100,6 +100,7 @@ Enthalten (P0–P7, vollständig):
 - DHT11 intern + optional DHT22 extern (Sensor 2, PRO), 60s-Takt, Plausibilitätsprüfung, stündlicher 7-Tage-Ringpuffer, je Sensor eine konfigurierbare Kalibrierkorrektur (°C/%, wirkt auf Anzeige, SNMP und CSV gleichermaßen)
 - Automatische RJ45-Modul-Erkennung (I2C-Scan + DHT-Probe beim Boot, erneut auslösbar über die Einstellungsseite): setzt „Sensor 2 aktiv" automatisch, ohne einen manuell deaktivierten Schalter je stillschweigend zu überschreiben
 - Relais/Aktor (RJ45 Pin 6/7, active LOW): rein manuell aktivierbar, unabhängig von Sensor 2 (Pins überschneiden sich nicht), Schaltzustand über Weboberfläche, REST-API (`/api/relay`) und MQTT gemeinsam gesteuert, startet nach jedem Boot sicherheitshalber immer mit AUS
+- Türkontakt (RJ45 Pin 5, teilt sich den Pin mit Sensor 2 — Modultyp „Sensor"/„Kontakt" auf der Einstellungsseite wählbar): Name + eigene Meldungstexte für offen/geschlossen, rein manuelle Auswahl (keine Auto-Erkennung möglich), Zustand über `/api/contact` abrufbar
 - OLED SSD1306 (I2C 0x3C): Boot-Screen mit Countdown, danach rotierende
   Seiten (Systemname+Typ/IPs/Uhrzeit/Sensorwerte/Status/WLAN-Signal) im
   10s-Takt, zentriert mit fester größerer Schrift (zu lange Zeilen laufen

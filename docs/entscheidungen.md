@@ -976,3 +976,60 @@ Nur per `pio run` gebaut (kein Board für Sensormeter in dieser Sitzung
 angeschlossen) - Modulerkennung, Relais-Ansteuerung und MQTT-Aktor-Rolle
 sind damit nur per Code-Review verifiziert, nicht auf echter Hardware
 getestet.
+
+## 2026-07-12 — Türkontakt auf RJ45 Pin 5 (Modulwahl "Sensor/Kontakt")
+
+Erste Firmware-Umsetzung des in `sensormeter-family/repo/module-design/
+README.md` konzipierten Türkontakt-Moduls (Kategorie 2, teilt sich Pin 5
+mit dem DHT22/Sensor 2, siehe dortige "Bekannte Einschränkung der
+Auto-Erkennung" und "Wichtiger Unterschied zu Sensor 2"). Scope bewusst
+schmal gehalten: nur die manuelle Modulwahl + Zustandsanzeige, kein
+MQTT-/SNMP-Anschluss (folgt bei Bedarf separat, siehe dortige Doku zur
+binären Datenpfad-Trennung von Sensor 2).
+
+**Neues Konfigurationsfeld `pin5Mode`** (`"sensor"` | `"contact"`,
+Default `"sensor"`) statt eines zweiten unabhängigen Häkchens - beide
+Belegungen liegen elektrisch auf demselben Pin und schließen sich zwingend
+aus. Neues XML-Element `<kontakt pin5Mode="sensor" name="Kontakt"
+messageOpen="Offen" messageClosed="Geschlossen"/>`. `contactName` wird
+serverseitig auf 20 Zeichen begrenzt (Vorgabe), `contactMessageOpen`/
+`contactMessageClosed` zusätzlich per `maxlength=30` im Formular begrenzt
+(eigene, moderate Ergänzung - nicht explizit gefordert, aber sinnvoll
+gegen unbegrenzt lange Meldungstexte).
+
+**Neue Klasse `ContactManager`** (analog `RelayManager`): `begin()` setzt
+`INPUT_PULLUP` auf `PIN_RJ45_PIN5_RESERVE` unabhängig vom Modus (harmlos,
+da die DHT-Bibliothek den Pin bei jedem Leseversuch ohnehin selbst
+umkonfiguriert). `loop()` liest den Pin nur bei `pin5Mode == "contact"`,
+erkennt Zustandswechsel und protokolliert sie per `pushLogEntry()`. Bewusst
+kein Caching in `DataManager` (anders als Sensor 1/2) - `isClosed()`/
+`stateText()` sind reine Getter auf den zuletzt in `loop()` gelesenen
+Zustand, analog zu `RelayManager::feedbackOn()`, das ebenfalls ohne
+zentrale Datenhaltung auskommt.
+
+**Bestehende DHT-Lesepfade gegen `pin5Mode == "contact"` abgesichert**:
+`SensorManager::readExternalSensorIfEnabled()` bricht zusätzlich zum
+bisherigen `sensor2Enabled`-Check bei `pin5Mode != "sensor"` ab;
+`SensorDetector::runDetection()` überspringt den DHT-Leseversuch auf Pin 5
+komplett, wenn `pin5Mode == "contact"` (ein Leseversuch würde auf einem
+Kontaktmodul ohnehin nur fehlschlagen, kostet aber Zeit während des
+Boot-Countdowns).
+
+**`WebServerManager`**: neues Auswahlfeld "Modultyp RJ45 Pin 5" im
+Sensoren-Abschnitt der Einstellungsseite, blendet per JS
+(`togglePin5Mode()`) entweder die bisherigen Sensor-2-Felder oder die
+neuen Kontakt-Felder (Name, Meldung offen, Meldung geschlossen,
+Zustandsanzeige) ein/aus - beide Blöcke bleiben im DOM, nur `display`
+wird umgeschaltet, damit das Formular beim Absenden konsistent alle Werte
+mitschickt. Neuer rein lesender Endpunkt `/api/contact` (GET, liefert
+`mode`/`name`/`closed`/`stateText`) - anders als beim Relais kein POST
+nötig, der Zustand kommt vom Modul, nicht von einer Nutzeraktion.
+
+Flash-Kosten empirisch gemessen: **+5.452 Byte** (59,0 % gesamt,
+1.153.721 → 1.159.173 Byte), RAM unverändert bei 17,7 %.
+
+Nur per `pio run` gebaut (kein Board angeschlossen) - noch nicht auf
+echter Hardware getestet. Offen: das zugehörige Hardware-Modul-Dokument
+`sensormeter-family/repo/module-design/tuerkontakt-modul.md` existiert
+noch nicht (nur als Absatz in `module-design/README.md` vorgemerkt) sowie
+eine mögliche spätere MQTT-`binary_sensor`-Discovery/SNMP-OID-Anbindung.
