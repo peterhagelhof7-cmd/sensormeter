@@ -82,19 +82,25 @@
   <div class="badges">
     <span class="badge badge-orange">IO4 · DHT-11 intern</span>
     <span class="badge">IO32/IO33 · I2C Display + RJ45</span>
-    <span class="badge">IO15/5/14/12 · RJ45-Modul</span>
+    <span class="badge">IO15/5/14 · RJ45-Modul</span>
+    <span class="badge badge-orange">5V · RJ45 Pin 8</span>
     <span class="badge">github.com/peterhagelhof7-cmd/sensormeter</span>
   </div>
 </header>
 
 <div class="callout warn">
-  <div class="callout-title">Status: Verkabelungsstand v1.2</div>
+  <div class="callout-title">Status: Verkabelungsstand v1.2 + Pin-8-Umstellung</div>
   Diese interaktive Fassung übernimmt den Pinbelegungs-Stand aus
   <code>docs/verdrahtungsschema-v1.2.pdf</code> (dort auch die vollständige
   Änderungshistorie v1.0→v1.1→v1.2). Beide Dokumente müssen bei künftigen
   Korrekturen synchron gehalten werden - das PDF bleibt die ausführliche,
   versionierte Referenz mit Änderungsprotokoll, diese Seite ist die
   interaktive Kurzfassung fürs schnelle Nachschlagen im Browser.
+  <b>Offener Punkt:</b> RJ45 Pin 8 wurde hier bereits auf 5V statt
+  <code>IO12</code>-Reserve umgestellt (siehe <code>docs/entscheidungen.md</code>
+  „RJ45 Pin 8: 5V statt Reserve") - das PDF ist als Binärdatei nicht
+  automatisiert editierbar und muss von Hand nachgezogen werden (neue
+  Version v1.3), bevor beide Dokumente wieder synchron sind.
 </div>
 
 <h2>Bauteile</h2>
@@ -117,8 +123,15 @@
   <tr><td><code>IO15</code></td><td>RJ45 Pin 5</td><td><span class="dot" style="background:#7a5cad;"></span>Reserve / externer DHT-Sensor-DATA</td></tr>
   <tr><td><code>IO5</code></td><td>RJ45 Pin 6</td><td><span class="dot" style="background:#a63d2e;"></span>Relais-Steuersignal, active LOW</td></tr>
   <tr><td><code>IO14</code></td><td>RJ45 Pin 7</td><td><span class="dot" style="background:#c9a227;"></span>Relais-Status-Feedback (optional)</td></tr>
-  <tr><td><code>IO12</code></td><td>RJ45 Pin 8</td><td><span class="dot" style="background:#8a93a3;"></span>Reserve - Boot-Strapping-Pin, muss beim Boot LOW sein!</td></tr>
+  <tr><td><code>5V</code></td><td>RJ45 Pin 8</td><td><span class="dot" style="background:#d6553f;"></span>5V-Versorgung für Module, die mehr als 3,3V brauchen (Board-Eingang, kein GPIO)</td></tr>
 </table>
+<p style="font-size:10.5px;color:#6b7280;">
+<code>IO12</code> (Flash-Spannungs-Strapping-Pin, muss beim Boot LOW sein)
+ist seit dieser Entscheidung NICHT mehr auf die RJ45-Buchse
+herausgeführt - der Pull-down bleibt rein platinenintern zwischen
+<code>IO12</code> und <code>GND</code> bestehen, unabhängig von jedem
+gesteckten Modul. Siehe <code>docs/entscheidungen.md</code> „RJ45 Pin 8:
+5V statt Reserve".</p>
 
 <h2>Schema</h2>
 <p class="hint" style="font-size:10px;color:#6b7280;margin-top:-1mm;">Interaktiv: Klick auf einen Draht hebt ihn hervor und zeigt Start-/Zielpin unten an. Klick auf die freie Fläche hebt die Auswahl wieder auf.</p>
@@ -140,7 +153,7 @@
     <text x="25" y="207" text-anchor="end" font-weight="700" fill="#7a5cad">IO15</text>
     <text x="25" y="231" text-anchor="end" font-weight="700" fill="#a63d2e">IO5</text>
     <text x="25" y="255" text-anchor="end" font-weight="700" fill="#c9a227">IO14</text>
-    <text x="25" y="279" text-anchor="end" font-weight="700" fill="#8a93a3">IO12</text>
+    <text x="25" y="279" text-anchor="end" font-weight="700" fill="#d6553f">5V</text>
   </g>
   <g fill="#8a93a3">
     <circle cx="30" cy="83" r="2.5" fill="#c0392b"/>
@@ -151,7 +164,7 @@
     <circle cx="30" cy="203" r="2.5" fill="#7a5cad"/>
     <circle cx="30" cy="227" r="2.5" fill="#a63d2e"/>
     <circle cx="30" cy="251" r="2.5" fill="#c9a227"/>
-    <circle cx="30" cy="275" r="2.5" fill="#8a93a3"/>
+    <circle cx="30" cy="275" r="2.5" fill="#d6553f"/>
   </g>
 
   <!-- RJ45 jack, Ethernet (LAN8720), fest onboard -->
@@ -187,7 +200,7 @@
   <circle cx="610" cy="380" r="2.5" fill="#7a5cad"/><text x="618" y="383" font-size="8">Pin5 Reserve</text>
   <circle cx="610" cy="393" r="2.5" fill="#a63d2e"/><text x="618" y="396" font-size="8">Pin6 Relais</text>
   <circle cx="610" cy="406" r="2.5" fill="#c9a227"/><text x="618" y="409" font-size="8">Pin7 Fdbk</text>
-  <circle cx="610" cy="419" r="2.5" fill="#8a93a3"/><text x="618" y="422" font-size="8">Pin8 Res.</text>
+  <circle cx="610" cy="419" r="2.5" fill="#d6553f"/><text x="618" y="422" font-size="8">Pin8 5V</text>
 
   <!-- Wires: 3V3 -> all VCC (red) -->
   <path class="wire-hit" data-wire="w1" d="M30,83 C 300,83 300,105 500,105"/>
@@ -225,9 +238,9 @@
   <!-- Wire: IO14 -> RJ45 Pin7 (yellow) -->
   <path class="wire-hit" data-wire="w14" d="M30,251 C 440,251 440,406 610,406"/>
   <path class="wire" data-wire="w14" data-from="IO14" data-to="RJ45 Pin 7 (Relais-Feedback, optional)" d="M30,251 C 440,251 440,406 610,406" fill="none" stroke="#c9a227" stroke-width="1.6"/>
-  <!-- Wire: IO12 -> RJ45 Pin8 (grey) -->
+  <!-- Wire: 5V (Board-Eingang) -> RJ45 Pin8 -->
   <path class="wire-hit" data-wire="w15" d="M30,275 C 460,275 460,419 610,419"/>
-  <path class="wire" data-wire="w15" data-from="IO12" data-to="RJ45 Pin 8 (Reserve, muss beim Boot LOW sein)" d="M30,275 C 460,275 460,419 610,419" fill="none" stroke="#8a93a3" stroke-width="1.6"/>
+  <path class="wire" data-wire="w15" data-from="5V (Board-Eingang, kein GPIO)" data-to="RJ45 Pin 8 (5V-Versorgung)" d="M30,275 C 460,275 460,419 610,419" fill="none" stroke="#d6553f" stroke-width="1.6"/>
 </svg>
 <div id="wireInfo" class="wire-info">Klicke auf einen Draht, um Start- und Zielpin anzuzeigen.</div>
 <p class="hint" style="font-size:10px;color:#6b7280;">Gestrichelte Linien = derselbe I2C-Bus (Display + RJ45 Pin 3/4), kein zweites Signal.</p>
@@ -279,7 +292,7 @@ unterscheiden sich (anderer Chip/Board). Siehe
   <tr><td>5</td><td>GPIO Reserve / externer DHT-Sensor, DATA</td><td><code>IO15</code></td></tr>
   <tr><td>6</td><td>Relais-Steuerung, active LOW</td><td><code>IO5</code></td></tr>
   <tr><td>7</td><td>Relais-Feedback / Interrupt</td><td><code>IO14</code></td></tr>
-  <tr><td>8</td><td>Reserve - Boot-Strapping-Pin, muss beim Boot LOW sein</td><td><code>IO12</code></td></tr>
+  <tr><td>8</td><td>5V-Versorgung (Board-Eingang, kein GPIO)</td><td><code>5V</code></td></tr>
 </table>
 
 <h3>Modul-Typen</h3>
@@ -303,10 +316,20 @@ Ethernet-Kabel verbinden.</p>
   sternförmig (nicht als Daisy-Chain) zum ESP32 zurückgeführt.
 </div>
 <div class="callout warn">
-  <div class="callout-title">IO12 beim Boot beachten</div>
-  Pin 8 der RJ45-Buchse (<code>IO12</code>) ist ein Flash-Spannungs-
-  Strapping-Pin und muss beim Boot LOW sein (Pull-down 10kΩ zu GND) -
-  sonst startet der ESP32 nicht korrekt.
+  <div class="callout-title">Pin 8 = 5V, nicht 3,3V-tolerant verwechseln</div>
+  Anders als Pin 1 (3,3V) liegt auf Pin 8 die Board-5V-Schiene an -
+  Module, die nur 3,3V-tolerant sind, dürfen Pin 8 nicht an ihre VCC
+  anschließen. Genutzte Strombudget/Belastbarkeit der 5V-Schiene ist noch
+  nicht gegen das echte Schaltbild verifiziert (kein Board zum
+  Nachmessen vorhanden) - vor dem Bestücken eines 5V-Moduls prüfen.
+</div>
+<div class="callout">
+  <div class="callout-title">IO12 bleibt intern boot-kritisch</div>
+  <code>IO12</code> (Flash-Spannungs-Strapping-Pin, muss beim Boot LOW
+  sein) ist seit der Umstellung auf 5V nicht mehr mit der RJ45-Buchse
+  verbunden - der 10kΩ-Pull-down nach GND bleibt trotzdem nötig, jetzt
+  aber rein platinenintern zwischen <code>IO12</code> und <code>GND</code>,
+  unabhängig von jedem RJ45-Modul.
 </div>
 
 <h2>Vermiedene Pins</h2>

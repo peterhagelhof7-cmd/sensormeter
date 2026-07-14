@@ -7,7 +7,10 @@
 // Abschnitt 12 an; TimeManager haengt sich mit der NTP-Sync- und
 // Fehlerkette daran; SensorManager liest DHT11/DHT22 im 60s-Takt und
 // fuellt den stuendlichen Ringpuffer; DisplayManager zeigt Boot-Countdown
-// und rotierende Infoseiten; WebServerManager stellt Hauptseite,
+// und rotierende Infoseiten; ExternalDisplayManager spiegelt dieselben
+// Infoseiten optional auf ein externes SH1107-Steckmodul (I2C 0x3D, siehe
+// sensormeter-family/repo/module-design/sh1107-display-modul.md), falls
+// gesteckt; WebServerManager stellt Hauptseite,
 // Einstellungsseite, REST-API und lokalen OTA-Upload bereit (async, Port
 // 80); SNMPManager beantwortet SNMP-v1/v2c-GET-Anfragen read-only (Port
 // 161); SyslogManager sendet bei jedem Sensorzyklus einen Statusreport
@@ -40,6 +43,7 @@
 #include "ContactManager.h"
 #include "DataManager.h"
 #include "DisplayManager.h"
+#include "ExternalDisplayManager.h"
 #include "MqttManager.h"
 #include "NetworkManager.h"
 #include "OtaManager.h"
@@ -64,12 +68,13 @@ ConfigManager configManager;
 StorageManager storageManager;
 NetworkManager networkManager(dataManager, configManager);
 TimeManager timeManager(dataManager, networkManager);
-SensorManager sensorManager(dataManager, configManager);
 SensorDetector sensorDetector(dataManager, configManager);
+SensorManager sensorManager(dataManager, configManager, sensorDetector);
 ContactManager contactManager(dataManager, configManager);
 RelayManager relayManager(dataManager, configManager, contactManager);
 BrandingManager brandingManager(configManager);
 DisplayManager displayManager(dataManager, configManager, networkManager, brandingManager);
+ExternalDisplayManager externalDisplayManager(dataManager, configManager, networkManager, brandingManager);
 OtaManager otaManager;
 WebServerManager webServerManager(dataManager, configManager, networkManager, otaManager, relayManager,
                                    sensorDetector, contactManager, brandingManager);
@@ -373,6 +378,7 @@ void setup() {
   sensorDetector.runDetection();
 
   displayManager.begin();
+  externalDisplayManager.begin();
 
   networkManager.begin();  // setzt Zustand auf INIT, dann NETWORK_CHECK
   webServerManager.begin();  // async - kein eigener loop()-Aufruf noetig
@@ -387,6 +393,7 @@ void loop() {
   contactManager.loop();
   relayManager.loop();
   displayManager.loop();
+  externalDisplayManager.loop();
   snmpManager.loop();
   syslogManager.loop();
   mqttManager.loop();

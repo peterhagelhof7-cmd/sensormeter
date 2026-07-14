@@ -21,11 +21,18 @@
 #define PIN_DHT_INTERNAL 4
 // Pull-up 10k zwischen PIN_DHT_INTERNAL und 3.3V erforderlich (siehe Stueckliste)
 
-// --- RJ45 Modularanschluss (Sensor 2 / Relais / Reserve) --------------------
+// --- RJ45 Modularanschluss (Sensor 2 / Relais / 5V) --------------------------
 #define PIN_RJ45_PIN5_RESERVE   15
 #define PIN_RJ45_PIN6_RELAY_OUT 5
 #define PIN_RJ45_PIN7_RELAY_FB  14
-#define PIN_RJ45_PIN8_RESERVE   12  // Boot-Strapping-Pin: muss beim Boot LOW sein (Pull-down 10k -> GND)
+// Pin 8 liegt seit der Entscheidung "RJ45 Pin 8: 5V statt Reserve" (siehe
+// docs/entscheidungen.md) direkt auf der 5V-Versorgungsschiene des Geraets -
+// KEIN GPIO mehr, deshalb kein #define hier (Firmware hat nichts zu lesen
+// oder zu schreiben). GPIO12 (bisher ueber diesen Pin herausgefuehrt) bleibt
+// weiterhin ein Boot-Strapping-Pin und braucht seinen 10k-Pull-down nach GND
+// nach wie vor - der sitzt jetzt aber rein platinenintern zwischen GPIO12 und
+// GND, OHNE Verbindung zur RJ45-Buchse (siehe docs/entscheidungen.md fuer die
+// vollstaendige Begruendung und den daraus folgenden Verdrahtungs-Umbau).
 
 // --- Sensor 2 (extern, DHT22 ueber RJ45 Pin 5) -------------------------------
 #define PIN_DHT_EXTERNAL PIN_RJ45_PIN5_RESERVE
