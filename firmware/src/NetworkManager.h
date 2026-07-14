@@ -65,6 +65,9 @@ class NetworkManager {
 
   unsigned long _networkCheckStartedMillis = 0;
   unsigned long _lastFallbackJoinAttemptMillis = 0;
+  // Zeitpunkt des letzten aktiven WLAN-Reconnect-Versuchs im NETWORK_CHECK
+  // (siehe RECONNECT_RETRY_INTERVAL_MS in der .cpp).
+  unsigned long _lastReconnectAttemptMillis = 0;
   bool _wlanConfigured = false;
   // Timeout fuer den aktuellen NETWORK_CHECK-Durchlauf - normal 5 Minuten,
   // kurz (30s) direkt nach Eingabe neuer WLAN-Zugangsdaten im Fallback-AP
