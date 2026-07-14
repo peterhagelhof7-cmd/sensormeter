@@ -33,6 +33,7 @@
 //          autoCompare="above" autoThreshold="25.0" autoContactState="closed"/>
 //   <mqtt enabled="false" server="" port="1883" user="" password=""/>
 //   <branding vendorName=""/>
+//   <display pages="127" slideSec="10"/>
 // </config>
 
 struct DeviceConfig {
@@ -157,6 +158,17 @@ struct DeviceConfig {
   // BrandingManager. Leer = Feature inaktiv (Default), kein
   // Verhaltensunterschied fuer bestehende Installationen.
   String brandingVendorName;
+
+  // Externes SH1107-Display (optional, I2C 0x3D): welche Infoseiten in der
+  // Slide-Rotation erscheinen (Bitmaske, Bit i = Seite i: 0 Systemname,
+  // 1 IP-Adressen, 2 Uhrzeit, 3 Sensorwerte, 4 Netzwerkstatus, 5 WLAN-Signal,
+  // 6 Anbieter-Branding) und wie lange jede Seite steht. Default: alle Seiten
+  // an (0x7F), 10 s - identisch zum bisherigen Verhalten. Betrifft NUR das
+  // externe Modul; das interne Display behaelt seine feste Rotation. Die
+  // Branding-Seite erscheint zusaetzlich nur, wenn ein Branding gesetzt ist
+  // (siehe ExternalDisplayManager::pageEnabled).
+  uint8_t extDisplayPages = 0x7F;
+  uint16_t extDisplaySlideSec = 10;
 };
 
 class ConfigManager {
