@@ -23,9 +23,18 @@
 // Klasse - WiFiClient ist nur ein duenner Wrapper um lwIP-BSD-Sockets, die
 // unabhaengig vom konkreten Netzwerk-Interface funktionieren (das lwIP-
 // Routing entscheidet anhand der Ziel-IP, nicht die Applikationsschicht).
-// Welches Interface dabei tatsaechlich genutzt wird, wenn BEIDE gleich-
-// zeitig eine IP haben, ist nicht explizit erzwingbar und wurde nicht auf
-// echter Hardware verifiziert (siehe docs/entscheidungen.md).
+//
+// Seit 2026-07-15 (ConfigManager::mqttInterface) wird das nicht mehr dem
+// lwIP-Standardverhalten ueberlassen: ensureConnected() setzt vor jedem
+// connect()-Versuch per lwIP netif_set_default() (lwip/netif.h) explizit das
+// gewaehlte Interface als Default und stellt danach den vorherigen Zustand
+// wieder her (siehe MqttManager.cpp) - damit ist deterministisch festgelegt,
+// ueber welches Interface der Broker erreicht wird, auch wenn beide
+// gleichzeitig eine IP haben. Bewusst die lwIP-Funktion statt
+// esp_netif_set_default_netif(): letztere gibt es in der auf diesem Projekt
+// genutzten Arduino-ESP32-2.0.17-Core-Version noch nicht (siehe
+// MqttManager.cpp-Kommentar), die lwIP-Funktion darunter aber schon, und ist
+// identisch auf sm und sm-poe nutzbar. Siehe docs/entscheidungen.md.
 
 class MqttManager {
  public:

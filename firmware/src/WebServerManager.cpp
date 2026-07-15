@@ -487,6 +487,16 @@ String WebServerManager::buildSettingsPageBody() const {
   html += "<label>Port<input type=\"text\" name=\"mqttPort\" value=\"" + String(cfg.mqttPort) + "\"></label>";
   html += "<label>Benutzername<input type=\"text\" name=\"mqttUser\" value=\"" + cfg.mqttUser + "\"></label>";
   html += "<label>Passwort<input type=\"password\" name=\"mqttPassword\" value=\"" + cfg.mqttPassword + "\"></label>";
+  html += "<label>Interface<select name=\"mqttInterface\">"
+          "<option value=\"lan\"" + String(cfg.mqttInterface == "lan" ? " selected" : "") +
+          ">LAN</option>"
+          "<option value=\"wlan\"" + String(cfg.mqttInterface == "wlan" ? " selected" : "") +
+          ">WLAN</option>"
+          "</select></label>";
+  html += "<p class=\"hint\">Erzwingt, ueber welches Interface die Verbindung zum Broker aufgebaut wird - "
+          "ohne das waere laut lwIP nicht eindeutig festgelegt, welches von beiden genutzt wird, wenn LAN "
+          "und WLAN gleichzeitig eine IP haben. Ist das gewaehlte Interface gerade nicht verbunden, "
+          "schlaegt die MQTT-Verbindung fehl, auch wenn das andere Interface erreichbar waere.</p>";
   html += "<p class=\"hint\">Meldet das Geraet per MQTT-Discovery bei Home Assistant an (Sensoren Temperatur/"
           "Luftfeuchte). Bleibt inaktiv, solange keine Broker-Adresse eingetragen ist.</p>";
   html += "</div>";
@@ -850,6 +860,7 @@ void WebServerManager::handleApiConfigGet(AsyncWebServerRequest* request) {
   doc["mqttPort"] = cfg.mqttPort;
   doc["mqttUser"] = cfg.mqttUser;
   doc["mqttPassword"] = cfg.mqttPassword;
+  doc["mqttInterface"] = cfg.mqttInterface;
   doc["brandingVendorName"] = cfg.brandingVendorName;
   doc["brandingHasLogo"] = _branding.hasLogo();
   doc["extDisplayPages"] = cfg.extDisplayPages;
@@ -970,6 +981,10 @@ void WebServerManager::handleApiConfigPost(AsyncWebServerRequest* request) {
   }
   if (request->hasParam("mqttUser", true)) cfg.mqttUser = request->getParam("mqttUser", true)->value();
   if (request->hasParam("mqttPassword", true)) cfg.mqttPassword = request->getParam("mqttPassword", true)->value();
+  if (request->hasParam("mqttInterface", true)) {
+    String interfaceChoice = request->getParam("mqttInterface", true)->value();
+    if (interfaceChoice == "lan" || interfaceChoice == "wlan") cfg.mqttInterface = interfaceChoice;
+  }
 
   if (request->hasParam("brandingVendorName", true)) {
     cfg.brandingVendorName = request->getParam("brandingVendorName", true)->value();

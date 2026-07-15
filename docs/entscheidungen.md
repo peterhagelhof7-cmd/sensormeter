@@ -1498,3 +1498,52 @@ Bibliotheken erfolgreich aufgelöst. **Nicht getestet**: echte Hardware
 (keiner der drei neuen Sensortypen physisch angeschlossen zum Zeitpunkt
 dieser Änderung, kein Nachweis der tatsächlichen Messwerte/Timing-
 Verhalten von ENS160s blockierendem `measure(true)`).
+
+## 2026-07-16 — MQTT fest an ein Interface binden (löst "nicht verifiziert" oben auf)
+
+Ergänzt die "Zwei-Interface-Besonderheit" oben (Zeile ~588): statt
+weiterhin offenzulassen, welches Interface lwIP für die MQTT-Verbindung
+wählt, wenn LAN und WLAN gleichzeitig eine IP haben, lässt sich das jetzt
+über die Einstellungsseite fest vorgeben.
+
+- Neues Feld `ConfigManager::mqttInterface` (`"lan"` | `"wlan"`, Default
+  `"lan"`), per `interface`-Attribut im `<mqtt .../>`-Element persistiert.
+  Bewusst **kein** `"auto"`/dritte Option - ist das gewählte Interface
+  gerade nicht verbunden, schlägt der MQTT-Connect regulär fehl, auch wenn
+  das jeweils andere Interface erreichbar wäre. Das ist beabsichtigt: der
+  Nutzer soll ein Interface bewusst festlegen, kein stilles Failover.
+- Einstellungsseite: neues Pulldown "Interface" (LAN/WLAN) im MQTT-Block,
+  REST-API (`/api/config` GET/POST) um `mqttInterface` erweitert.
+- `MqttManager::ensureConnected()` setzt vor jedem `connect()`-Versuch per
+  lwIP `netif_set_default()` (`lwip/netif.h`) explizit das gewählte
+  Interface als Default-Netif und stellt danach den vorherigen Zustand
+  wieder her - andere Subsysteme (NTP, mDNS, ...) sollen von dieser
+  MQTT-spezifischen Festlegung nicht dauerhaft betroffen sein.
+- **Bewusst `netif_set_default()` (lwIP) statt `esp_netif_set_default_netif()`
+  (esp_netif)**: letztere Funktion existiert nicht im `esp_netif.h`, das die
+  hier genutzte Arduino-ESP32-2.0.17-Core tatsächlich bündelt (bestätigt per
+  `pio run`-Fehlschlag beim ersten Versuch: "was not declared in this
+  scope") - dieser ältere esp_netif-Header kennt nur
+  `esp_netif_get_handle_from_ifkey()`/`esp_netif_get_netif_impl_index()`/
+  `esp_netif_get_netif_impl_name()`, keine Default-Netif-Getter/Setter.
+  Die darunterliegende lwIP-Funktion `netif_set_default()` gibt es dagegen
+  in jeder lwIP-Version und ist im gebündelten `libesp_netif.a` bzw.
+  `liblwip.a` tatsächlich exportiert (per `xtensa-esp32-elf-nm` geprüft -
+  `esp_netif_set_default_netif` fehlt dort komplett als Symbol, nur eine
+  interne, nicht exportierte `esp_netif_update_default_netif[_lwip]`-Variante
+  existiert). Umsetzung: `esp_netif_get_netif_impl_index()` liefert den
+  lwIP-"Netif-Index" (`netif->num + 1`), passend zu lwIPs
+  `netif_get_by_index()` - so lässt sich vom esp_netif-Handle (ifkey
+  `"ETH_DEF"`/`"WIFI_STA_DEF"`, identisch auf beiden Core-Versionen) auf das
+  darunterliegende `struct netif*` schließen, ohne dass esp_netif dessen
+  Pointer direkt exponieren muss.
+- Sensormeter PoE (neuerer Core 3.x) hätte `esp_netif_set_default_netif()`
+  zur Verfügung gehabt, nutzt aber bewusst denselben lwIP-Weg, damit beide
+  Projekte identischen Code haben statt zweier divergierender
+  Implementierungen für dasselbe Problem.
+
+Getestet: `pio run` für beide Projekte, baut jeweils sauber (sm: Flash
+61,2 %/RAM 18,9 %; sm-poe: Flash 22,3 %/RAM 19,8 %). **Nicht getestet**:
+echte Hardware mit gleichzeitig aktivem LAN und WLAN (kein Nachweis, dass
+der Broker tatsächlich über das gewählte statt eines anderen Interfaces
+erreicht wird) - siehe weiterhin offene Verifikationslücke oben.
