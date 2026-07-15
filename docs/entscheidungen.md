@@ -1612,3 +1612,39 @@ Firmware-Versionen einfach mitlaufen (nichts Zusaetzliches zu pflegen -
 `FIRMWARE_PROJECT_ID` aendert sich nie). Falls ein fuenftes
 Sensormeter-Projekt entsteht, braucht es denselben Marker-Mechanismus mit
 einer neuen eindeutigen `FIRMWARE_PROJECT_ID`.
+
+## 2026-07-16 — Persistenter Log-Puffer auf LittleFS (/log.txt) + WARNING-Stufe
+
+Portiert aus Sensormeter WLAN (siehe dortiger Eintrag vom selben Tag fuer
+die Groessen-/Rotationsrechnung, hier identisch: 32 KB je Datei, Rotation
+nach `/log.old.txt`). Der bisherige RAM-Ringpuffer (`LOG_CAPACITY = 5`)
+bleibt unveraendert fuer die "letzte 5 Meldungen"-Webseite und den
+SyslogManager-Versand; die neue Datei ist eine zusaetzliche, neustart-feste
+Historie.
+
+- Neue benannte Severity-Stufen `DataManager::SEVERITY_ERROR/_WARNING/_INFO`
+  (3/4/6) statt roher Zahlen.
+- `pushLogEntry()` haengt jeden Eintrag zusaetzlich an `/log.txt` an
+  (`appendLogFile()`, Rotation bei 32 KB).
+- **Anders als bei Sensormeter WLAN**: dieses Projekt hat zwei Interfaces
+  (LAN+WLAN). Der bestehende `networkOk()`-Zustandsautomat loggt bisher nur
+  den GLEICHZEITIGEN Ausfall beider Interfaces als `ERROR` - verlor eines
+  der beiden Interfaces waehrend das andere trug, gab es dafuer *gar
+  keinen* Log-Eintrag. Neue `NetworkManager::logInterfaceTransitions()`
+  (in `loop()` bei jedem Tick aufgerufen, unabhaengig vom
+  Zustandsautomaten) trackt LAN und WLAN jeweils EINZELN und loggt Verlust
+  als `WARNING` bzw. Wiederverbindung als `INFO` mit Ausfalldauer - unabhaengig
+  davon, ob das jeweils andere Interface gerade oben ist. Der bestehende
+  `ERROR`-Eintrag bei komplettem Ausfall bleibt unveraendert bestehen (kann
+  jetzt zusammen mit den zwei neuen WARNING-Eintraegen fuer LAN und WLAN im
+  selben Tick erscheinen - bewusst leicht redundant fuer bessere Diagnose-
+  Granularitaet, kein Fehler).
+- Web-UI: `/log.txt`/`/log.old.txt` aus LittleFS gestreamt, neue Buttons
+  "Log"/"Log (alt)" auf der Hauptseite (identisch zu Sensormeter WLAN).
+
+Getestet: `pio run` - baut sauber (Flash 61,6%/RAM 19,0%, vorher
+61,3%/19,0%). Nicht getestet: echte Hardware ueber mehrere Tage/echtes
+LAN+WLAN-Flapping-Szenario.
+
+**Standing-Vorgabe**: analog zur OTA-Pruefung oben ist dieser Mechanismus
+ab jetzt fester Bestandteil dieses Projekts.
