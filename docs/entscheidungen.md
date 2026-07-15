@@ -1547,3 +1547,68 @@ Getestet: `pio run` für beide Projekte, baut jeweils sauber (sm: Flash
 echte Hardware mit gleichzeitig aktivem LAN und WLAN (kein Nachweis, dass
 der Broker tatsächlich über das gewählte statt eines anderen Interfaces
 erreicht wird) - siehe weiterhin offene Verifikationslücke oben.
+
+## 2026-07-16 — OTA-Upload: Projekt-/Versionspruefung gegen Verwechslungen
+
+Bisher prueft `/api/ota/upload` nur die Basic-Auth (`checkAuth()`), aber
+nichts am tatsaechlichen Inhalt der hochgeladenen `.bin` - eine Firmware
+eines Schwesterprojekts (z.B. Sensormeter Display) oder eine aeltere
+eigene Version liesse sich klaglos flashen. Umgesetzt in allen vier
+Projekten der Familie (Sensormeter, Sensormeter PoE, Sensormeter WLAN,
+Sensormeter Display) mit identischem Mechanismus:
+
+- Jedes Projekt kompiliert einen eindeutigen Marker in die eigene `.bin`
+  ein: `"SM-FW-ID:<FIRMWARE_PROJECT_ID>:<DEVICE_FIRMWARE_VERSION>:SM-FW-END"`
+  (neue Konstante `kFirmwareIdentityMarker` in `main.cpp`, referenziert
+  per `Serial.println()` beim Boot, damit der Linker sie nicht entfernt).
+  `FIRMWARE_PROJECT_ID` ist ein neues Feld neben `DEVICE_FIRMWARE_VERSION`
+  in `include/config.h(.example)` - hier `"SENSORMETER"`.
+- `OtaManager::writeLocalUpdateChunk()` durchsucht den Byte-Stream des
+  Uploads chunk-uebergreifend (kleiner Ueberlappungspuffer, falls der
+  Marker genau an einer Chunk-Grenze zerschnitten ist) nach diesem
+  Marker, parst Projekt-ID und Version heraus und vergleicht sie gegen
+  die eigenen `FIRMWARE_PROJECT_ID`/`DEVICE_FIRMWARE_VERSION`. Der
+  eigentliche `Update.write()` laeuft unabhaengig weiter (das OTA-Ziel-
+  Slot-Partition-Schreiben ist unkritisch reversibel); erst
+  `endLocalUpdate()` entscheidet anhand des Scan-Ergebnisses zwischen
+  `Update.end(true)` (committen) und `Update.abort()` (verwerfen).
+- **Downgrade-Sperre**: eine hochgeladene Version mit niedrigerer
+  Semver-Praezedenz als die laufende wird abgelehnt, es sei denn, die
+  neue Checkbox "Downgrade erzwingen" im Upload-Formular ist gesetzt
+  (`OtaManager::setAllowDowngrade()`). Kein vollstaendiger
+  RFC-Semver-Parser, deckt aber das hier genutzte `a.b.c[-rcN]`-Schema ab
+  (bei gleichem `a.b.c` hat "kein Suffix" Vorrang vor "mit Suffix";
+  zwei Suffixe werden lexikografisch verglichen, z.B. `rc3 < rc4`).
+- **Formular-Reihenfolge ist bewusst**: die Checkbox steht im HTML VOR
+  dem Datei-Feld, weil ESPAsyncWebServer Multipart-Felder in
+  Body-Reihenfolge parst - ein Feld nach dem Datei-Input waere im
+  Upload-Streaming-Callback (erster Chunk) noch nicht per
+  `request->hasParam(..., true)` verfuegbar.
+- Fehlermeldungen unterscheiden jetzt vier Faelle (Schreibfehler / kein
+  Marker gefunden / falsches Projekt / zu alte Version) statt einem
+  generischen "Update fehlgeschlagen".
+- **Bewusst kein kryptografischer Schutz**: der Marker ist ein einfacher,
+  im Klartext auffindbarer String - schuetzt vor versehentlichem
+  Verwechseln der `.bin`-Dateien (der eigentliche Anlass: "wie stellen
+  wir sicher, dass niemand die Sensormeter-Display-Firmware auf ein
+  Sensormeter-PoE-Geraet hochlaedt"), nicht vor einem Angreifer, der
+  bewusst einen falschen Marker einbaut. Basic-Auth bleibt die einzige
+  Zugriffskontrolle fuer den Endpoint selbst.
+
+Getestet: `pio run` fuer alle vier Projekte, baut jeweils sauber. Marker
+in allen vier `firmware.bin` per Byte-Suche verifiziert (`SM-FW-ID:
+SENSORMETER:0.9.0-rc4:SM-FW-END` hier, analoge Strings in den anderen
+drei Projekten). **Nicht getestet**: echter OTA-Upload einer falschen
+oder aelteren `.bin` auf echter Hardware (kein Board in dieser Session
+angeschlossen) - die Chunk-uebergreifende Marker-Suche ist nur gegen
+synthetische/kompilierte Binaries verifiziert, nicht gegen reale
+ESPAsyncWebServer-Chunk-Groessen im Netzwerkbetrieb.
+
+**Standing-Vorgabe fuer kuenftige Firmware-Builds**: dieser Mechanismus
+(Marker-Konstante + Scan/Vergleich in OtaManager, Downgrade-Checkbox) ist
+ab jetzt fester Bestandteil aller vier Projekte und muss bei neuen
+Firmware-Versionen einfach mitlaufen (nichts Zusaetzliches zu pflegen -
+`DEVICE_FIRMWARE_VERSION` wird ja schon bei jedem Release angepasst,
+`FIRMWARE_PROJECT_ID` aendert sich nie). Falls ein fuenftes
+Sensormeter-Projekt entsteht, braucht es denselben Marker-Mechanismus mit
+einer neuen eindeutigen `FIRMWARE_PROJECT_ID`.
