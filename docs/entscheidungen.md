@@ -1393,3 +1393,108 @@ Lesepfad.
 
 Getestet: `pio run` für beide Projekte - baut sauber. Nicht getestet: echte
 Hardware.
+
+## 2026-07-15 — Sensor-2-Datenmodell erweitert: Druck/Lux/Luftgüte + values.csv-Größe
+
+Start der Firmware-Einpflege für die in `module-design/README.md`
+"Firmware-Lücke" gelisteten Punkte (BMP280-Chip-ID-Check, BH1750-Lux,
+ENS160-Luftgüte, DHT11/DHT21-Typauswahl) - ausdrücklich NICHT die spätere
+"Modul-Integration" (mehrere gleichzeitig gesteckte Module gemeinsam
+lesen), die bleibt weiterhin offen, siehe SensorDetector-Klassenkommentar.
+
+### Größenrechnung values.csv/Ringpuffer (explizit angefragt)
+
+`HourValue` wächst von 3 Feldern (timestamp, temperature, humidity) auf 8
+(timestamp, sensor1Temperature, sensor1Humidity, sensor2Temperature,
+sensor2Humidity, sensor2PressureHpa, sensor2Lux, sensor2Eco2Ppm) - Sensor 1
+bleibt immer intern/DHT11, Sensor 2 füllt je nach gestecktem Modul nur eine
+Teilmenge, Rest NAN (leeres CSV-Feld statt "nan" oder falscher 0-Wert).
+
+**Ergebnis: `RINGBUFFER_SIZE` (168 = 7 Tage stündlich) bleibt unverändert,
+kein Verkleinern nötig.** Worst-case-Zeile (alle 7 Felder belegt, je 1
+Nachkommastelle) liegt bei ~55-65 Byte, × 168 Zeilen ≈ 10-12 KB für
+`history.csv` - auf der 128-KB-LittleFS-Partition (`min_spiffs.csv`, siehe
+Eintrag "Flash-Setup-Skript" oben) bleiben nach Config (~2-3 KB),
+Branding-Logo (~1-2 KB) und dem noch ausstehenden 64-KB-Log-Puffer (siehe
+`sensormeter-family`-Memo "sm/sm-poe pending firmware work") immer noch
+&gt;40 KB Luft. Sensormeter PoE hat mit `default_16MB.csv` ohnehin keine
+relevante Enge.
+
+### Umgesetzte Änderungen
+
+- **`ConfigManager`**: neues Feld `pin5DhtType` ("DHT11"|"DHT21", Default
+  "DHT21") - Auto-Unterscheidung DHT11/DHT21 ist laut Klassenkommentar von
+  `SensorDetector` unzuverlässig, deshalb manuelle Auswahl auf der
+  Einstellungsseite (wie schon `contactAlarmAt`). Persistiert im
+  `<kontakt>`-Element neben `pin5Mode`.
+- **`SensorManager`**: zwei DHT-Objekte auf demselben externen Pin
+  (`dhtExternalDht11`/`dhtExternalDht21`) statt einem - der Adafruit-DHT-
+  Treiber bindet den Typ am Konstruktor, daher kein Laufzeit-Umschalten
+  möglich; `readExternalDht()` wählt anhand `cfg.pin5DhtType`. Drei neue
+  Lesepfade `readExternalBmp280()`/`readExternalBh1750()`/
+  `readExternalEns160()`, jeweils NUR die eine Messgröße liefernd (kein
+  Temperatur/Feuchte-Wert im Sensor-2-Sinn). `loop()` umgebaut: die
+  stündliche Ringpuffer-Speicherung hing bisher an `readInternalSensor()`
+  (lief also VOR `readExternalSensorIfEnabled()` desselben Zyklus) - jetzt
+  eigene `maybeRecordHourValue()`, nach beiden Lesungen aufgerufen, damit
+  ein Stundenwert immer beide Sensoren desselben 60s-Zyklus abbildet.
+- **`SensorDetector`**: 0x76/0x77 nicht mehr pauschal als "BME280" gemeldet
+  - `knownChipName()` liest bei diesen zwei Adressen zusätzlich das Bosch-
+  Chip-ID-Register (0xD0, roher `Wire`-Zugriff, keine neue Lib-Abhängigkeit
+  in `SensorDetector`) und unterscheidet 0x60 (BME280) von 0x58 (BMP280).
+  `KNOWN_CHIPS` um ENS160 (0x52/0x53) ergänzt.
+- **`DataManager`**: `HourValue`/`SensorReading` erweitert (siehe oben),
+  `saveRingbuffer()`/`loadRingbuffer()` auf 8-Spalten-CSV umgestellt
+  (`parseFloatOrNan`/`formatFloatOrEmpty`). Alte 3-Spalten-Zeilen (Format
+  vor heute) werden beim Laden übersprungen statt falsch interpretiert -
+  ein einmaliger Verlust der bisherigen 7-Tage-Historie beim ersten Boot
+  nach diesem Update ist die Konsequenz, kein Datenkorruptions-Risiko.
+- **`WebServerManager`**: `values.csv`-Header/-Zeilen auf 8 Spalten
+  erweitert, `/api/sensors` liefert jetzt auch `pressureHpa`/`lux`/
+  `eco2Ppm`, `/api/graph` liefert zusätzlich zu den unveränderten
+  `temperature`/`humidity`-Feldern (Sensor 1, vom bestehenden Chart.js-
+  Chart gebunden) neue `temperature2`/`humidity2`/`pressureHpa`/`lux`/
+  `eco2Ppm`-Arrays (Sensor 2) - **noch nicht im Chart dargestellt**,
+  Frontend-Erweiterung ist bewusst nicht Teil dieser Änderung. Dashboard-
+  Zeile und beide Display-Manager (`DisplayManager`/
+  `ExternalDisplayManager`) zeigen je nach Modultyp Temp/Feuchte, Druck,
+  Lux oder eCO2 an.
+- **Bugfix, durch die Erweiterung aufgedeckt**: `SensorReading.valid`
+  bedeutete bisher implizit immer "liefert echte Temperatur/Feuchte" - das
+  gilt seit den drei neuen Modultypen nicht mehr (ein Druck-/Lux-/
+  Luftgüte-Modul lässt `temperature`/`humidity` NAN, `valid` aber `true`).
+  `SNMPManager`, `MqttManager` und `RelayManager` (automatisches Schalten
+  mit Quelle "sensor2") prüften bisher nur `valid`, nicht zusätzlich
+  `!isnan(temperature)` - ohne Korrektur hätte SNMP/MQTT NAN-Werte
+  exportiert bzw. `RelayManager` das Relais bei jedem Zyklus unbemerkt
+  ausgeschaltet (NAN-Vergleich ist in IEEE 754 immer `false`). Alle drei
+  jetzt entsprechend abgesichert.
+- **Neue Bibliotheksabhängigkeiten** (`platformio.ini`): `adafruit/Adafruit
+  BMP280 Library@^3.0.0`, `claws/BH1750@^1.3.0`, `adafruit/ENS160 -
+  Adafruit Fork@^3.0.1`.
+
+### Bewusst nicht Teil dieser Änderung
+
+- **SNMP/MQTT-Export der drei neuen Messgrößen** (Druck/Lux/eCO2) - beide
+  exportieren weiterhin nur Sensor-1/2-Temperatur/Feuchte wie bisher, neue
+  OIDs/Topics wären ein eigener Schritt.
+- **Kalibrier-Offset für Druck** (analog zu `sensor2TempOffset`/
+  `-HumOffset`) - eine sinnvolle Korrektur wäre höhenabhängig
+  (Normalnull-Bezug), nicht nur ein fester Chip-Offset.
+- **Dashboard-Chart-Darstellung** der neuen Sensor-2-Werte - Daten sind
+  über `/api/graph` bereits abrufbar, nur die Chart.js-Konfiguration im
+  Frontend wurde nicht erweitert.
+- **Echtes gleichzeitiges Lesen mehrerer gesteckter Module** ("Modul-
+  Integration") - weiterhin nur das primäre (niedrigste Adresse) Gerät
+  wird tatsächlich gelesen, siehe Eintrag oben.
+- **ENS160 Warmlaufzeit**: `begin()`/`setMode()` werden wie bei den
+  anderen I2C-Sensoren bei jedem 60s-Zyklus neu aufgerufen - ob das die
+  Basislinien-Kalibrierung des Metalloxid-Sensors gegenüber Dauerbetrieb
+  verschlechtert, ist mangels echter Hardware nicht verifiziert.
+
+Getestet: `pio run` für beide Projekte (sm hier: Flash 61,1% / RAM 18,9%,
+vorher 60,4%/17,8% - sm-poe siehe dortiges Log) - baut sauber, drei neue
+Bibliotheken erfolgreich aufgelöst. **Nicht getestet**: echte Hardware
+(keiner der drei neuen Sensortypen physisch angeschlossen zum Zeitpunkt
+dieser Änderung, kein Nachweis der tatsächlichen Messwerte/Timing-
+Verhalten von ENS160s blockierendem `measure(true)`).
