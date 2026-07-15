@@ -1301,3 +1301,95 @@ daher keine funktionale Änderung am Verhalten bestehender Module. Siehe
 `sensormeter-poe/repo/docs/entscheidungen.md` für die analoge Änderung
 dort und `sensormeter-family/repo/module-design/README.md` für die
 familienweite Pinbelegungstabelle.
+
+## 2026-07-15 — Periodischer I2C-Rescan (1x/Minute), ohne Taktänderung
+
+Ursprünglich angefragt: I2C-Bus auf 50 kHz begrenzen + vollständiger Scan
+beim Start + 1x/Minute, asynchron zur Sensorabfrage. Nach Analyse auf den
+Minuten-Rescan reduziert - die Integration mehrerer gleichzeitig
+erkannter Module folgt später:
+
+- **50 kHz verworfen (fürs Erste)**: der Bus-Takt wird im App-Code nie
+  gesetzt, sondern von den Display-Bibliotheken pro Frame selbst
+  reingedrückt (internes SSD1306 zwingt 400 kHz während des Transfers,
+  externes SH1107 sogar 1 MHz - beide Konstruktor-Defaults, nicht
+  Applikationscode). Ein globales `Wire.setClock(50000)` würde bei jedem
+  Display-Refresh sofort überschrieben. Eine echte 50-kHz-Beschränkung
+  bräuchte Änderungen an den `clkDuring`/`clkAfter`-Parametern in
+  `DisplayManager.cpp`/`ExternalDisplayManager.cpp` und würde den
+  Frame-Flush deutlich verlangsamen (Display wird wegen der
+  Scroll-Animation praktisch jeden Loop-Tick neu gezeichnet, nicht nur
+  alle 10s) - zurückgestellt, bis eine konkrete Motivation (z.B.
+  Signalintegrität über längere RJ45-Modulkabel) das rechtfertigt.
+- **"Vollständiger Scan beim Start" existierte bereits**: `SensorDetector::
+  runDetection()` sweept schon den kompletten 7-Bit-Adressraum
+  (0x08-0x77, Displays ausgenommen) beim Boot - bricht aber beim ersten
+  Treffer ab (`SensorDetector.cpp`, Kommentar "genau ein Modul
+  erwartet"). Diese Break-Logik bleibt vorerst unverändert - Mehrfach-
+  Erkennung ist Teil der später geplanten Modul-Integration.
+- **"Asynchron zur Sensorabfrage" umgesetzt als eigener Timer, nicht als
+  echte Parallelität**: die Firmware hat keinen RTOS-Task-Scheduler und
+  keinen async I2C-Treiber - `loop()` ist ein einziger sequenzieller
+  Task. "Asynchron" heißt hier: eigener `millis()`-Timer mit 60000ms-
+  Intervall (`SensorDetector::loop()`, analog zum bestehenden Muster in
+  `SensorManager::loop()`), unabhängig vom 60s-Lesezyklus von
+  `SensorManager` getaktet, aber weiterhin blockierend im selben
+  Loop-Tick ausgeführt.
+
+**Umgesetzte Änderungen** (`SensorDetector.h`/`.cpp`, `main.cpp`):
+- I2C-Sweep aus `runDetection()` in eine neue private Methode
+  `scanI2cBus()` extrahiert (liefert `bool`, ob ein Treffer gefunden
+  wurde), von `runDetection()` (Boot/manueller Button) UND der neuen
+  `loop()`-Methode gemeinsam genutzt.
+- `SensorDetector::loop()` neu: alle 60s (erster Aufruf sofort) ein
+  reiner I2C-Rescan über `scanI2cBus()`. Bewusst **kein** erneuter
+  DHT-Leseversuch dabei - `dhtProbe` teilt sich den GPIO mit
+  `SensorManager`s `dhtExternal`; ein zusätzlicher Leseversuch jede
+  Minute hätte den echten 60s-Sensor-Lesezyklus gestört (DHT-Sensoren
+  brauchen minimalen Abstand zwischen Lesungen).
+- Bei einem I2C-Treffer wird der Erkennungsstatus aktualisiert (auch bei
+  Modulwechsel auf eine andere Adresse) und `sensor2Enabled` ggf.
+  automatisch gesetzt, wie bei `runDetection()`. Bleibt der periodische
+  Scan ergebnislos, wird der zuletzt bekannte Status **nicht**
+  zurückgesetzt - sonst würde ein aktiv genutztes DHT-/Kontakt-Modul auf
+  Pin 5 (das ein I2C-Scan naturgemäß nie "findet") jede Minute fälschlich
+  auf "Kein Sensor" zurückfallen.
+- `main.cpp`: `sensorDetector.loop();` im Hauptloop ergänzt.
+
+Getestet: `pio run` für beide Projekte (sm hier, sm-poe siehe dortiges
+Log) - baut sauber, keine neuen Warnungen. **Nicht getestet**: Verhalten
+auf echter Hardware (Timing des periodischen Scans, tatsächliche Dauer
+bei 112 Adressen, Zusammenspiel mit laufendem Netzwerk-/Web-Traffic) -
+mangels angeschlossenem Board zum Zeitpunkt dieser Änderung.
+
+### Nachtrag (gleicher Tag) — "vollständig" hieß auch: alle Treffer auswerten, nicht nur den ersten
+
+Missverständnis in der ursprünglichen Umsetzung oben: "vollständiger Scan"
+wurde nur auf den durchsuchten Adressbereich bezogen (0x08-0x77, der schon
+vorher komplett durchlaufen wurde) — gemeint war aber zusätzlich, dass
+**jede** gefundene Adresse ausgewertet wird, nicht nur die erste. Das ist
+etwas anderes als die weiterhin zurückgestellte "Modul-Integration"
+(mehrere Module gleichzeitig tatsächlich *nutzen*, z. B. gleichzeitig
+auslesen) — hier geht es nur um die *Erkennung/Auswertung*, nicht um den
+Lesepfad.
+
+**Umgesetzte Korrektur** (`SensorDetector.h`/`.cpp`):
+- `scanI2cBus()` bricht nicht mehr beim ersten Treffer ab (`break`
+  entfernt), sondern durchläuft immer den kompletten Adressraum.
+- Neue `I2cHit`-Struktur (Adresse + Chipname) und ein Array
+  `_i2cHits[MAX_LOGGED_I2C_HITS=8]` sammeln **alle** Treffer eines Scans;
+  jeder wird wie bisher einzeln über `Serial.printf` geloggt. Neue Getter
+  `detectedI2cDeviceCount()`/`detectedI2cDeviceAt()`.
+- Das **primäre** Gerät (niedrigste gefundene Adresse — bei den
+  Kombimodulen also weiterhin AHT20/AHT21 vor BMP280/ENS160, siehe
+  `sensormeter-family/repo/module-design/README.md`) wird weiterhin in
+  `_detectedType`/`_detectedChipName`/`_detectedI2cAddress` gespiegelt,
+  damit `SensorManager` unverändert nur genau eines liest — die
+  tatsächliche Mehrfach-Nutzung bleibt bewusst offen.
+- `detectedDescription()` hängt bei mehr als einem Treffer einen Hinweis
+  an, z. B. „I2C-Sensor (AHT20/AHT21) (+1 weiteres I2C-Gerät)".
+- Verhalten bei ergebnislosem periodischen Rescan (Status nicht
+  zurücksetzen) bleibt unverändert, siehe oben.
+
+Getestet: `pio run` für beide Projekte - baut sauber. Nicht getestet: echte
+Hardware.

@@ -389,6 +389,7 @@ void loop() {
   handleSerialCommands();
   networkManager.loop();
   timeManager.loop();
+  sensorDetector.loop();
   sensorManager.loop();
   contactManager.loop();
   relayManager.loop();
