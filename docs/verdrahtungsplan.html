@@ -104,27 +104,37 @@
 </div>
 
 <div class="callout warn">
-  <div class="callout-title">Board-Foto-Abgleich (WT32-ETH01-back.png, V1.4) - 2026-07-16</div>
-  Gegen ein Foto der Platinenrückseite geprüft (2×13-Pin-Stiftleiste,
-  <code>V1.4</code>-Silkscreen). Zwei Erkenntnisse:
+  <div class="callout-title">Board-Foto + Datenblatt-Abgleich (WT32-ETH01-back.png, V1.4) - 2026-07-16</div>
+  Gegen ein Foto der Platinenrückseite (2×13-Pin-Stiftleiste,
+  <code>V1.4</code>-Silkscreen) und gegen
+  <code>WT32-ETH01_datasheet_V1.1- en.pdf</code> (Tabelle „Module IO
+  Description") geprüft.
   <ul style="margin:2mm 0 0 4mm; padding:0;">
     <li><code>IO0</code> ist auf dem Foto eindeutig als Header-Pin
     beschriftet - der Abschnitt „Vermiedene Pins" unten listete es
     fälschlich als nicht verfügbar, ist jetzt korrigiert.</li>
-    <li><b>Ungeklärt:</b> <code>IO32</code>, <code>IO33</code> (I2C SCL/SDA)
-    und <code>IO5</code> (Relais-Steuerung) - alle drei von der Firmware
-    genutzt - tauchen auf dem Foto <b>unter diesem Namen nicht</b> in der
-    Pin-Beschriftung auf. Stattdessen zeigt dieses Board zusätzliche,
-    bisher nicht dokumentierte Pins: <code>CFG</code>, <code>485_EN</code>,
-    <code>RXD</code>, <code>TXD</code>, <code>LINK</code> (deutet auf eine
-    Board-Variante mit eingebautem RS485-Transceiver hin). Ob IO32/33/5
-    auf dieser Variante unter einem der neuen Namen mitlaufen oder schlicht
-    nicht herausgeführt sind, lässt sich allein aus dem Foto nicht
-    klären - dafür wäre das Datenblatt nötig (bewusst nicht herangezogen,
-    siehe Abschnitt „Reale Pinbelegung laut Board-Foto" unten). Bis das
-    geklärt ist, <b>vor dem Bestücken mit einem Multimeter/Datenblatt
-    verifizieren</b>, dass IO32/33/5 tatsächlich auf den erwarteten
-    Lötpunkten liegen.</li>
+    <li><b>Geklärt:</b> <code>IO32</code>, <code>IO33</code> und
+    <code>IO5</code> tauchen auf dem Board-Silkscreen nicht unter diesem
+    Namen auf, weil diese <code>V1.4</code>-Variante einen eingebauten
+    RS485-Transceiver hat - das Datenblatt bestätigt: <code>CFG</code> =
+    <code>IO32</code>, <code>485_EN</code> = Enable-Pin von
+    <code>IO33</code> (RS485-Richtungssteuerung), <code>RXD</code> =
+    <code>IO5</code>/RXD2, <code>TXD</code> = <code>IO17</code>/TXD2
+    (nicht genutzt). Die Firmware-Pinbelegung (<code>pins.h</code>) war
+    damit die ganze Zeit korrekt - keine Codeänderung nötig.</li>
+    <li><b>Neuer Hardware-Hinweis:</b> falls auf diesem konkreten Board
+    tatsächlich ein RS485-Transceiver-Chip bestückt ist (nicht nur das
+    Silkscreen dafür vorbereitet), liegt dessen Enable-Eingang auf
+    derselben Leitung wie I2C SDA (<code>IO33</code>) - vor dem
+    Bestücken des I2C-Busses per Sichtprüfung/Multimeter verifizieren,
+    ob der RS485-Chip tatsächlich vorhanden ist, um Buskonflikte
+    auszuschließen.</li>
+    <li>Die zunächst als Unsicherheit vermerkte zweite <code>EN</code>-
+    Beschriftung ist ebenfalls geklärt: es gibt zwei echte, separate
+    EN-Pins - einer gehört zur 20-poligen Hauptleiste
+    („Module IO Description"), der andere zur separaten 6-poligen
+    Debug-Burning-Schnittstelle (dort sitzen auch <code>TXO</code>/
+    <code>RXO</code> = <code>IO1</code>/<code>IO3</code>, TXD0/RXD0).</li>
   </ul>
 </div>
 
@@ -405,11 +415,11 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <text x="490" y="58" fill="#6b7280">EN</text>
     <text x="490" y="93" font-weight="700" fill="#1c2430">GND</text>
     <text x="490" y="128" font-weight="700" fill="#c0392b">3V3</text>
-    <text x="490" y="163" fill="#6b7280">EN</text>
-    <text x="490" y="198" fill="#6b7280">CFG</text>
-    <text x="490" y="233" fill="#6b7280">485_EN</text>
-    <text x="490" y="268" fill="#6b7280">RXD</text>
-    <text x="490" y="303" fill="#6b7280">TXD</text>
+    <text x="490" y="163" fill="#6b7280">EN <tspan font-size="8.5" fill="#9aa2b0">(Debug-Iface)</tspan></text>
+    <text x="490" y="198" font-weight="700" fill="#c8622a">CFG <tspan font-size="8.5" fill="#9aa2b0">(IO32, SCL)</tspan></text>
+    <text x="490" y="233" font-weight="700" fill="#5c9e6c">485_EN <tspan font-size="8.5" fill="#9aa2b0">(IO33, SDA)</tspan></text>
+    <text x="490" y="268" font-weight="700" fill="#a63d2e">RXD <tspan font-size="8.5" fill="#9aa2b0">(IO5, Relais)</tspan></text>
+    <text x="490" y="303" fill="#6b7280">TXD <tspan font-size="8.5" fill="#9aa2b0">(IO17, ungenutzt)</tspan></text>
     <text x="490" y="338" font-weight="700" fill="#1c2430">GND</text>
     <text x="490" y="373" font-weight="700" fill="#c0392b">3V3</text>
     <text x="490" y="408" font-weight="700" fill="#1c2430">GND</text>
@@ -421,9 +431,9 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <circle cx="480" cy="89" r="2.5" fill="#1c2430"/>
     <circle cx="480" cy="124" r="2.5" fill="#c0392b"/>
     <circle cx="480" cy="159" r="2.5" fill="#8a93a3"/>
-    <circle cx="480" cy="194" r="2.5" fill="#8a93a3"/>
-    <circle cx="480" cy="229" r="2.5" fill="#8a93a3"/>
-    <circle cx="480" cy="264" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="194" r="2.5" fill="#c8622a"/>
+    <circle cx="480" cy="229" r="2.5" fill="#5c9e6c"/>
+    <circle cx="480" cy="264" r="2.5" fill="#a63d2e"/>
     <circle cx="480" cy="299" r="2.5" fill="#8a93a3"/>
     <circle cx="480" cy="334" r="2.5" fill="#1c2430"/>
     <circle cx="480" cy="369" r="2.5" fill="#c0392b"/>
@@ -432,11 +442,13 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <circle cx="480" cy="474" r="2.5" fill="#8a93a3"/>
   </g>
 
-  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">IO32 / IO33 / IO5 erscheinen auf diesem Foto unter KEINEM der beiden Namen - siehe Callout oben.</text>
+  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">CFG/485_EN/RXD tragen auf dieser RS485-Variante Sonderfunktionsnamen statt IO32/IO33/IO5 - siehe Callout oben (Datenblatt-Abgleich).</text>
 </svg>
-<p style="font-size:10.5px;color:#6b7280;">Die zweite <code>EN</code>-Beschriftung (rechte Spalte, Position 4) ist
-auf dem Foto in dieser Auflösung nicht mit letzter Sicherheit von einer
-Verwechslung zu unterscheiden - vor dem Bestücken gegenprüfen.</p>
+<p style="font-size:10.5px;color:#6b7280;"><code>TXO</code>/<code>RXO</code> (linke Spalte, oben) sowie die zweite
+<code>EN</code>-Beschriftung (rechte Spalte, Position 4) gehören zur
+separaten 6-poligen Debug-Burning-Schnittstelle des Boards
+(<code>IO1</code>/TXD0, <code>IO3</code>/RXD0, eigenes <code>EN</code>) -
+nicht Teil der 20-poligen Hauptleiste, an der die übrigen Pins hängen.</p>
 
 <h2>Vermiedene Pins</h2>
 <p>Nicht am 20-Pin-Header verfügbar: <code>IO16, IO18, IO19, IO21,

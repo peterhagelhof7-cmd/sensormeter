@@ -1693,3 +1693,42 @@ Firmware-/`pio run`-Bezug. Nicht getestet: keine Verifikation gegen das
 Datenblatt oder ein Multimeter in dieser Sitzung (bewusst ausserhalb des
 Auftragsumfangs) - die IO32/33/5-Frage bleibt fuer eine Folgesitzung
 offen.
+
+## 2026-07-16 — IO32/IO33/IO5-Frage per Datenblatt geklaert
+
+Folge-Auftrag zum Eintrag oben: `WT32-ETH01_datasheet_V1.1- en.pdf`
+(liegt im Projektordner, Tabelle „Module IO Description", Seite 9)
+herangezogen, um die dort offen gelassene Diskrepanz zu klaeren.
+
+- **Geklaert**: `IO32`, `IO33` und `IO5` sind auf der `V1.4`-Platine
+  tatsaechlich vorhanden - das Datenblatt bestaetigt `CFG` = `IO32`,
+  `485_EN` = Enable-Pin von `IO33` (RS485-Richtungssteuerung), `RXD` =
+  `IO5`/RXD2, `TXD` = `IO17`/TXD2 (ungenutzt). Auf dieser
+  RS485-Transceiver-Variante zeigt das Silkscreen den
+  Sonderfunktionsnamen statt der generischen `IOxx`-Bezeichnung fuer
+  diese vier Pins. **`pins.h` war die ganze Zeit korrekt - keine
+  Firmware-Aenderung noetig.**
+- **Zweite `EN`-Beschriftung geklaert**: es gibt zwei echte, separate
+  EN-Pins - einer gehoert zur 20-poligen Hauptleiste ("Module IO
+  Description"), der andere zur separaten 6-poligen
+  Debug-Burning-Schnittstelle (Tabelle "Debug Burning Interface", dort
+  auch `TXO`/`RXO` = `IO1`/`IO3`, TXD0/RXD0) - keine Verwechslung,
+  keine offene Unsicherheit mehr.
+- **Neuer Hardware-Hinweis** (nicht aus dem Datenblatt ableitbar, eigene
+  Schlussfolgerung): falls auf diesem konkreten Board tatsaechlich ein
+  RS485-Transceiver-Chip bestueckt ist (das Silkscreen allein beweist
+  das nicht - manche Hersteller drucken die Beschriftung fuer eine
+  Boardfamilie, bestuecken aber nicht immer den Chip), liegt dessen
+  Enable-Eingang auf derselben Leitung wie I2C SDA (`IO33`) - vor dem
+  Bestuecken des I2C-Busses per Sichtpruefung/Multimeter verifizieren,
+  ob der RS485-Chip tatsaechlich vorhanden ist, um Buskonflikte
+  auszuschliessen. Dieser Punkt bleibt fuer die echte Hardware offen
+  (kein Board zum Nachpruefen in dieser Sitzung vorhanden).
+- `docs/verdrahtungsplan.html`: Callout und reales Pinbelegungs-Schema
+  aktualisiert (CFG/485_EN/RXD jetzt farbig mit IO-Nummer annotiert,
+  TXD grau als ungenutzt markiert, Debug-Interface-Pins entsprechend
+  beschriftet).
+
+Rein dokumentarische Aenderung, kein Firmware-/`pio run`-Bezug (da keine
+Codeaenderung noetig war). Nicht getestet: kein physisches Nachmessen
+des RS485-Chip-Vorhandenseins auf echter Hardware.
