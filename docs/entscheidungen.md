@@ -1732,3 +1732,33 @@ herangezogen, um die dort offen gelassene Diskrepanz zu klaeren.
 Rein dokumentarische Aenderung, kein Firmware-/`pio run`-Bezug (da keine
 Codeaenderung noetig war). Nicht getestet: kein physisches Nachmessen
 des RS485-Chip-Vorhandenseins auf echter Hardware.
+
+## 2026-07-16 — Datenblatt-Zuordnung IO32/IO33 per Live-Test widerlegt
+
+Direkter Anlass: erster erfolgreicher Flash eines echten Boards in
+dieser Sitzung (siehe Flash-Verlauf, COM7 mit CP2102-Adapter, manueller
+Boot-Modus per IO0/EN). Am tatsaechlich angeschlossenen Board liess sich
+die im Eintrag oben getroffene Aussage ("`CFG`=`IO32`, `485_EN`=Enable-
+Pin von `IO33`") **nicht bestaetigen** - unter keiner Silkscreen-
+Beschriftung war ein Pin `IO32` oder `IO33` auffindbar.
+
+- Der vorherige Eintrag ("IO32/IO33/IO5-Frage per Datenblatt geklaert")
+  bleibt stehen (append-only-Konvention), ist aber durch diesen Eintrag
+  **ueberholt/widerlegt** - das Datenblatt beschreibt entweder eine
+  andere Bestueckungsvariante oder die Tabelle ist fuer dieses Board
+  schlicht nicht zutreffend. Ursache nicht weiter untersucht.
+- `docs/verdrahtungsplan.html`: die GPIO-Nummer-Annotationen bei
+  `CFG`/`485_EN`/`RXD`/`TXD` (Farbe + „(IO32, SCL)" etc.) wieder entfernt -
+  Pins werden jetzt nur noch 1:1 mit dem reinen Silkscreen-Text
+  beschriftet, ohne GPIO-Zuordnung. Neuer Absatz im Abschnitt "Vermiedene
+  Pins" dokumentiert den Live-Test-Befund.
+- **`pins.h` weiterhin unveraendert** (war schon beim vorherigen Eintrag
+  so, bleibt so) - `PIN_I2C_SCL=32`/`PIN_I2C_SDA=33` sind auf diesem
+  Board damit ungeklaert nutzbar. I2C-Bestueckung ueber die RJ45-Buchse
+  sollte bis zur Klaerung nicht ohne eigene Messung erfolgen.
+
+Rein dokumentarische Aenderung. Nicht getestet: keine systematische
+Pin-fuer-Pin-Messung des gesamten Headers - nur die konkrete Aussage
+"gibt es IO32/IO33" wurde am Board widerlegt, die Ursache (andere
+Boardvariante? Uebersetzungsfehler im Datenblatt? etwas anderes?)
+bleibt offen fuer eine Folgesitzung.

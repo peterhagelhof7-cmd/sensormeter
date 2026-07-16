@@ -113,22 +113,21 @@
     <li><code>IO0</code> ist auf dem Foto eindeutig als Header-Pin
     beschriftet - der Abschnitt „Vermiedene Pins" unten listete es
     fälschlich als nicht verfügbar, ist jetzt korrigiert.</li>
-    <li><b>Geklärt:</b> <code>IO32</code>, <code>IO33</code> und
-    <code>IO5</code> tauchen auf dem Board-Silkscreen nicht unter diesem
-    Namen auf, weil diese <code>V1.4</code>-Variante einen eingebauten
-    RS485-Transceiver hat - das Datenblatt bestätigt: <code>CFG</code> =
-    <code>IO32</code>, <code>485_EN</code> = Enable-Pin von
-    <code>IO33</code> (RS485-Richtungssteuerung), <code>RXD</code> =
-    <code>IO5</code>/RXD2, <code>TXD</code> = <code>IO17</code>/TXD2
-    (nicht genutzt). Die Firmware-Pinbelegung (<code>pins.h</code>) war
-    damit die ganze Zeit korrekt - keine Codeänderung nötig.</li>
-    <li><b>Neuer Hardware-Hinweis:</b> falls auf diesem konkreten Board
-    tatsächlich ein RS485-Transceiver-Chip bestückt ist (nicht nur das
-    Silkscreen dafür vorbereitet), liegt dessen Enable-Eingang auf
-    derselben Leitung wie I2C SDA (<code>IO33</code>) - vor dem
-    Bestücken des I2C-Busses per Sichtprüfung/Multimeter verifizieren,
-    ob der RS485-Chip tatsächlich vorhanden ist, um Buskonflikte
-    auszuschließen.</li>
+    <li><b>Erneut offen (2026-07-16, per Live-Test widerlegt):</b> das
+    Datenblatt (<code>WT32-ETH01_datasheet_V1.1- en.pdf</code>, Tabelle
+    „Module IO Description") behauptet <code>CFG</code> = <code>IO32</code>,
+    <code>485_EN</code> = Enable-Pin von <code>IO33</code>. Am real
+    angeschlossenen Board hat sich das <b>nicht</b> bestätigt - dieses
+    Board hat unter keiner Beschriftung einen Pin <code>IO32</code> oder
+    <code>IO33</code>. Ob das Datenblatt für eine andere Bestückungs-
+    variante gilt oder die Zuordnung schlicht falsch ist, ist offen.
+    Die Pins werden unten daher nur noch mit dem reinen Silkscreen-Text
+    beschriftet, ohne GPIO-Nummer-Vermutung. <b>Die Firmware
+    (<code>pins.h</code>, <code>PIN_I2C_SCL=32</code>/
+    <code>PIN_I2C_SDA=33</code>) ist auf diesem Board damit weiterhin
+    ungeklärt/nicht verifiziert nutzbar</b> - vor dem Bestücken des I2C-
+    Busses zwingend mit einem Multimeter/Bauteil-Test klären, ob und wo
+    IO32/IO33 tatsächlich herausgeführt sind.</li>
     <li>Die zunächst als Unsicherheit vermerkte zweite <code>EN</code>-
     Beschriftung ist ebenfalls geklärt: es gibt zwei echte, separate
     EN-Pins - einer gehört zur 20-poligen Hauptleiste
@@ -416,10 +415,10 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <text x="490" y="93" font-weight="700" fill="#1c2430">GND</text>
     <text x="490" y="128" font-weight="700" fill="#c0392b">3V3</text>
     <text x="490" y="163" fill="#6b7280">EN <tspan font-size="8.5" fill="#9aa2b0">(Debug-Iface)</tspan></text>
-    <text x="490" y="198" font-weight="700" fill="#c8622a">CFG <tspan font-size="8.5" fill="#9aa2b0">(IO32, SCL)</tspan></text>
-    <text x="490" y="233" font-weight="700" fill="#5c9e6c">485_EN <tspan font-size="8.5" fill="#9aa2b0">(IO33, SDA)</tspan></text>
-    <text x="490" y="268" font-weight="700" fill="#a63d2e">RXD <tspan font-size="8.5" fill="#9aa2b0">(IO5, Relais)</tspan></text>
-    <text x="490" y="303" fill="#6b7280">TXD <tspan font-size="8.5" fill="#9aa2b0">(IO17, ungenutzt)</tspan></text>
+    <text x="490" y="198" fill="#6b7280">CFG</text>
+    <text x="490" y="233" fill="#6b7280">485_EN</text>
+    <text x="490" y="268" fill="#6b7280">RXD</text>
+    <text x="490" y="303" fill="#6b7280">TXD</text>
     <text x="490" y="338" font-weight="700" fill="#1c2430">GND</text>
     <text x="490" y="373" font-weight="700" fill="#c0392b">3V3</text>
     <text x="490" y="408" font-weight="700" fill="#1c2430">GND</text>
@@ -431,9 +430,9 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <circle cx="480" cy="89" r="2.5" fill="#1c2430"/>
     <circle cx="480" cy="124" r="2.5" fill="#c0392b"/>
     <circle cx="480" cy="159" r="2.5" fill="#8a93a3"/>
-    <circle cx="480" cy="194" r="2.5" fill="#c8622a"/>
-    <circle cx="480" cy="229" r="2.5" fill="#5c9e6c"/>
-    <circle cx="480" cy="264" r="2.5" fill="#a63d2e"/>
+    <circle cx="480" cy="194" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="229" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="264" r="2.5" fill="#8a93a3"/>
     <circle cx="480" cy="299" r="2.5" fill="#8a93a3"/>
     <circle cx="480" cy="334" r="2.5" fill="#1c2430"/>
     <circle cx="480" cy="369" r="2.5" fill="#c0392b"/>
@@ -442,7 +441,7 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <circle cx="480" cy="474" r="2.5" fill="#8a93a3"/>
   </g>
 
-  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">CFG/485_EN/RXD tragen auf dieser RS485-Variante Sonderfunktionsnamen statt IO32/IO33/IO5 - siehe Callout oben (Datenblatt-Abgleich).</text>
+  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">Beschriftung 1:1 vom Silkscreen - KEINE GPIO-Nummer-Zuordnung fuer CFG/485_EN/RXD/TXD, siehe Callout oben.</text>
 </svg>
 <p style="font-size:10.5px;color:#6b7280;"><code>TXO</code>/<code>RXO</code> (linke Spalte, oben) sowie die zweite
 <code>EN</code>-Beschriftung (rechte Spalte, Position 4) gehören zur
@@ -458,6 +457,12 @@ früheren Fassung dieses Abschnitts tatsächlich am Header verfügbar (siehe
 Board-Foto-Abschnitt oben), wird in diesem Projekt aber nicht verwendet.
 Details siehe <code>docs/verdrahtungsschema-v1.2.pdf</code> Seite 7 und
 <code>docs/pinout-wt32-eth01-v1.4.txt</code>.</p>
+<p><b>IO32/IO33 per Live-Test am realen Board nicht auffindbar</b> (2026-07-16,
+siehe Callout oben) - unter keiner der Silkscreen-Beschriftungen (auch
+nicht <code>CFG</code>/<code>485_EN</code>) ließ sich am angeschlossenen
+Board ein Pin <code>IO32</code> bzw. <code>IO33</code> bestätigen,
+entgegen der Datenblatt-Angabe. Vor jeder I2C-Bestückung über diese Pins
+zwingend selbst nachmessen.</p>
 
 <footer>
   Sensormeter — Verdrahtungsplan (interaktive Kurzfassung von verdrahtungsschema-v1.2.pdf) · github.com/peterhagelhof7-cmd/sensormeter ·
