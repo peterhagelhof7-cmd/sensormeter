@@ -1935,3 +1935,56 @@ Bestueckung (nur interner Sensor) ueberhaupt pruefbar sind, wurden auf
 echter Hardware verifiziert statt nur gebaut. Offene Punkte oben sind
 Funktionen, die ein zusaetzliches Modul/Geraet/Broker brauchen, kein
 Hinweis auf einen Defekt.
+
+## 2026-07-16 — Uhrzeit-Bug praezisiert: keine NTP-Stoerung, sondern eine Zeitzonen-Konvertierung, die zur Laufzeit nicht greift
+
+Nutzer hat das Testgeraet ueber die Einstellungsseite neu gestartet und
+gemeldet, die Uhrzeit sei weiterhin falsch. Serieller Mitschnitt des
+kompletten Boot-Vorgangs (nach Neustart des zuvor haengengebliebenen
+Log-Mitschnitts, siehe unten) zeigt die eigentliche Ursache klar:
+
+```
+[TIME] Link-Up erkannt -> NTP-Resync vorgezogen
+[TIME] Synchronisiert: Thu Jul 16 18:19:23 2026
+```
+
+Zu diesem Zeitpunkt war es tatsaechlich 20:19 Uhr Ortszeit (Sommerzeit,
+UTC+2) - der geloggte Wert ist exakt die UTC-Zeit, nicht die Ortszeit.
+**Die NTP-Synchronisation selbst funktioniert einwandfrei** - der Server
+liefert korrekte UTC-Zeit, das Problem liegt ausschliesslich in der
+Zeitzonen-Umrechnung fuer Anzeige/Log.
+
+`TimeManager.cpp:25` ruft bereits korrekt
+`configTzTime(TZ_GERMANY, NTP_SERVER)` mit
+`TZ_GERMANY = "CET-1CEST,M3.5.0,M10.5.0/3"` auf - ein gueltiger
+POSIX-TZ-String fuer Europe/Berlin inklusive automatischer
+Sommerzeitumschaltung. Codebase-weite Suche (`firmware/src`) findet
+keinen zweiten `configTime`/`setenv("TZ"...)`-Aufruf, der das
+ueberschreiben koennte. Der Code sieht also korrekt aus, die
+Zeitzonen-Umrechnung greift zur Laufzeit aber trotzdem nicht - deutet auf
+ein ESP32-Arduino-Core-/newlib-Verhalten hin (TZ wird gesetzt, aber von
+der spaeteren `ctime()`/`localtime()`-Verwendung nicht beruecksichtigt),
+nicht auf einen offensichtlichen Logikfehler im Projekt-Code selbst.
+Noch nicht bis auf Bibliotheksebene geklaert - naechster Schritt
+waere, `getenv("TZ")` direkt vor dem `ctime()`-Aufruf in
+`TimeManager::onSyncSuccess()` mitzuloggen, um zu sehen, ob die
+Umgebungsvariable zu diesem Zeitpunkt tatsaechlich noch den erwarteten
+Wert hat.
+
+Erklaert rueckwirkend auch den fruehen Sitzungsbefund ("Uhr springt nach
+WLAN-Reconnect-Reboot um ~1,5h zurueck") - gleiche Ursache, gleiches
+Offset-Muster (ziemlich genau die UTC/CEST-Differenz), kein zufaelliger
+Sprung.
+
+**Nebenbefund beim Debuggen**: der seit 19:32 Uhr laufende serielle
+Log-Mitschnitt dieser Sitzung war haengengeblieben (keine neuen Zeilen
+trotz eines echten Neustarts mit neuem Boot-Log) - Ursache nicht
+untersucht (moeglicherweise ein Windows-COM-Port-Handle-Problem nach dem
+fruehen "on"-Spam-Vorfall). Mitschnitt neu gestartet, seither wieder
+funktionsfaehig (kompletter Boot-Log inkl. NTP-Sync-Zeile oben erfolgreich
+mitgeschnitten).
+
+Rein diagnostische Sitzung, keine Code-Aenderung - der eigentliche Fix
+(vermutlich `getenv("TZ")`/`tzset()`-Debugging oder ein bekannter
+Workaround fuer dieses ESP32-Core-Verhalten) bleibt fuer eine Folgesitzung
+offen.
