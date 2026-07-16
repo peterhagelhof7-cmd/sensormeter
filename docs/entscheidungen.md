@@ -1988,3 +1988,67 @@ Rein diagnostische Sitzung, keine Code-Aenderung - der eigentliche Fix
 (vermutlich `getenv("TZ")`/`tzset()`-Debugging oder ein bekannter
 Workaround fuer dieses ESP32-Core-Verhalten) bleibt fuer eine Folgesitzung
 offen.
+
+## 2026-07-16 — Zeitzonen-Fix implementiert; dabei zusaetzlich einen bereits laenger bestehenden OTA-Bug gefunden, der die eigene Auslieferung per OTA blockiert
+
+**Fix 1 - Zeitzone (`TimeManager.cpp`):** `begin()` setzt jetzt
+`setenv("TZ", TZ_GERMANY, 1); tzset();` unbedingt, unabhaengig vom
+Sync-Status. Root Cause (siehe Eintrag oben): die ESP32-Hardware-RTC
+ueberlebt `ESP.restart()`, wodurch `isTimeSynced()` (reine
+Epoch-Grenzwert-Pruefung) nach jedem Neustart ausser dem allerersten
+sofort `true` liefert - `loop()`s "bereits synchronisiert"-Schnellpfad
+ruft dann `startSyncAttempt()`/`configTzTime()` in diesem Bootzyklus gar
+nicht mehr auf, und die POSIX-TZ-Umgebungsvariable (reiner
+Prozessspeicher, im Gegensatz zur Hardware-RTC bei jedem Neustart
+geloescht) faellt auf UTC zurueck. Der Fix entkoppelt "TZ setzen" von
+"NTP-Sync-Status" - TZ wird jetzt bei jedem Boot sofort gesetzt, bevor
+ueberhaupt geprueft wird, ob schon eine gueltige Zeit vorliegt.
+
+**Fix 2 - OTA-Marker-Scan (`OtaManager.h`/`.cpp`), beim Ausliefern von
+Fix 1 per OTA entdeckt:** ein Upload der frisch gebauten, unveraenderten
+Versionsnummer (0.9.0-rc4, kein Downgrade) wurde mit "Update abgelehnt:
+die Datei enthaelt kein gueltiges Firmware-Erkennungsmerkmal" abgelehnt.
+Pruefung des Binaries selbst (`strings`/Python) zeigt: der Marker
+`SM-FW-ID:SENSORMETER:0.9.0-rc4:SM-FW-END` ist tatsaechlich im Binary
+enthalten, bei Byte-Offset 37.901. Das erste eingebettete Null-Byte im
+ESP32-Image liegt aber bereits bei Byte 9 (ESP32-Image-Header-Padding),
+2.071 Null-Bytes liegen vor dem Marker. `OtaManager::scanChunkForMarker()`
+nutzte bisher Arduino `String`/`indexOf()` (intern `strstr()`-basiert,
+bricht am ersten Null-Byte in den durchsuchten Daten ab) zum Scannen der
+rohen Binaerdaten - dadurch konnte der Marker in einer echten,
+kompilierten `.bin`-Datei praktisch **nie** gefunden werden, unabhaengig
+vom Inhalt. Getestet und bestaetigt, dass auch die "Downgrade erzwingen"-
+Checkbox hier nicht hilft: sie beeinflusst nur `_versionAllowed`, nicht
+`_markerFound` - `endLocalUpdate()` prueft beide (und `_identityMatches`)
+unabhaengig, alle drei muessen wahr sein.
+
+Fix: `scanChunkForMarker()` komplett auf rohe `uint8_t`-Puffer und eine
+eigene, Null-Byte-sichere `findBytes()`-Suche (memcmp-basiert statt
+strstr-basiert) umgestellt, `String _tail`/`_capture` durch feste
+Byte-Puffer (`_tailBuf[16]`, `_captureBuf[128]`) ersetzt. Nur das kurze,
+tatsaechlich gefundene Marker-Payload (Projekt-ID + Version, garantiert
+reiner ASCII-Text ohne eingebettete Nullen) wird am Ende noch in einen
+Arduino `String` konvertiert, fuer `handleMarkerPayload()`.
+
+**Kritische Konsequenz - Henne-Ei-Problem:** dieser Fix behebt eine
+Pruefung, die auf dem **bereits laufenden** Geraet ausgefuehrt wird und
+ueber die Annahme JEDES kuenftigen OTA-Uploads entscheidet - nicht
+Eigenschaft der hochgeladenen Datei. Die aktuell auf dem Geraet laufende
+Firmware hat den alten, kaputten Scanner und lehnt deshalb JEDE echte
+`.bin`-Datei ab, auch eine, die genau diesen Fix enthaelt (empirisch
+bestaetigt: der frisch gebaute Fix-Build wurde mit derselben Meldung
+abgelehnt wie zuvor). **Weder Fix 1 noch Fix 2 lassen sich unter diesen
+Umstaenden per OTA auf dieses Geraet bringen** - beide sind nur im
+Quellcode vorhanden, noch nicht geflasht. Der einzige Weg aus dieser
+Zwickmuehle ist ein serieller Flash im manuellen Boot-Modus (IO0/EN,
+siehe `docs/flash-bereitschaft.html`), sobald physischer Zugriff auf das
+Geraet besteht - danach funktioniert OTA fuer zukuenftige Updates
+regulaer wieder (Fix 2 behebt sich selbst fuer alle folgenden Uploads,
+sobald er einmal drauf ist).
+
+Diese Sitzung: `pio run` erfolgreich fuer beide Fixes (einzeln und
+zusammen getestet), OTA-Upload-Versuch (mit und ohne
+"Downgrade erzwingen") beide wie erwartet abgelehnt, kein Flash
+durchgefuehrt (kein physischer Zugriff). `Update.abort()` wird bei jeder
+Ablehnung aufgerufen - die laufende Firmware auf dem Geraet blieb dabei
+unangetastet, kein Risiko eines Teil-Flashes.
