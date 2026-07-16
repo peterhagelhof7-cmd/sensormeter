@@ -103,12 +103,16 @@ $ErrorActionPreference = "Stop"
 # damit erkennbar ist, ob eine lokal vorliegende Kopie veraltet ist.
 #
 # Changelog:
+#   1.1.1 (2026-07-16) - Sensormeter-FlashNote verweist zusaetzlich auf
+#                         docs/flash-bereitschaft.html (real getestete
+#                         manuelle Boot-Modus-Sequenz fuer Adapter ohne
+#                         DTR/RTS).
 #   1.1.0 (2026-07-11) - Sensormeter PoE als viertes Projekt ergaenzt,
 #                         Hinweis zur PlatformIO-Paket-Pool-Isolation
 #                         zwischen "espressif32" und "pioarduino" ergaenzt.
 #   1.0.0 (2026-07-10) - Erste versionierte Fassung (Sensormeter,
 #                         Sensormeter WLAN, Sensormeter Display).
-$FlashScriptVersion = "1.1.0"
+$FlashScriptVersion = "1.1.1"
 
 $Projects = @{
   "sensormeter" = @{
@@ -116,7 +120,7 @@ $Projects = @{
     RepoUrl     = "https://github.com/peterhagelhof7-cmd/sensormeter.git"
     FolderName  = "sensormeter"
     HasConfigH  = $true
-    FlashNote   = "Board muss am USB-Seriell-Adapter (Debug-Burning-Schnittstelle, NICHT am 20-Pin-Hauptheader!) angeschlossen sein und sich im Boot-/Download-Modus befinden - siehe docs/flash-vorbereitung.pdf."
+    FlashNote   = "Board muss am USB-Seriell-Adapter (Debug-Burning-Schnittstelle, NICHT am 20-Pin-Hauptheader!) angeschlossen sein und sich im Boot-/Download-Modus befinden - siehe docs/flash-vorbereitung.pdf. Bei einem CP2102-Adapter ohne DTR/RTS (kein automatischer Modus) IO0/EN manuell bruecken, siehe docs/flash-bereitschaft.html fuer die real getestete Sequenz."
     SuccessNote = "Seriellen Monitor ansehen: pio device monitor (115200 Baud)."
   }
   "wlan" = @{

@@ -14,6 +14,11 @@
 #define ETH_CLK_MODE   ETH_CLOCK_GPIO0_IN
 
 // --- I2C-Bus: Display (SSD1306) + externer I2C-Sensor am RJ45 ---------------
+// Silkscreen auf dem Board zeigt NICHT "IO32"/"IO33", sondern die
+// Sonderfunktionsnamen "CFG" (=IO32, Pin 2 rechte Spalte) und "485_EN"
+// (=IO33, Pin 3 rechte Spalte) - siehe docs/entscheidungen.md
+// "IO32/IO33-Frage endgueltig geklaert" fuer die Herleitung (Datenblatt
+// Tabelle-2 + Boardfoto + 3 externe Quellen).
 #define PIN_I2C_SCL 32
 #define PIN_I2C_SDA 33
 

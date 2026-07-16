@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Sensormeter — Flash-Bereitschaft (Real-Hardware-Ergänzung)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1c2430;
+    background: #ffffff;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  header {
+    background: #0f1f3d;
+    color: #fff;
+    margin: -18mm -16mm 8mm -16mm;
+    padding: 10mm 16mm 8mm 16mm;
+  }
+  .eyebrow { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: #9fb3d9; margin-bottom: 3mm; }
+  h1 { margin: 0 0 2mm 0; font-size: 22px; }
+  .subtitle { color: #cdd8ec; font-size: 12px; }
+  .badges { margin-top: 5mm; display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 3px; font-size: 10px; font-weight: 600; background: #24365c; color: #cdd8ec; }
+  .badge-orange { background: #c8622a; color: #fff; }
+
+  h2 { font-size: 13.5px; color: #8f4a1e; margin: 7mm 0 3mm 0; border-bottom: 1px solid #e4e1d8; padding-bottom: 1.5mm; }
+  h3 { font-size: 12px; color: #1c2430; margin: 5mm 0 2mm 0; }
+  p { margin: 0 0 3mm 0; }
+  code { font-family: Consolas, "Cascadia Mono", "Courier New", monospace; background: #f2f0e9; border: 1px solid #e4e1d8; border-radius: 3px; padding: 1px 5px; font-size: 11px; }
+  table { border-collapse: collapse; width: 100%; margin: 2mm 0 4mm 0; }
+  table th, table td { border: 1px solid #e4e1d8; padding: 1.8mm 3mm; font-size: 11.5px; text-align: left; vertical-align: middle; }
+  table th { background: #f2f0e9; }
+  .callout { border-left: 3px solid #c8622a; background: #fbf3ee; padding: 3mm 4mm; margin: 3mm 0; border-radius: 0 3px 3px 0; }
+  .callout-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #8f4a1e; margin-bottom: 1mm; }
+  .callout.warn { border-left-color: #a63d2e; background: #fbeeec; }
+  .callout.warn .callout-title { color: #a63d2e; }
+  .callout.ok { border-left-color: #5c9e6c; background: #f0f7f1; }
+  .callout.ok .callout-title { color: #3f7a4d; }
+
+  footer { margin-top: 10mm; padding-top: 3mm; border-top: 1px solid #e4e1d8; font-size: 9.5px; color: #6b7280; }
+
+  /* Prozessablauf-Kette */
+  .flow { display: flex; flex-direction: column; gap: 0; margin: 3mm 0 5mm 0; }
+  .flow-step {
+    display: flex; gap: 4mm; align-items: flex-start;
+    padding: 3mm 0;
+  }
+  .flow-num {
+    flex-shrink: 0; width: 8mm; height: 8mm; border-radius: 50%;
+    background: #0f1f3d; color: #fff; font-weight: 700; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .flow-step.hold .flow-num { background: #c8622a; }
+  .flow-step.pulse .flow-num { background: #a63d2e; }
+  .flow-step.release .flow-num { background: #5c9e6c; }
+  .flow-body { flex: 1; padding-top: 0.5mm; }
+  .flow-title { font-weight: 700; font-size: 12px; margin-bottom: 0.5mm; }
+  .flow-desc { font-size: 11.5px; color: #444b57; }
+  .flow-connector {
+    width: 8mm; display: flex; justify-content: center;
+    color: #c7c2b4; font-size: 13px; margin-left: 0;
+  }
+  .flow-line { border-left: 2px dashed #d8d4c8; margin-left: 4mm; height: 4mm; }
+  .duration-tag {
+    display: inline-block; margin-left: 2mm; padding: 1px 7px; border-radius: 10px;
+    background: #f2f0e9; border: 1px solid #e4e1d8; font-size: 10px; color: #6b7280;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Firmware-Projekt · Hobby / Privat · Ergänzung zu docs/flash-vorbereitung.pdf v1.0 (Real-Hardware-Befunde)</div>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <svg viewBox="0 0 48 48" fill="none" width="32" height="32" style="flex-shrink:0;">
+      <path d="M24,9 L37.6,32.5 L10.4,32.5 Z" stroke="#8E97A3" stroke-width="2.2" stroke-linejoin="round"/>
+      <circle cx="24" cy="9" r="5" fill="#E08A4C"/>
+      <circle cx="37.6" cy="32.5" r="5" fill="#7FA0D9"/>
+      <circle cx="10.4" cy="32.5" r="5" fill="#74B7A6"/>
+      <line x1="24" y1="24.67" x2="31.07" y2="17.6" stroke="#E9E4D8" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="24" cy="24.67" r="2.6" fill="#E9E4D8"/>
+    </svg>
+    <h1>SENSORMETER — FLASH-BEREITSCHAFT (REAL-HARDWARE)</h1>
+  </div>
+  <div class="subtitle">Was beim ersten echten Flash auf ein physisches WT32-ETH01-Board tatsächlich funktioniert hat - Ergänzung zur generischen Anleitung</div>
+  <div class="badges">
+    <span class="badge badge-orange">CP2102 (COM7) · bestätigt funktionsfähig</span>
+    <span class="badge">Kein DTR/RTS am Adapter</span>
+    <span class="badge">Manueller Boot-Modus jedes Mal nötig</span>
+    <span class="badge">github.com/peterhagelhof7-cmd/sensormeter</span>
+  </div>
+</header>
+
+<div class="callout warn">
+  <div class="callout-title">Verhältnis zu docs/flash-vorbereitung.pdf</div>
+  <code>docs/flash-vorbereitung.pdf</code> (v1.0) beschreibt den generischen,
+  theoretischen Ablauf für einen beliebigen CH340-/CP2102-Adapter -
+  geschrieben, bevor tatsächlich ein echtes Board geflasht wurde. Diese
+  Seite ergänzt das PDF um das, was beim ersten echten Flash dieser
+  Sitzung real beobachtet wurde: welcher Adapter tatsächlich funktioniert
+  hat, dass <b>kein</b> automatischer DTR/RTS-Modus verfügbar ist (anders
+  als im PDF als Option beschrieben) und die konkrete manuelle
+  Boot-Modus-Sequenz. Aus der Erinnerung dieser Sitzung dokumentiert
+  (kein Board zum Nachmessen der exakten Sekunden gerade angeschlossen) -
+  Zeitangaben unten sind bewusst als "so lange wie" statt als
+  Sekunden-Werte formuliert, siehe Hinweis im Ablaufplan.
+</div>
+
+<h2>Getesteter Flasher</h2>
+<p>Zwei USB-Seriell-Adapter wurden in dieser Sitzung an das Board
+angeschlossen. Nur einer hat funktioniert:</p>
+<table>
+  <tr><th>Adapter</th><th>COM-Port</th><th>Ergebnis</th></tr>
+  <tr>
+    <td><b>CP2102</b> (Silicon Labs CP210x USB-to-UART-Bridge)</td>
+    <td><code>COM7</code></td>
+    <td><span style="color:#3f7a4d; font-weight:600;">✓ Funktioniert</span> - normales Boot-Log lesbar, Flashen im manuellen Boot-Modus erfolgreich</td>
+  </tr>
+  <tr>
+    <td>FTDI-Adapter</td>
+    <td><code>COM4</code> → <code>COM6</code></td>
+    <td><span style="color:#a63d2e; font-weight:600;">✗ Keine Daten</span> - keinerlei serielle Ausgabe empfangen, Ursache nicht geklärt (vermutlich Kabel/GND, nicht weiter untersucht)</td>
+  </tr>
+</table>
+<div class="callout">
+  <div class="callout-title">Wichtige Abweichung vom generischen PDF</div>
+  Der funktionierende CP2102-Adapter bringt <b>nur</b> die Pins
+  <code>TXD</code>, <code>RXD</code>, <code>GND</code>, <code>3.3V</code>,
+  <code>5V</code> heraus - <b>kein</b> <code>DTR</code>/<code>RTS</code>.
+  Der in <code>docs/flash-vorbereitung.pdf</code> Schritt 3 beschriebene
+  "automatische Modus" (esptool/IDE übernimmt Boot-Sequenz selbst über
+  DTR→EN und RTS→IO0) ist mit diesem konkreten Adapter <b>nicht</b>
+  verfügbar. Der manuelle Weg unten ist bei diesem Setup keine Ausweich-
+  lösung für einen Sonderfall, sondern der einzig funktionierende Weg -
+  bei jedem einzelnen Flash-Vorgang neu, nicht nur beim ersten Mal.
+</div>
+
+<h2>Chip-Info</h2>
+<p>Aus dem offiziellen Datenblatt (<code>WT32-ETH01_datasheet_V1.1- en.pdf</code>,
+Abschnitt 1 "Overview" / 2 "Characteristics") - <b>nicht</b> aus einem
+Live-<code>esptool</code>-Chip-Read dieser Sitzung, dafür wäre erneut der
+manuelle Boot-Modus am echten Board nötig gewesen (in dieser Sitzung ohne
+physischen Zugriff nicht möglich, siehe Hinweis unten).</p>
+<table>
+  <tr><th>Merkmal</th><th>Wert</th></tr>
+  <tr><td>SoC-Familie</td><td>ESP32-Serie (Espressif), integriertes 2,4-GHz-WiFi + Bluetooth-Dual-Mode-SoC</td></tr>
+  <tr><td>WiFi</td><td>802.11 b/g/n/e/i, bis 150 Mbps, A-MPDU/A-MSDU-Aggregation</td></tr>
+  <tr><td>Bluetooth</td><td>v4.2 BR/EDR + BLE</td></tr>
+  <tr><td>Onboard-Flash</td><td>32 Mbit (= 4 MB)</td></tr>
+  <tr><td>Ethernet</td><td>RJ45, 10/100 Mbps, LAN8720-PHY (auf dem Modul, RMII an den ESP32 angebunden)</td></tr>
+  <tr><td>Betriebsspannung</td><td>5V ODER 3,3V (nur eine davon, siehe Datenblatt Anmerkung 2)</td></tr>
+  <tr><td>Stromaufnahme</td><td>Ø 80 mA, Netzteil-Minimum 500 mA</td></tr>
+  <tr><td>Serielle Baudrate (Modul-UART)</td><td>80 – 5.000.000</td></tr>
+  <tr><td>Betriebstemperatur</td><td>−40 °C bis +85 °C</td></tr>
+  <tr><td>Gehäuse/Bestückung</td><td>Halb-Pad (SMD) oder Stiftleiste (Through-Hole), je nach Bestellvariante</td></tr>
+</table>
+<div class="callout warn">
+  <div class="callout-title">Offen: exakte Silizium-Revision und MAC-Adresse</div>
+  Das Datenblatt beschreibt die Modul-<b>Klasse</b> ("ESP32-Serie"), nicht
+  die exakte Chip-Revision (z.B. "ESP32-D0WD-V3") oder die MAC-Adresse des
+  konkret verbauten Chips - diese Werte liefert nur ein Live-Handshake von
+  <code>esptool</code> mit dem Chip im Bootloader-Modus
+  (<code>esptool.py --port COM7 chip_id</code> bzw. die entsprechende
+  Ausgabe zu Beginn von <code>pio run --target upload</code>). Noch nicht
+  erfasst - beim nächsten physischen Zugriff aufs Board nachtragen.
+</div>
+
+<h2>Prozessablauf: manueller Boot-Modus (real, dieser Adapter)</h2>
+<p class="hint" style="font-size:10.5px;color:#6b7280;margin-top:-1mm;">
+Reihenfolge ist entscheidend, exakte Sekunden nicht - siehe Hinweis am
+Ende dieses Abschnitts. Farbcode: <span style="color:#c8622a;font-weight:600;">orange = halten</span>,
+<span style="color:#a63d2e;font-weight:600;">rot = kurz pulsen</span>,
+<span style="color:#5c9e6c;font-weight:600;">grün = loslassen</span>.</p>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div class="flow-body">
+      <div class="flow-title">Verkabelung + separate Stromversorgung herstellen</div>
+      <div class="flow-desc">CP2102-Adapter an die Debug-Burning-Schnittstelle (<code>GND</code>, <code>TXD</code>↔<code>RXD</code> gekreuzt, <code>RXD</code>↔<code>TXD</code> gekreuzt) - Board-Stromversorgung separat über den Hauptheader, <b>nicht</b> über den Adapter (siehe <code>docs/flash-vorbereitung.pdf</code> Schritt 3). <code>DTR</code>/<code>RTS</code> entfallen bei diesem Adapter - kein automatischer Modus.</div>
+    </div>
+  </div>
+  <div class="flow-line"></div>
+  <div class="flow-step hold">
+    <div class="flow-num">2</div>
+    <div class="flow-body">
+      <div class="flow-title">IO0 auf GND ziehen und halten <span class="duration-tag">bis Schritt 6</span></div>
+      <div class="flow-desc">Taster gedrückt halten oder Jumper setzen, <b>bevor</b> der Reset in Schritt 3 ausgelöst wird - IO0 muss beim Reset bereits LOW sein, damit die ROM-Bootloader-Logik den Download-Modus statt des normalen Boots wählt.</div>
+    </div>
+  </div>
+  <div class="flow-line"></div>
+  <div class="flow-step pulse">
+    <div class="flow-num">3</div>
+    <div class="flow-body">
+      <div class="flow-title">EN kurz auf GND ziehen und wieder loslassen <span class="duration-tag">kurzer Puls, keine feste Dauer kritisch</span></div>
+      <div class="flow-desc">Löst einen Reset aus, während IO0 (Schritt 2) weiterhin gehalten wird - dieser Reset-bei-IO0-LOW ist der eigentliche Trigger für den Bootloader-/Download-Modus. <code>EN</code> danach wieder loslassen (High/floating), <code>IO0</code> bleibt unten weiterhin gehalten.</div>
+    </div>
+  </div>
+  <div class="flow-line"></div>
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div class="flow-body">
+      <div class="flow-title">Bereitschaft prüfen (optional, empfohlen)</div>
+      <div class="flow-desc">Seriellen Monitor kurz öffnen (115200 Baud) - im Bootloader-Modus meldet sich der ESP32 mit <code>waiting for download</code>. Erscheint das nicht, Schritt 2+3 wiederholen (IO0 evtl. zu spät oder zu kurz gehalten).</div>
+    </div>
+  </div>
+  <div class="flow-line"></div>
+  <div class="flow-step">
+    <div class="flow-num">5</div>
+    <div class="flow-body">
+      <div class="flow-title">Flash-Befehl starten, während IO0 weiterhin gehalten wird</div>
+      <div class="flow-desc"><code>pio run --target upload --upload-port COM7</code> (bzw. <code>scripts/flash.ps1 -Port COM7</code>). <code>esptool</code> synchronisiert sich zu Beginn mit dem bereits wartenden Bootloader - IO0 muss dafür zu diesem Zeitpunkt noch LOW sein.</div>
+    </div>
+  </div>
+  <div class="flow-line"></div>
+  <div class="flow-step release">
+    <div class="flow-num">6</div>
+    <div class="flow-body">
+      <div class="flow-title">Nach Erfolgsmeldung: IO0 erst jetzt loslassen</div>
+      <div class="flow-desc">Sobald <code>esptool</code> den Abschluss meldet ("Hash of data verified" / <code>pio</code>-Meldung "Fertig! Firmware erfolgreich geflasht."), <code>IO0</code> loslassen (High/floating) - erst dann bootet das Board normal mit der neuen Firmware statt wieder in den Download-Modus zu fallen.</div>
+    </div>
+  </div>
+</div>
+
+<div class="callout">
+  <div class="callout-title">Warum keine Sekundenangaben</div>
+  Die genaue Haltedauer von IO0 (Schritt 2) und die Pulslänge von EN
+  (Schritt 3) waren in dieser Sitzung nicht Gegenstand einer Messung -
+  es wurde nicht mit einer Stoppuhr gearbeitet. Das ist bei diesem
+  ESP32-Bootloader-Mechanismus auch nicht zeitkritisch im
+  Millisekundenbereich: entscheidend ist ausschließlich die
+  <b>Reihenfolge</b> (IO0 LOW <i>vor und während</i> des EN-Resets, danach
+  weiterhin LOW bis der Upload wirklich fertig ist) - nicht eine exakte
+  Anzahl Sekunden. Ein sehr kurzer EN-Puls (Antippen reicht) funktioniert
+  genauso wie ein längerer. Falls beim nächsten physischen Zugriff genauer
+  gemessen wird, hier nachtragen.
+</div>
+
+<footer>
+  Sensormeter — Flash-Bereitschaft, Real-Hardware-Ergänzung · github.com/peterhagelhof7-cmd/sensormeter ·
+  Entwickelt mit Unterstützung von Claude (Anthropic) als Coding-Assistent
+</footer>
+
+</body>
+</html>

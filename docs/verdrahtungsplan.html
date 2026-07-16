@@ -81,7 +81,7 @@
   <div class="subtitle">WT32-ETH01 (ESP32 + LAN8720) + DHT-11 (intern) + OLED SSD1306 (0,96", 128×64, I2C) + RJ45-Modularanschluss</div>
   <div class="badges">
     <span class="badge badge-orange">IO4 · DHT-11 intern</span>
-    <span class="badge">IO32/IO33 · I2C Display + RJ45</span>
+    <span class="badge">CFG/485_EN (IO32/IO33) · I2C Display + RJ45</span>
     <span class="badge">IO15/5/14 · RJ45-Modul</span>
     <span class="badge badge-orange">5V · RJ45 Pin 8</span>
     <span class="badge">github.com/peterhagelhof7-cmd/sensormeter</span>
@@ -104,30 +104,47 @@
 </div>
 
 <div class="callout warn">
-  <div class="callout-title">Board-Foto + Datenblatt-Abgleich (WT32-ETH01-back.png, V1.4) - 2026-07-16</div>
+  <div class="callout-title">Board-Foto + Datenblatt-Abgleich (WT32-ETH01-back.png, V1.4) - I2C-Pins CFG/485_EN bestätigt (2026-07-16)</div>
   Gegen ein Foto der Platinenrückseite (2×13-Pin-Stiftleiste,
-  <code>V1.4</code>-Silkscreen) und gegen
+  <code>V1.4</code>-Silkscreen), gegen
   <code>WT32-ETH01_datasheet_V1.1- en.pdf</code> (Tabelle „Module IO
-  Description") geprüft.
+  Description", Seite 9) <b>und</b> gegen drei unabhängige externe
+  Quellen geprüft.
   <ul style="margin:2mm 0 0 4mm; padding:0;">
     <li><code>IO0</code> ist auf dem Foto eindeutig als Header-Pin
     beschriftet - der Abschnitt „Vermiedene Pins" unten listete es
     fälschlich als nicht verfügbar, ist jetzt korrigiert.</li>
-    <li><b>Erneut offen (2026-07-16, per Live-Test widerlegt):</b> das
-    Datenblatt (<code>WT32-ETH01_datasheet_V1.1- en.pdf</code>, Tabelle
-    „Module IO Description") behauptet <code>CFG</code> = <code>IO32</code>,
-    <code>485_EN</code> = Enable-Pin von <code>IO33</code>. Am real
-    angeschlossenen Board hat sich das <b>nicht</b> bestätigt - dieses
-    Board hat unter keiner Beschriftung einen Pin <code>IO32</code> oder
-    <code>IO33</code>. Ob das Datenblatt für eine andere Bestückungs-
-    variante gilt oder die Zuordnung schlicht falsch ist, ist offen.
-    Die Pins werden unten daher nur noch mit dem reinen Silkscreen-Text
-    beschriftet, ohne GPIO-Nummer-Vermutung. <b>Die Firmware
-    (<code>pins.h</code>, <code>PIN_I2C_SCL=32</code>/
-    <code>PIN_I2C_SDA=33</code>) ist auf diesem Board damit weiterhin
-    ungeklärt/nicht verifiziert nutzbar</b> - vor dem Bestücken des I2C-
-    Busses zwingend mit einem Multimeter/Bauteil-Test klären, ob und wo
-    IO32/IO33 tatsächlich herausgeführt sind.</li>
+    <li><b>I2C-Pin-Frage jetzt geklärt, die vorherige „Live-Test
+    widerlegt"-Notiz war ein Messfehler:</b> das Datenblatt (Tabelle-2
+    „Module IO Description") ordnet Pin 2 = <code>CFG</code> = GPIO
+    <code>IO32</code> und Pin 3 = <code>485_EN</code> = GPIO
+    <code>IO33</code> zu. Der frühere Live-Test suchte auf dem Board nach
+    einer Beschriftung, die wörtlich <code>"IO32"</code>/<code>"IO33"</code>
+    lautet - die gibt es tatsächlich nicht, aber das Datenblatt hat das
+    nie behauptet: die Sonderfunktionsnamen <code>CFG</code>/
+    <code>485_EN</code> stehen stattdessen auf dem Silkscreen, exakt an
+    Pin-Position 2/3 der rechten Spalte - das Foto bestätigt das 1:1.
+    Zusätzlich unabhängig bestätigt durch
+    <a href="https://github.com/egnor/wt32-eth01" target="_blank">github.com/egnor/wt32-eth01</a>,
+    <a href="https://templates.blakadder.com/wireless_tag_WT32-ETH01.html" target="_blank">Tasmota-Gerätevorlage (blakadder)</a>
+    und die
+    <a href="https://tenstar.pro/wt32-eth01-pinout/" target="_blank">TENSTAR-Pinout-Referenz</a>
+    - eine der Quellen nennt sogar exakt unseren Anwendungsfall: bei
+    aktivem Ethernet ist I2C auf diesem Board nur über
+    <code>CFG</code> (SCL) und <code>485_EN</code> (SDA) möglich, weil
+    alle „normalen" I2C-Kandidaten-Pins vom LAN8720-PHY belegt sind.
+    <b><code>pins.h</code> (<code>PIN_I2C_SCL=32</code>/
+    <code>PIN_I2C_SDA=33</code>) war die ganze Zeit korrekt</b>, keine
+    Firmware-Änderung nötig. Die Pins werden unten jetzt mit ihrem
+    echten Silkscreen-Namen <b>und</b> der GPIO-Nummer beschriftet.</li>
+    <li><b>Weiterhin offen, separate Frage:</b> ob auf diesem konkreten
+    Board tatsächlich ein RS485-Transceiver-Chip bestückt ist (das
+    Silkscreen allein beweist das nicht). Falls ja, läge dessen
+    Enable-Eingang auf derselben Leitung wie I2C SDA (<code>485_EN</code>/
+    <code>IO33</code>) - vor dem Bestücken eines I2C-Moduls per
+    Sichtprüfung kurz prüfen, ob dort ein zusätzlicher IC verbaut ist,
+    um Busskonflikte auszuschließen. Kein Board zum Nachprüfen in dieser
+    Sitzung vorhanden.</li>
     <li>Die zunächst als Unsicherheit vermerkte zweite <code>EN</code>-
     Beschriftung ist ebenfalls geklärt: es gibt zwei echte, separate
     EN-Pins - einer gehört zur 20-poligen Hauptleiste
@@ -152,8 +169,8 @@
   <tr><td><code>3V3</code></td><td>DHT-11 VCC, OLED VCC <b>und</b> RJ45 Pin 1</td><td><span class="dot" style="background:#c0392b;"></span>Versorgung 3,3V (alle Module 3,3V-tolerant)</td></tr>
   <tr><td><code>GND</code></td><td>DHT-11 GND, OLED GND <b>und</b> RJ45 Pin 2 (Sternpunkt)</td><td><span class="dot" style="background:#1c2430;"></span>Masse, sternförmig zum ESP32 zurückgeführt (keine Daisy-Chains)</td></tr>
   <tr><td><code>IO4</code></td><td>DHT-11 (intern) DATA</td><td><span class="dot" style="background:#2e6da4;"></span>1-Wire-Digitalsignal, Pull-up 10k nach 3,3V</td></tr>
-  <tr><td><code>IO32</code></td><td>OLED SCL <b>und</b> RJ45 Pin 3</td><td><span class="dot" style="background:#c8622a;"></span>I2C-Taktleitung, gemeinsamer Bus (Display + externer I2C-Sensor)</td></tr>
-  <tr><td><code>IO33</code></td><td>OLED SDA <b>und</b> RJ45 Pin 4</td><td><span class="dot" style="background:#5c9e6c;"></span>I2C-Datenleitung, gemeinsamer Bus</td></tr>
+  <tr><td><code>CFG</code> <span style="color:#6b7280;">(Silkscreen-Name, = GPIO <code>IO32</code>)</span></td><td>OLED SCL <b>und</b> RJ45 Pin 3</td><td><span class="dot" style="background:#c8622a;"></span>I2C-Taktleitung, gemeinsamer Bus (Display + externer I2C-Sensor)</td></tr>
+  <tr><td><code>485_EN</code> <span style="color:#6b7280;">(Silkscreen-Name, = GPIO <code>IO33</code>)</span></td><td>OLED SDA <b>und</b> RJ45 Pin 4</td><td><span class="dot" style="background:#5c9e6c;"></span>I2C-Datenleitung, gemeinsamer Bus</td></tr>
   <tr><td><code>IO15</code></td><td>RJ45 Pin 5</td><td><span class="dot" style="background:#7a5cad;"></span>Reserve / externer DHT-Sensor-DATA</td></tr>
   <tr><td><code>IO5</code></td><td>RJ45 Pin 6</td><td><span class="dot" style="background:#a63d2e;"></span>Relais-Steuersignal, active LOW</td></tr>
   <tr><td><code>IO14</code></td><td>RJ45 Pin 7</td><td><span class="dot" style="background:#c9a227;"></span>Relais-Status-Feedback (optional)</td></tr>
@@ -182,8 +199,10 @@ gesteckten Modul. Siehe <code>docs/entscheidungen.md</code> „RJ45 Pin 8:
     <text x="25" y="87" text-anchor="end">3V3</text>
     <text x="25" y="111" text-anchor="end">GND</text>
     <text x="25" y="135" text-anchor="end" font-weight="700" fill="#2e6da4">IO4</text>
-    <text x="25" y="159" text-anchor="end" font-weight="700" fill="#c8622a">IO32</text>
-    <text x="25" y="183" text-anchor="end" font-weight="700" fill="#5c9e6c">IO33</text>
+    <text x="25" y="157" text-anchor="end" font-weight="700" fill="#c8622a">CFG</text>
+    <text x="25" y="165" text-anchor="end" font-size="6" fill="#8a93a3">(IO32)</text>
+    <text x="25" y="181" text-anchor="end" font-size="7.5" font-weight="700" fill="#5c9e6c">485_EN</text>
+    <text x="25" y="189" text-anchor="end" font-size="6" fill="#8a93a3">(IO33)</text>
     <text x="25" y="207" text-anchor="end" font-weight="700" fill="#7a5cad">IO15</text>
     <text x="25" y="231" text-anchor="end" font-weight="700" fill="#a63d2e">IO5</text>
     <text x="25" y="255" text-anchor="end" font-weight="700" fill="#c9a227">IO14</text>
@@ -253,16 +272,16 @@ gesteckten Modul. Siehe <code>docs/entscheidungen.md</code> „RJ45 Pin 8:
   <!-- Wire: IO4 -> DHT11 DATA (blue) -->
   <path class="wire-hit" data-wire="w7" d="M30,131 C 320,131 320,145 500,145"/>
   <path class="wire" data-wire="w7" data-from="IO4" data-to="DHT-11 DATA" d="M30,131 C 320,131 320,145 500,145" fill="none" stroke="#2e6da4" stroke-width="1.6"/>
-  <!-- Wire: IO32 -> OLED SCL + RJ45 Pin3 (orange) -->
+  <!-- Wire: CFG/IO32 -> OLED SCL + RJ45 Pin3 (orange) -->
   <path class="wire-hit" data-wire="w8" d="M30,155 C 340,155 340,280 500,280"/>
-  <path class="wire" data-wire="w8" data-from="IO32" data-to="OLED SCL" d="M30,155 C 340,155 340,280 500,280" fill="none" stroke="#c8622a" stroke-width="1.6"/>
+  <path class="wire" data-wire="w8" data-from="CFG (Silkscreen-Name, GPIO IO32)" data-to="OLED SCL" d="M30,155 C 340,155 340,280 500,280" fill="none" stroke="#c8622a" stroke-width="1.6"/>
   <path class="wire-hit" data-wire="w9" d="M30,155 C 350,155 350,406 520,406"/>
-  <path class="wire" data-wire="w9" data-from="IO32" data-to="RJ45 Pin 3 (SCL, gemeinsamer I2C-Bus)" d="M30,155 C 350,155 350,406 520,406" fill="none" stroke="#c8622a" stroke-width="1.6" stroke-dasharray="4 3"/>
-  <!-- Wire: IO33 -> OLED SDA + RJ45 Pin4 (green) -->
+  <path class="wire" data-wire="w9" data-from="CFG (Silkscreen-Name, GPIO IO32)" data-to="RJ45 Pin 3 (SCL, gemeinsamer I2C-Bus)" d="M30,155 C 350,155 350,406 520,406" fill="none" stroke="#c8622a" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <!-- Wire: 485_EN/IO33 -> OLED SDA + RJ45 Pin4 (green) -->
   <path class="wire-hit" data-wire="w10" d="M30,179 C 330,179 330,300 500,300"/>
-  <path class="wire" data-wire="w10" data-from="IO33" data-to="OLED SDA" d="M30,179 C 330,179 330,300 500,300" fill="none" stroke="#5c9e6c" stroke-width="1.6"/>
+  <path class="wire" data-wire="w10" data-from="485_EN (Silkscreen-Name, GPIO IO33)" data-to="OLED SDA" d="M30,179 C 330,179 330,300 500,300" fill="none" stroke="#5c9e6c" stroke-width="1.6"/>
   <path class="wire-hit" data-wire="w11" d="M30,179 C 360,179 360,419 520,419"/>
-  <path class="wire" data-wire="w11" data-from="IO33" data-to="RJ45 Pin 4 (SDA, gemeinsamer I2C-Bus)" d="M30,179 C 360,179 360,419 520,419" fill="none" stroke="#5c9e6c" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <path class="wire" data-wire="w11" data-from="485_EN (Silkscreen-Name, GPIO IO33)" data-to="RJ45 Pin 4 (SDA, gemeinsamer I2C-Bus)" d="M30,179 C 360,179 360,419 520,419" fill="none" stroke="#5c9e6c" stroke-width="1.6" stroke-dasharray="4 3"/>
   <!-- Wire: IO15 -> RJ45 Pin5 (purple) -->
   <path class="wire-hit" data-wire="w12" d="M30,203 C 400,203 400,380 610,380"/>
   <path class="wire" data-wire="w12" data-from="IO15" data-to="RJ45 Pin 5 (Reserve / externer DHT-Sensor)" d="M30,203 C 400,203 400,380 610,380" fill="none" stroke="#7a5cad" stroke-width="1.6"/>
@@ -321,8 +340,8 @@ unterscheiden sich (anderer Chip/Board). Siehe
   <tr><th>RJ45-Pin</th><th>Belegung</th><th>WT32-ETH01-Pin</th></tr>
   <tr><td>1</td><td>3,3V (Strom)</td><td><code>3V3</code></td></tr>
   <tr><td>2</td><td>GND (Masse)</td><td><code>GND</code></td></tr>
-  <tr><td>3</td><td>I2C SCL (gemeinsamer Bus mit Display)</td><td><code>IO32</code></td></tr>
-  <tr><td>4</td><td>I2C SDA (gemeinsamer Bus mit Display)</td><td><code>IO33</code></td></tr>
+  <tr><td>3</td><td>I2C SCL (gemeinsamer Bus mit Display)</td><td><code>CFG</code> <span style="color:#6b7280;">(IO32)</span></td></tr>
+  <tr><td>4</td><td>I2C SDA (gemeinsamer Bus mit Display)</td><td><code>485_EN</code> <span style="color:#6b7280;">(IO33)</span></td></tr>
   <tr><td>5</td><td>GPIO Reserve / externer DHT-Sensor, DATA</td><td><code>IO15</code></td></tr>
   <tr><td>6</td><td>Relais-Steuerung, active LOW</td><td><code>IO5</code></td></tr>
   <tr><td>7</td><td>Relais-Feedback / Interrupt</td><td><code>IO14</code></td></tr>
@@ -415,8 +434,8 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <text x="490" y="93" font-weight="700" fill="#1c2430">GND</text>
     <text x="490" y="128" font-weight="700" fill="#c0392b">3V3</text>
     <text x="490" y="163" fill="#6b7280">EN <tspan font-size="8.5" fill="#9aa2b0">(Debug-Iface)</tspan></text>
-    <text x="490" y="198" fill="#6b7280">CFG</text>
-    <text x="490" y="233" fill="#6b7280">485_EN</text>
+    <text x="490" y="198" font-weight="700" fill="#c8622a">CFG <tspan font-size="8.5" font-weight="400" fill="#9aa2b0">(IO32, I2C SCL)</tspan></text>
+    <text x="490" y="233" font-weight="700" fill="#5c9e6c">485_EN <tspan font-size="8.5" font-weight="400" fill="#9aa2b0">(IO33, I2C SDA)</tspan></text>
     <text x="490" y="268" fill="#6b7280">RXD</text>
     <text x="490" y="303" fill="#6b7280">TXD</text>
     <text x="490" y="338" font-weight="700" fill="#1c2430">GND</text>
@@ -430,8 +449,8 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <circle cx="480" cy="89" r="2.5" fill="#1c2430"/>
     <circle cx="480" cy="124" r="2.5" fill="#c0392b"/>
     <circle cx="480" cy="159" r="2.5" fill="#8a93a3"/>
-    <circle cx="480" cy="194" r="2.5" fill="#8a93a3"/>
-    <circle cx="480" cy="229" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="194" r="2.5" fill="#c8622a"/>
+    <circle cx="480" cy="229" r="2.5" fill="#5c9e6c"/>
     <circle cx="480" cy="264" r="2.5" fill="#8a93a3"/>
     <circle cx="480" cy="299" r="2.5" fill="#8a93a3"/>
     <circle cx="480" cy="334" r="2.5" fill="#1c2430"/>
@@ -441,7 +460,7 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <circle cx="480" cy="474" r="2.5" fill="#8a93a3"/>
   </g>
 
-  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">Beschriftung 1:1 vom Silkscreen - KEINE GPIO-Nummer-Zuordnung fuer CFG/485_EN/RXD/TXD, siehe Callout oben.</text>
+  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">Beschriftung 1:1 vom Silkscreen. CFG/485_EN sind die real genutzten I2C-Pins (GPIO-Zuordnung bestaetigt, siehe Callout oben) - RXD/TXD bleiben ungenutzt.</text>
 </svg>
 <p style="font-size:10.5px;color:#6b7280;"><code>TXO</code>/<code>RXO</code> (linke Spalte, oben) sowie die zweite
 <code>EN</code>-Beschriftung (rechte Spalte, Position 4) gehören zur
@@ -457,12 +476,15 @@ früheren Fassung dieses Abschnitts tatsächlich am Header verfügbar (siehe
 Board-Foto-Abschnitt oben), wird in diesem Projekt aber nicht verwendet.
 Details siehe <code>docs/verdrahtungsschema-v1.2.pdf</code> Seite 7 und
 <code>docs/pinout-wt32-eth01-v1.4.txt</code>.</p>
-<p><b>IO32/IO33 per Live-Test am realen Board nicht auffindbar</b> (2026-07-16,
-siehe Callout oben) - unter keiner der Silkscreen-Beschriftungen (auch
-nicht <code>CFG</code>/<code>485_EN</code>) ließ sich am angeschlossenen
-Board ein Pin <code>IO32</code> bzw. <code>IO33</code> bestätigen,
-entgegen der Datenblatt-Angabe. Vor jeder I2C-Bestückung über diese Pins
-zwingend selbst nachmessen.</p>
+<p><code>IO32</code>/<code>IO33</code> sind auf diesem Board vorhanden,
+tragen aber die Sonderfunktionsnamen <code>CFG</code> (= <code>IO32</code>,
+I2C SCL) und <code>485_EN</code> (= <code>IO33</code>, I2C SDA) auf dem
+Silkscreen statt der generischen <code>IOxx</code>-Bezeichnung - bestätigt
+durch Datenblatt, Board-Foto und drei unabhängige externe Quellen (siehe
+Callout oben). Einzige noch offene Detailfrage: ob auf diesem Board
+tatsächlich ein RS485-Transceiver an <code>485_EN</code> hängt (Silkscreen
+beweist das allein nicht) - falls ja, dessen Enable-Eingang vor dem
+I2C-Bestücken per Sichtprüfung von der SDA-Leitung ausschließen.</p>
 
 <footer>
   Sensormeter — Verdrahtungsplan (interaktive Kurzfassung von verdrahtungsschema-v1.2.pdf) · github.com/peterhagelhof7-cmd/sensormeter ·

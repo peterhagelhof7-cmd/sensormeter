@@ -1762,3 +1762,176 @@ Pin-fuer-Pin-Messung des gesamten Headers - nur die konkrete Aussage
 "gibt es IO32/IO33" wurde am Board widerlegt, die Ursache (andere
 Boardvariante? Uebersetzungsfehler im Datenblatt? etwas anderes?)
 bleibt offen fuer eine Folgesitzung.
+
+## 2026-07-16 — IO32/IO33-Frage endgueltig geklaert: der "Live-Test" von oben war ein Messfehler
+
+Folge-Auftrag: nach validen Informationen suchen, wo auf dem Board I2C
+anliegt, und den Verdrahtungsplan mit der echten Silkscreen-Beschriftung
+dokumentieren.
+
+- **Root Cause des vorherigen "Widerlegt"-Befunds gefunden**: der
+  Live-Test suchte auf dem Board nach einer Beschriftung, die woertlich
+  `"IO32"` bzw. `"IO33"` lautet. Die gibt es tatsaechlich nicht - aber
+  das Datenblatt hat das nie behauptet. Tabelle-2 "Module IO Description"
+  (Seite 9) ordnet Pin 2 = `CFG` = GPIO `IO32` und Pin 3 = `485_EN` =
+  GPIO `IO33` zu - das sind Sonderfunktionsnamen, die STATT der
+  generischen `IOxx`-Bezeichnung auf dem Silkscreen stehen, nicht
+  zusaetzlich dazu. Der Test hat also nach der falschen Zeichenkette
+  gesucht und ein echtes Nicht-Ergebnis faelschlich als Widerspruch
+  gewertet.
+- **Gegen das Foto verifiziert**: `WT32-ETH01-back.png` (dieselbe
+  `V1.4`-Platine) zeigt an exakt Pin-Position 2/3 der rechten Spalte
+  `CFG` und `485_EN` - 1:1 deckungsgleich mit der Datenblatt-Tabelle,
+  keine Interpretation noetig.
+- **Zusaetzlich unabhaengig extern bestaetigt** (drei Quellen, per
+  Websuche/-fetch geprueft, nicht nur eine): GitHub
+  `github.com/egnor/wt32-eth01` (Community-Referenz fuer genau dieses
+  Board), die Tasmota-Geraetevorlage auf `blakadder.com` und die
+  Pinout-Seite `tenstar.pro/wt32-eth01-pinout` - alle drei nennen
+  `CFG`=`IO32`, `485_EN`=`IO33`. Eine der Quellen beschreibt sogar
+  exakt unseren Anwendungsfall: bei aktivem Ethernet ist I2C auf diesem
+  Board nur ueber `CFG`(SCL)/`485_EN`(SDA) moeglich, weil alle anderen
+  I2C-tauglichen GPIOs vom LAN8720-PHY belegt sind - deckt sich mit der
+  Pin-Auswahl in `pins.h`.
+- **Ergebnis**: `pins.h` (`PIN_I2C_SCL=32`/`PIN_I2C_SDA=33`) war die
+  ganze Zeit korrekt, keine Firmware-Aenderung. `docs/verdrahtungsplan.html`
+  aktualisiert: Callout auf "bestaetigt" umgeschrieben (inkl. Quellen-Links),
+  Haupttabelle/RJ45-Tabelle/SVG-Hauptschema/interaktive Wire-Tooltips zeigen
+  jetzt `CFG`/`485_EN` als Pin-Name mit `(IO32)`/`(IO33)` als GPIO-Zusatz
+  statt umgekehrt, Board-Foto-Schema faerbt `CFG`/`485_EN` jetzt als
+  "genutzt" (vorher grau/unbenutzt), Abschnitt "Vermiedene Pins" korrigiert
+  (die beiden Pins werden nicht mehr als unauffindbar gefuehrt).
+  Seitenlayout nach der Aenderung per Headless-Chrome-Screenshot geprueft
+  (ein zu breites `485_EN`-Label im SVG-Hauptschema wurde dabei entdeckt
+  und durch kleinere Schriftgroesse korrigiert, siehe Screenshot-Check
+  in dieser Sitzung).
+- **Weiterhin offen, separate Frage**: ob auf DIESEM konkreten Board
+  tatsaechlich ein RS485-Transceiver-Chip bestueckt ist (das Silkscreen
+  allein beweist das nicht - das Datenblatt beschreibt eine Boardfamilie,
+  nicht zwingend jede Bestueckungsvariante). Falls ja, laege dessen
+  Enable-Eingang auf derselben Leitung wie I2C SDA (`485_EN`/`IO33`) -
+  vor dem Bestuecken eines I2C-Moduls per Sichtpruefung kurz checken, ob
+  dort ein zusaetzlicher IC verbaut ist. Kein Multimeter-Test in dieser
+  Sitzung noetig gewesen, da die Pin-Identitaet (die eigentliche Frage)
+  bereits durch drei unabhaengige Dokument-Quellen plus Foto-Abgleich
+  ausreichend abgesichert ist - die RS485-Bestueckungsfrage ist eine
+  andere, kleinere Frage, die kein Blocker fuer die Dokumentation war.
+
+Rein dokumentarische Aenderung (`docs/verdrahtungsplan.html`), kein
+Firmware-/`pio run`-Bezug. Verifiziert per Headless-Chrome-Rendering
+(visueller Screenshot-Vergleich vor/nach der Korrektur), nicht per
+Multimeter am echten Board (siehe offene Detailfrage oben).
+
+## 2026-07-16 — Neue Seite docs/flash-bereitschaft.html: Real-Hardware-Ergaenzung zum generischen Flash-PDF
+
+Auftrag: dokumentieren, dass der erste echte Flash dieser Sitzung nur mit
+einem bestimmten Adapter funktioniert hat, Chip-Info ergaenzen, und den
+Boot-Modus-Bruecken-Ablauf (welche Pins wann/wie lange) festhalten. Kein
+Board in dieser Sitzung physisch angeschlossen (User nicht vor Ort) -
+Inhalt daher aus der Session-Erinnerung dokumentiert, nicht live
+nachgemessen.
+
+- **Neue Datei `docs/flash-bereitschaft.html`** (gleiche CSS-Basis wie
+  `verdrahtungsplan.html`) statt einer Aenderung an
+  `docs/flash-vorbereitung.pdf` - dieses PDF ist wie
+  `verdrahtungsschema-v1.2.pdf` eine Binaerdatei und nicht automatisiert
+  editierbar (gleiches Muster wie beim Verdrahtungsplan: PDF bleibt die
+  urspruengliche generische Anleitung, die HTML-Seite ist die reale,
+  laufend aktualisierbare Ergaenzung).
+- **Getesteter Flasher**: von zwei in dieser Sitzung angeschlossenen
+  USB-Seriell-Adaptern hat nur einer funktioniert - ein CP2102
+  (Silicon Labs CP210x, `COM7`), bestaetigt fuer normales Boot-Log-Lesen
+  UND Flashen im manuellen Boot-Modus. Ein FTDI-Adapter (`COM4`→`COM6`)
+  lieferte ueberhaupt keine seriellen Daten, Ursache nicht weiter
+  untersucht (vermutlich Kabel/GND).
+- **Wichtige Abweichung vom generischen PDF**: der funktionierende
+  CP2102-Adapter bringt nur `TXD`/`RXD`/`GND`/`3.3V`/`5V` heraus, kein
+  `DTR`/`RTS` - der im PDF beschriebene "automatische Modus" ist mit
+  diesem konkreten Adapter nicht verfuegbar. Der manuelle IO0/EN-Weg ist
+  bei diesem Setup nicht die Ausweichloesung fuer einen Sonderfall,
+  sondern strukturell bei jedem einzelnen Flash-Vorgang noetig (deckt
+  sich mit [[sensormeter_flash-manual-bootmode-required]] aus dem
+  Memory-System).
+- **Chip-Info ergaenzt**: aus dem offiziellen Datenblatt (Abschnitt
+  "Overview"/"Characteristics"), NICHT aus einem Live-`esptool
+  chip_id`-Read (dafuer waere der manuelle Boot-Modus am echten Board
+  noetig gewesen, in dieser Sitzung ohne physischen Zugriff nicht
+  moeglich). Exakte Silizium-Revision und MAC-Adresse des konkret
+  verbauten Chips bleiben offen, im Dokument als offener Punkt markiert -
+  beim naechsten physischen Zugriff nachtragen.
+- **Prozessablauf-Diagramm**: sechsstufige Kette (Verkabelung → IO0
+  halten → EN pulsen → Bereitschaft pruefen → Flash-Befehl waehrend IO0
+  weiter gehalten → IO0 erst nach Erfolgsmeldung loslassen), farblich nach
+  "halten"/"pulsen"/"loslassen" markiert. Bewusst OHNE Sekundenangaben -
+  in dieser Sitzung wurde nicht mit einer Stoppuhr gearbeitet, und der
+  Mechanismus ist ohnehin nicht im Millisekundenbereich zeitkritisch,
+  nur die Reihenfolge zaehlt (IO0 LOW vor und waehrend des EN-Resets,
+  danach weiter LOW bis der Upload abgeschlossen ist). Diese Einschraen-
+  kung ist im Dokument selbst explizit vermerkt, nicht verschwiegen.
+- `scripts/flash.ps1`: `FlashNote` fuer das Sensormeter-Projekt verweist
+  jetzt zusaetzlich auf die neue Seite; Skript-Changelog auf 1.1.1
+  erhoeht (identische Datei in allen vier Repos, siehe fruehere
+  Eintraege zur Skript-Versionierung).
+
+Rein dokumentarische Aenderung, kein Firmware-/`pio run`-Bezug. Nicht
+verifiziert: kein Board in dieser Sitzung angeschlossen, weder fuer
+Chip-Info-Live-Read noch fuer eine Zeitmessung der Bruecken-Sequenz -
+beides bewusst als offene Punkte im neuen Dokument ausgewiesen statt
+stillschweigend geschaetzt.
+
+## 2026-07-16 — Initialer Board-Bringup abgeschlossen
+
+Erstes physisches Board dieser Sitzung erfolgreich geflasht (COM7,
+CP2102-Adapter, manueller Boot-Modus - siehe
+`docs/flash-bereitschaft.html`) und danach live über LAN
+(`192.168.178.148`) UND seriell (passiver Mitschnitt) gegen die
+Firmware `0.9.0-rc4` getestet. Bestueckung des Testgeraets: nur interner
+Sensor, noch kein externes Display, noch keine RJ45-Modul-Buchse bestueckt.
+
+**Auf echter Hardware verifiziert (per HTTP/curl UND seriellem
+Mitschnitt geprueft, nicht nur Code gelesen):**
+- Web-Login (`admin`/Default-Passwort aus `ConfigManager.h`), Root-Seite,
+  Einstellungsseite
+- `/api/graph`, `/api/logs`, `/values.csv` (inkl. leerer Sensor-2-Spalten
+  - korrekt, da kein Modul gesteckt)
+- `/log.txt` (persistenter Log-Puffer schreibt tatsaechlich, siehe
+  "Persistenter Log-Puffer"-Feature)
+- LAN **und** WLAN gleichzeitig verbunden (Ethernet-Link + WLAN-Client)
+- Interner Sensor (DHT11) liefert plausible Werte
+- `/api/relay`, `/api/contact` (Status-Endpunkte korrekt fuer
+  "kein Modul gesteckt")
+- `/api/detect/rerun` (I2C-Bus-Auto-Erkennung, meldet korrekt
+  "Kein Sensor / Relais")
+- `/api/wifi/scan` (liefert reale Netzliste aus der Umgebung)
+- `/api/config/export` (vollstaendiges, konsistentes JSON)
+- OTA-Herkunfts-/Versionspruefung (`/api/ota/upload` mit absichtlich
+  ungueltiger Testdatei -> korrekt mit HTTP 400 abgelehnt, Ablehnung
+  auch im Log sichtbar)
+- I2C-Pin-Identitaet `CFG`(IO32)/`485_EN`(IO33), siehe eigener Eintrag
+  oben
+
+**Bewusst NICHT getestet** (kein Modul/Broker/zweites Geraet vorhanden,
+nicht Teil dieses Bringups): MQTT gegen einen echten Broker (nur
+`mqttEnabled=false`-Zustand gesehen), tatsaechliches Relais-Schalten
+(kein Relais-Modul gesteckt), externer DHT-Sensor am RJ45-Modul (keine
+Buchse bestueckt), SNMP-Abfrage durch Sensormeter Display, Branding-
+Logo-Upload, statische IP/DNS-Uebernahme (`/api/network/apply`),
+Werksreset, XML-Konfigurations-Import.
+
+**Waehrend des Bringups zwei Befunde gefunden und bewusst nicht
+blockierend behandelt**, siehe `project_sm_backlog-clock-and-serial-spam`
+im Memory-System bzw. separates Backlog: Uhrzeit springt nach einem
+WLAN-Reconnect-Reboot zurueck (NTP-Resync-Verdacht), sowie ein einmaliger
+~92.000-Zeilen-Seriell-Ausbruch des Worts "on" gefolgt von einem
+LittleFS-Log-Rotations-Fehler (Ursache nicht abschliessend geklaert,
+seither nicht wieder aufgetreten). Beides ist dokumentiert, nicht
+verschwiegen, und wurde als "spaeter beheben" statt "jetzt blockieren"
+eingestuft, weil keine der beiden Kernfunktion des Geraets sichtbar
+beeintraechtigt.
+
+**Ergebnis:** der initiale Board-Bringup fuer Sensormeter (WT32-ETH01)
+ist damit abgeschlossen - alle Kernfunktionen, die mit der aktuellen
+Bestueckung (nur interner Sensor) ueberhaupt pruefbar sind, wurden auf
+echter Hardware verifiziert statt nur gebaut. Offene Punkte oben sind
+Funktionen, die ein zusaetzliches Modul/Geraet/Broker brauchen, kein
+Hinweis auf einen Defekt.
