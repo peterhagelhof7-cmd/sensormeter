@@ -103,6 +103,31 @@
   Version v1.3), bevor beide Dokumente wieder synchron sind.
 </div>
 
+<div class="callout warn">
+  <div class="callout-title">Board-Foto-Abgleich (WT32-ETH01-back.png, V1.4) - 2026-07-16</div>
+  Gegen ein Foto der Platinenrückseite geprüft (2×13-Pin-Stiftleiste,
+  <code>V1.4</code>-Silkscreen). Zwei Erkenntnisse:
+  <ul style="margin:2mm 0 0 4mm; padding:0;">
+    <li><code>IO0</code> ist auf dem Foto eindeutig als Header-Pin
+    beschriftet - der Abschnitt „Vermiedene Pins" unten listete es
+    fälschlich als nicht verfügbar, ist jetzt korrigiert.</li>
+    <li><b>Ungeklärt:</b> <code>IO32</code>, <code>IO33</code> (I2C SCL/SDA)
+    und <code>IO5</code> (Relais-Steuerung) - alle drei von der Firmware
+    genutzt - tauchen auf dem Foto <b>unter diesem Namen nicht</b> in der
+    Pin-Beschriftung auf. Stattdessen zeigt dieses Board zusätzliche,
+    bisher nicht dokumentierte Pins: <code>CFG</code>, <code>485_EN</code>,
+    <code>RXD</code>, <code>TXD</code>, <code>LINK</code> (deutet auf eine
+    Board-Variante mit eingebautem RS485-Transceiver hin). Ob IO32/33/5
+    auf dieser Variante unter einem der neuen Namen mitlaufen oder schlicht
+    nicht herausgeführt sind, lässt sich allein aus dem Foto nicht
+    klären - dafür wäre das Datenblatt nötig (bewusst nicht herangezogen,
+    siehe Abschnitt „Reale Pinbelegung laut Board-Foto" unten). Bis das
+    geklärt ist, <b>vor dem Bestücken mit einem Multimeter/Datenblatt
+    verifizieren</b>, dass IO32/33/5 tatsächlich auf den erwarteten
+    Lötpunkten liegen.</li>
+  </ul>
+</div>
+
 <h2>Bauteile</h2>
 <table>
   <tr><th>Bauteil</th><th>Anschlüsse</th></tr>
@@ -332,11 +357,94 @@ Ethernet-Kabel verbinden.</p>
   unabhängig von jedem RJ45-Modul.
 </div>
 
+<h2>Reale Pinbelegung laut Board-Foto (WT32-ETH01-back.png, V1.4)</h2>
+<p>Direkt von der Rückseite des tatsächlich vorliegenden Boards abgeschrieben
+(nicht aus einem Datenblatt) - zeigt die reale physische Lage aller
+beschrifteten Pins, damit sich beim Aufbau nachzählen lässt. Farbig =
+von Firmware/Verdrahtungsplan oben genutzt, grau = auf dem Foto sichtbar,
+aber ohne aktuelle Verwendung in diesem Projekt.</p>
+<svg viewBox="0 0 760 600" style="width:100%; max-width:170mm; height:auto; font-family:inherit;">
+  <rect x="280" y="30" width="200" height="540" rx="6" fill="#2b2f36"/>
+  <text x="380" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2430">WT32-ETH01 V1.4 - Rückseite (Foto)</text>
+  <text x="380" y="300" text-anchor="middle" font-size="10" fill="#9fb3d9" transform="rotate(-90 380 300)">ESP32-ETH01</text>
+
+  <!-- Linke Spalte (13 Pins von oben nach unten, wie auf dem Foto) -->
+  <g font-size="10.5">
+    <text x="270" y="58" text-anchor="end" fill="#6b7280">TXO</text>
+    <text x="270" y="93" text-anchor="end" fill="#6b7280">RXO</text>
+    <text x="270" y="128" text-anchor="end" fill="#6b7280">IO0</text>
+    <text x="270" y="163" text-anchor="end" font-weight="700" fill="#1c2430">GND</text>
+    <text x="270" y="198" text-anchor="end" fill="#6b7280">IO39</text>
+    <text x="270" y="233" text-anchor="end" fill="#6b7280">IO36</text>
+    <text x="270" y="268" text-anchor="end" font-weight="700" fill="#7a5cad">IO15</text>
+    <text x="270" y="303" text-anchor="end" font-weight="700" fill="#c9a227">IO14</text>
+    <text x="270" y="338" text-anchor="end" fill="#6b7280">IO12</text>
+    <text x="270" y="373" text-anchor="end" fill="#6b7280">IO35</text>
+    <text x="270" y="408" text-anchor="end" font-weight="700" fill="#2e6da4">IO4</text>
+    <text x="270" y="443" text-anchor="end" fill="#6b7280">IO2</text>
+    <text x="270" y="478" text-anchor="end" font-weight="700" fill="#1c2430">GND</text>
+  </g>
+  <g>
+    <circle cx="280" cy="54" r="2.5" fill="#8a93a3"/>
+    <circle cx="280" cy="89" r="2.5" fill="#8a93a3"/>
+    <circle cx="280" cy="124" r="2.5" fill="#8a93a3"/>
+    <circle cx="280" cy="159" r="2.5" fill="#1c2430"/>
+    <circle cx="280" cy="194" r="2.5" fill="#8a93a3"/>
+    <circle cx="280" cy="229" r="2.5" fill="#8a93a3"/>
+    <circle cx="280" cy="264" r="2.5" fill="#7a5cad"/>
+    <circle cx="280" cy="299" r="2.5" fill="#c9a227"/>
+    <circle cx="280" cy="334" r="2.5" fill="#8a93a3"/>
+    <circle cx="280" cy="369" r="2.5" fill="#8a93a3"/>
+    <circle cx="280" cy="404" r="2.5" fill="#2e6da4"/>
+    <circle cx="280" cy="439" r="2.5" fill="#8a93a3"/>
+    <circle cx="280" cy="474" r="2.5" fill="#1c2430"/>
+  </g>
+
+  <!-- Rechte Spalte (13 Pins von oben nach unten, wie auf dem Foto) -->
+  <g font-size="10.5">
+    <text x="490" y="58" fill="#6b7280">EN</text>
+    <text x="490" y="93" font-weight="700" fill="#1c2430">GND</text>
+    <text x="490" y="128" font-weight="700" fill="#c0392b">3V3</text>
+    <text x="490" y="163" fill="#6b7280">EN</text>
+    <text x="490" y="198" fill="#6b7280">CFG</text>
+    <text x="490" y="233" fill="#6b7280">485_EN</text>
+    <text x="490" y="268" fill="#6b7280">RXD</text>
+    <text x="490" y="303" fill="#6b7280">TXD</text>
+    <text x="490" y="338" font-weight="700" fill="#1c2430">GND</text>
+    <text x="490" y="373" font-weight="700" fill="#c0392b">3V3</text>
+    <text x="490" y="408" font-weight="700" fill="#1c2430">GND</text>
+    <text x="490" y="443" font-weight="700" fill="#d6553f">5V</text>
+    <text x="490" y="478" fill="#6b7280">LINK</text>
+  </g>
+  <g>
+    <circle cx="480" cy="54" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="89" r="2.5" fill="#1c2430"/>
+    <circle cx="480" cy="124" r="2.5" fill="#c0392b"/>
+    <circle cx="480" cy="159" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="194" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="229" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="264" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="299" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="334" r="2.5" fill="#1c2430"/>
+    <circle cx="480" cy="369" r="2.5" fill="#c0392b"/>
+    <circle cx="480" cy="404" r="2.5" fill="#1c2430"/>
+    <circle cx="480" cy="439" r="2.5" fill="#d6553f"/>
+    <circle cx="480" cy="474" r="2.5" fill="#8a93a3"/>
+  </g>
+
+  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">IO32 / IO33 / IO5 erscheinen auf diesem Foto unter KEINEM der beiden Namen - siehe Callout oben.</text>
+</svg>
+<p style="font-size:10.5px;color:#6b7280;">Die zweite <code>EN</code>-Beschriftung (rechte Spalte, Position 4) ist
+auf dem Foto in dieser Auflösung nicht mit letzter Sicherheit von einer
+Verwechslung zu unterscheiden - vor dem Bestücken gegenprüfen.</p>
+
 <h2>Vermiedene Pins</h2>
-<p>Nicht am 20-Pin-Header verfügbar: <code>IO0, IO16, IO18, IO19, IO21,
+<p>Nicht am 20-Pin-Header verfügbar: <code>IO16, IO18, IO19, IO21,
 IO22, IO23, IO25, IO26, IO27</code> sind fest mit dem Ethernet-PHY
-(LAN8720) bzw. intern verdrahtet. Details siehe
-<code>docs/verdrahtungsschema-v1.2.pdf</code> Seite 7 und
+(LAN8720) bzw. intern verdrahtet. <code>IO0</code> ist entgegen einer
+früheren Fassung dieses Abschnitts tatsächlich am Header verfügbar (siehe
+Board-Foto-Abschnitt oben), wird in diesem Projekt aber nicht verwendet.
+Details siehe <code>docs/verdrahtungsschema-v1.2.pdf</code> Seite 7 und
 <code>docs/pinout-wt32-eth01-v1.4.txt</code>.</p>
 
 <footer>

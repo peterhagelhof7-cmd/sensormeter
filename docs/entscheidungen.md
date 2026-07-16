@@ -1648,3 +1648,48 @@ LAN+WLAN-Flapping-Szenario.
 
 **Standing-Vorgabe**: analog zur OTA-Pruefung oben ist dieser Mechanismus
 ab jetzt fester Bestandteil dieses Projekts.
+
+## 2026-07-16 — Verdrahtungsplan gegen Board-Foto (WT32-ETH01-back.png) geprueft
+
+Auf Anweisung ausschliesslich `WT32-ETH01-back.png` (Foto der
+Platinenrueckseite, `V1.4`-Silkscreen) als Quelle herangezogen, bewusst
+kein Datenblatt - analoges Vorgehen zur sm-poe-Verdrahtungsplan-Korrektur
+weiter oben in diesem Projekt-Umfeld, hier aber mit einer offenen statt
+einer abschliessend geklaerten Diskrepanz (siehe unten).
+
+- **`IO0` faelschlich als "nicht verfuegbar" gefuehrt**: Abschnitt
+  "Vermiedene Pins" listete `IO0` bisher neben den LAN8720-internen Pins
+  als nicht am Header verfuegbar - das Foto zeigt `IO0` eindeutig als
+  eigenen Header-Pin. Korrigiert.
+- **Neuer Abschnitt "Reale Pinbelegung laut Board-Foto"**: zweispaltiges
+  SVG-Schema mit allen 26 auf dem Foto sichtbaren Pins in ihrer echten
+  physischen Reihenfolge (nicht nur den 9 aktuell genutzten) - analog zur
+  sm-poe-Diagrammphilosophie "reale Lage, damit man beim Bau Pins
+  zaehlen kann", hier aber als zusaetzliche Referenztabelle neben dem
+  bestehenden logischen Schaltplan, nicht als dessen Ersatz.
+- **Offene, NICHT geloeste Diskrepanz**: `IO32`, `IO33` (I2C SCL/SDA)
+  und `IO5` (Relais-Steuerung) - alle drei von Firmware/`pins.h` genutzt
+  - erscheinen auf dem Foto unter diesem Namen nicht in der
+  Pin-Beschriftung. Stattdessen zeigt dieses Board zusaetzliche, bisher
+  nicht dokumentierte Pins `CFG`, `485_EN`, `RXD`, `TXD`, `LINK` - deutet
+  auf eine Board-Variante mit eingebautem RS485-Transceiver hin (ueber
+  diese Variante war zuvor nichts in den Projektunterlagen vermerkt).
+  Ob IO32/33/5 auf dieser Variante unter einem der neuen Namen mitlaufen
+  oder tatsaechlich nicht herausgefuehrt sind, laesst sich allein aus dem
+  Foto nicht klaeren - dafuer waere das im Projektordner ebenfalls
+  vorhandene `WT32-ETH01_datasheet_V1.1- en.pdf` noetig, das in dieser
+  Anpassung bewusst nicht herangezogen wurde (Anweisung: nur das genannte
+  Bild). **`pins.h`/Firmware wurden NICHT angepasst** - die Firmware geht
+  weiterhin von IO32/33/5 aus, das ist bewusst unveraendert, bis die
+  Diskrepanz mit dem Datenblatt oder einem Multimeter am echten Board
+  geklaert ist.
+- Eine zweite `EN`-Beschriftung in der rechten Spalte (Position 4, direkt
+  unter `3V3`) liess sich in der Foto-Aufloesung nicht mit letzter
+  Sicherheit von einer Verwechslung unterscheiden - im Text als
+  Unsicherheit vermerkt statt stillschweigend uebernommen.
+
+Rein dokumentarische Aenderung (`docs/verdrahtungsplan.html`), kein
+Firmware-/`pio run`-Bezug. Nicht getestet: keine Verifikation gegen das
+Datenblatt oder ein Multimeter in dieser Sitzung (bewusst ausserhalb des
+Auftragsumfangs) - die IO32/33/5-Frage bleibt fuer eine Folgesitzung
+offen.
