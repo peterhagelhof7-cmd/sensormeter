@@ -70,6 +70,16 @@
 // ihn nicht wegoptimiert.
 const char kFirmwareIdentityMarker[] = "SM-FW-ID:" FIRMWARE_PROJECT_ID ":" DEVICE_FIRMWARE_VERSION ":SM-FW-END";
 
+// Arduino-ESP32-Standardstack fuer loopTask ist 8192 Byte (siehe
+// framework-arduinoespressif32/cores/esp32/main.cpp) - reicht bei der
+// mittlerweile gewachsenen Zahl gleichzeitig in loop() laufender Manager
+// (SNMP, MQTT, Syslog, zwei Displays, mehrere Sensor-Bibliotheken) nicht
+// mehr: reproduzierbarer Crash "Guru Meditation Error ... Stack canary
+// watchpoint triggered (loopTask)" beim ersten echten Hardware-Boot dieser
+// Firmware-Version, siehe docs/entscheidungen.md. Verdoppelt auf 16 KB -
+// Standardfix fuer dieses Panic-Muster bei Arduino-ESP32.
+SET_LOOP_TASK_STACK_SIZE(16384);
+
 DataManager dataManager;
 ConfigManager configManager;
 StorageManager storageManager;
