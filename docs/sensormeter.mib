@@ -1,0 +1,271 @@
+-- ===========================================================================
+-- SENSORMETER-MIB
+--
+-- Tool-unabhaengige SNMPv2-SMI-MIB fuer das Sensormeter-Projekt
+-- (WT32-ETH01, DHT11 intern + optional DHT22 extern ueber RJ45-Modul).
+--
+-- WICHTIGER HINWEIS ZUR ENTERPRISE-OID:
+-- Die hier verwendete Enterprise-Nummer 99999 unter .1.3.6.1.4.1 ist eine
+-- inoffizielle, NICHT bei der IANA registrierte Platzhalter-OID fuer dieses
+-- Hobby-Projekt. Sie ist NICHT bei der IANA (Internet Assigned Numbers
+-- Authority) eingetragen und darf nicht mit einer echten, offiziell
+-- zugeteilten Enterprise-Number verwechselt werden. Gedacht ausschliesslich
+-- fuer den privaten Einsatz in einem geschlossenen Netz - NICHT fuer
+-- oeffentliche oder kommerzielle Nutzung ohne eine eigene, bei der IANA
+-- registrierte Enterprise-Number (Registrierung unter
+-- https://www.iana.org/assignments/enterprise-numbers). Wer diese MIB
+-- weiterverwendet, muss sich dessen bewusst sein.
+--
+-- Ground truth fuer alle OIDs: firmware/src/SNMPManager.cpp/.h in diesem
+-- Repository (nicht das Zabbix-YAML-Template, das nur als Kreuzreferenz
+-- diente). Der Agent ist bewusst read-only (SNMP v1/v2c, Port 161) - auch
+-- OIDs, die intern per "ReadWrite-String-Handler" abgebildet sind, lehnen
+-- SNMP SET ab (isSettable=false in der Firmware), siehe Einzelbeschreibungen
+-- unten.
+--
+-- Werte werden geraeteseitig alle 5 Sekunden aktualisiert (kein Live-Read
+-- bei jedem GET, "polling optimized" laut Lastenheft Abschnitt 7) - schnelleres
+-- Pollen als 5s liefert also wiederholt denselben Cache-Wert.
+--
+-- Default SNMP-Community: "public" (auf der Einstellungsseite des Geraets
+-- aenderbar, Feld "SNMP-Community").
+-- ===========================================================================
+
+SENSORMETER-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-IDENTITY, OBJECT-TYPE, enterprises,
+    Integer32, Gauge32, TimeTicks
+        FROM SNMPv2-SMI
+    DisplayString
+        FROM SNMPv2-TC;
+
+smMIB MODULE-IDENTITY
+    LAST-UPDATED "202607180000Z"
+    ORGANIZATION "Privates Hobby-Projekt (keine Organisation/Firma)"
+    CONTACT-INFO
+        "Privates Hobby-Projekt ohne offiziellen Support-Kanal.
+         Projekt-Repository:
+         https://github.com/peterhagelhof7-cmd/sensormeter"
+    DESCRIPTION
+        "MIB fuer das Sensormeter-Projekt (WT32-ETH01, DHT11 intern +
+         optional DHT22 extern). Bildet den read-only SNMP v1/v2c Agenten
+         unter der privaten Enterprise-OID .1.3.6.1.4.1.99999 ab.
+
+         WICHTIG: Enterprise-Nummer 99999 ist eine inoffizielle, NICHT bei
+         der IANA registrierte Platzhalter-OID fuer dieses Hobby-Projekt -
+         nicht fuer oeffentliche/kommerzielle Nutzung ohne eigene,
+         registrierte Enterprise-Number (siehe
+         https://www.iana.org/assignments/enterprise-numbers). Nur fuer
+         den privaten Einsatz in einem geschlossenen Netz gedacht.
+
+         Ground truth: firmware/src/SNMPManager.cpp dieses Repositories."
+    REVISION    "202607180000Z"
+    DESCRIPTION
+        "Erste Veroeffentlichung dieser MIB-Datei (14 Objekte)."
+    ::= { enterprises 99999 }
+
+-- ---------------------------------------------------------------------------
+-- Gruppe 1: System
+-- ---------------------------------------------------------------------------
+
+smSystem OBJECT-IDENTITY
+    STATUS      current
+    DESCRIPTION
+        "Systeminformationen: Anzeigename, Firmwareversion, Systemtyp."
+    ::= { smMIB 1 }
+
+smSystemName OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Anzeigename des Geraets, frei konfigurierbar auf der
+         Einstellungsseite ('Systemname'). Intern per SNMP-ReadWrite-
+         String-Handler abgebildet, SNMP-SET wird jedoch von der Firmware
+         abgelehnt (isSettable=false) - dieser OID ist effektiv
+         read-only."
+    ::= { smSystem 1 }
+
+smFirmwareVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Firmware-Versionsstring (z.B. '1.4.2'), statischer Wert aus dem
+         Build-Zeit-Makro DEVICE_FIRMWARE_VERSION."
+    ::= { smSystem 2 }
+
+smSystemType OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..19))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Freitext-Systemtyp/-Kategorie, konfigurierbar auf der
+         Einstellungsseite. Wie smSystemName per ReadWrite-Handler mit
+         isSettable=false abgebildet - SNMP-SET wird abgelehnt."
+    ::= { smSystem 3 }
+
+-- ---------------------------------------------------------------------------
+-- Gruppe 2: Netzwerk
+-- ---------------------------------------------------------------------------
+
+smNetwork OBJECT-IDENTITY
+    STATUS      current
+    DESCRIPTION
+        "Netzwerkstatus: LAN-IP, WLAN-IP, WLAN-Signalstaerke."
+    ::= { smMIB 2 }
+
+smLanIpAddress OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (7..15))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "LAN(Ethernet)-IPv4-Adresse als druckbare Punkt-Dezimal-
+         Zeichenkette (z.B. '192.168.1.42') - NICHT als binaeres
+         IpAddress-Encoding (SNMP-Typ IpAddress); die Firmware liefert
+         hier einen reinen ASCII-String. '0.0.0.0' wenn kein LAN-Link
+         besteht."
+    ::= { smNetwork 1 }
+
+smWlanIpAddress OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (7..15))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "WLAN-IPv4-Adresse als druckbare Punkt-Dezimal-Zeichenkette,
+         siehe smLanIpAddress fuer das Format. '0.0.0.0' wenn kein
+         WLAN-Link besteht."
+    ::= { smNetwork 2 }
+
+smWlanRssi OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "dBm"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "WLAN-Empfangsfeldstaerke (RSSI) in dBm, typischerweise negativ
+         (z.B. -55). Liefert 0, wenn kein WLAN-Link besteht - 0 dBm ist
+         physikalisch kein plausibler RSSI-Messwert und dient hier als
+         'kein WLAN' Sentinel-Wert."
+    ::= { smNetwork 3 }
+
+-- ---------------------------------------------------------------------------
+-- Gruppe 3: Sensor 1 (intern)
+-- ---------------------------------------------------------------------------
+
+smSensor1 OBJECT-IDENTITY
+    STATUS      current
+    DESCRIPTION
+        "Messwerte des internen Sensors (Sensor 1, DHT11)."
+    ::= { smMIB 3 }
+
+smSensor1Name OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Fester Anzeigename fuer Sensor 1, statisch 'Intern'."
+    ::= { smSensor1 1 }
+
+smSensor1Temperature OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "0.1 Grad Celsius"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Temperatur von Sensor 1 in Grad Celsius, als Ganzzahl mit
+         Faktor 10 uebertragen (z.B. 235 = 23.5 Grad C). Liefert 0, wenn
+         keine gueltige Sensorlesung vorliegt - ueber SNMP nicht von
+         einer echten 0.0-Grad-Messung unterscheidbar."
+    ::= { smSensor1 2 }
+
+smSensor1Humidity OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "0.1 Prozent"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Relative Luftfeuchtigkeit von Sensor 1 in Prozent, als Ganzzahl
+         mit Faktor 10 uebertragen (z.B. 455 = 45.5 %). 0 bei
+         ungueltiger Lesung, siehe smSensor1Temperature."
+    ::= { smSensor1 3 }
+
+-- ---------------------------------------------------------------------------
+-- Gruppe 4: Sensor 2 (extern, RJ45-Modul, optional)
+-- ---------------------------------------------------------------------------
+
+smSensor2 OBJECT-IDENTITY
+    STATUS      current
+    DESCRIPTION
+        "Messwerte des optionalen externen Sensors (Sensor 2) ueber ein
+         RJ45-Steckmodul. Nur sinnvoll befuellt, wenn Sensor 2 auf der
+         Einstellungsseite aktiviert ist ('Sensor 2 aktiv')."
+    ::= { smMIB 4 }
+
+smSensor2Name OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..24))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Frei konfigurierbarer Anzeigename fuer Sensor 2. Wie
+         smSystemName per ReadWrite-Handler mit isSettable=false
+         abgebildet - SNMP-SET wird abgelehnt."
+    ::= { smSensor2 1 }
+
+smSensor2Temperature OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "0.1 Grad Celsius"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Temperatur von Sensor 2 in Grad Celsius x10, siehe
+         smSensor1Temperature fuer das Format. Liefert 0, wenn Sensor 2
+         deaktiviert ist ODER wenn das angeschlossene Modul (z.B.
+         BMP280/BH1750/ENS160) gar keine Temperatur misst (reines Druck-/
+         Lux-/Luftguete-Modul) - beide Faelle sind ueber SNMP nicht
+         unterscheidbar."
+    ::= { smSensor2 2 }
+
+smSensor2Humidity OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "0.1 Prozent"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Relative Luftfeuchtigkeit von Sensor 2 in Prozent x10, siehe
+         smSensor2Temperature fuer die 0-Wert-Faelle."
+    ::= { smSensor2 3 }
+
+-- ---------------------------------------------------------------------------
+-- Gruppe 5: Status
+-- ---------------------------------------------------------------------------
+
+smStatus OBJECT-IDENTITY
+    STATUS      current
+    DESCRIPTION
+        "Geraetestatus: Laufzeit, freier Heap-Speicher."
+    ::= { smMIB 5 }
+
+smUptime OBJECT-TYPE
+    SYNTAX      TimeTicks
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Geraete-Laufzeit seit dem letzten Boot in Hundertstelsekunden
+         (Standard-TimeTicks-Einheit), abgeleitet aus
+         esp_timer_get_time(). KEIN sysUpTime-Objekt aus der
+         Standard-SNMPv2-MIB (.1.3.6.1.2.1.1.3) - dieser Agent
+         implementiert nur den privaten Zweig, nicht MIB-II."
+    ::= { smStatus 1 }
+
+smFreeHeap OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "Bytes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Freier Heap-Speicher in Bytes (ESP.getFreeHeap())."
+    ::= { smStatus 2 }
+
+END
