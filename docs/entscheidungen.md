@@ -2090,3 +2090,63 @@ Projekt hat einen kurzen, begrenzten Zyklus.
 
 Verifiziert per `pio run` (sauberer Build, RAM/Flash-Nutzung unveraendert
 gegenueber vorher), noch nicht auf echter Hardware geflasht/getestet.
+
+## 2026-07-18 — Task-Watchdog + Stack-Overflow-Fix erfolgreich seriell geflasht; dabei zweiten OTA-Marker-Scan-Bug gefunden und live behoben
+
+Erster echter Boot nach dem seriellen Flash (IO0/EN manuell, siehe
+`docs/flash-bereitschaft.html`) sauber: LittleFS gemountet, 9
+Ringpuffer-Eintraege erhalten, LAN **und** WLAN verbunden, NTP
+synchronisiert mit korrekter Ortszeit (Nutzer bestaetigt) - der
+Zeitzonen-Fix aus der letzten Sitzung ist damit erstmals real
+verifiziert, nicht nur im Quellcode. Kein Crash trotz vollem
+Init-Durchlauf, spricht fuer den `SET_LOOP_TASK_STACK_SIZE(16384)`-Fix.
+
+**Neuer Bug beim ersten echten OTA-Test entdeckt:** ein Upload der
+identischen `firmware.bin` (keine Versionsaenderung, kein Downgrade)
+wurde erneut mit "kein gueltiges Firmware-Erkennungsmerkmal" abgelehnt -
+derselbe Fehlertext wie vor dem letzten Fix. Marker im `.bin` per
+Byte-Suche bestaetigt vorhanden (zweimal, Offset 10180 und 37901),
+also kein Uebertragungsproblem. Root Cause:
+`OtaManager::scanChunkForMarker()` kopierte jeden Chunk in einen auf
+`kTailCap+512` = 528 Byte GEDECKELTEN Zwischenpuffer und durchsuchte nur
+diesen - ein echter HTTP-Upload liefert aber regelmaessig groessere
+Chunks (AsyncWebServer/AsyncTCP), wodurch alles jenseits der Deckelung
+STILLSCHWEIGEND uebersprungen wurde: weder gescannt noch als Tail fuer
+den naechsten Aufruf vorgemerkt. Der urspruengliche NUL-Byte-Bug (siehe
+Eintrag "OTA-Marker-Scan fand echte .bin nie") wurde also korrekt
+behoben, dabei aber ein neuer, subtilerer Chunkgroessen-Bug eingebaut -
+der nur bei einem echten Netzwerk-Upload sichtbar wird, nicht bei
+`pio run` oder einem simulierten Test mit kleinen Chunks, weshalb er nie
+auffiel (dieser Upload war der allererste echte End-to-End-OTA-Test
+dieses Mechanismus).
+
+**Fix:** kein kopierter Zwischenpuffer mehr fuer den Chunk selbst -
+`findBytes()` durchsucht `data`/`len` jetzt direkt (beliebig gross,
+keine Kopie noetig, da bereits zusammenhaengend im Speicher). Ein
+kleiner Join-Puffer (`kTailCap+kMarkerPrefixLen` = 25 Byte) wird nur
+noch fuer den echten Grenzfall gebraucht, dass der Prefix im Tail des
+vorigen Chunks beginnt und in den ersten Bytes dieses Chunks endet.
+
+**Live end-to-end verifiziert, nicht nur kompiliert:** Fix seriell
+geflasht (zweiter manueller IO0/EN-Zyklus), danach per `curl` erneut
+dieselbe `firmware.bin` ueber `/api/ota/upload` hochgeladen - diesmal
+angenommen. Bestaetigt ueber `GET /log.txt` des Geraets:
+`14:15:15 [ERR] OTA abgelehnt: kein Firmware-Erkennungsmerkmal gefunden`
+(vor dem Fix) gefolgt von
+`14:23:29 [INFO] OTA (lokaler Upload) erfolgreich, Neustart` (danach),
+sowie `uptimeSeconds` in `/api/status` passend zu diesem Neustart. Die
+curl-Anfrage selbst lief in einen Client-Timeout (`ESP.restart()` kappt
+die TCP-Verbindung, bevor sie sauber geschlossen wird), aber
+serverseitig war der Upload laengst durch - Beleg ist das Geraetelog,
+nicht der Client-Exitcode.
+
+**Wichtiger Hinweis fuer die Schwesterprojekte:** derselbe strukturelle
+Bug (Chunk in einen zu kleinen, fest gedeckelten Zwischenpuffer kopiert
+statt direkt durchsucht) steckt mit hoher Wahrscheinlichkeit auch in
+Sensormeter PoE und Sensormeter WLAN (identisches Code-Muster portiert)
+sowie in ESP-BMCs `ota_manager.c` (eigene, an keinem Netzwerk-Upload
+getestete Neuimplementierung mit demselben Fehler, dort `JOIN_CAP=1040`
+Byte gegen bis zu 2048 Byte moegliche Chunks) - dort bislang nur
+theoretisch identifiziert, nicht gefixt (siehe Memory-System). Bewusst
+zurueckgestellt, bis dort ebenfalls ein echter Netzwerk-Upload-Test
+moeglich ist.
