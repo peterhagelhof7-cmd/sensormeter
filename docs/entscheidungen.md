@@ -2052,3 +2052,41 @@ zusammen getestet), OTA-Upload-Versuch (mit und ohne
 durchgefuehrt (kein physischer Zugriff). `Update.abort()` wird bei jeder
 Ablehnung aufgerufen - die laufende Firmware auf dem Geraet blieb dabei
 unangetastet, kein Risiko eines Teil-Flashes.
+
+## 2026-07-18 — Task-Watchdog (TWDT): Panic-on-Hang aktiviert, portiert von ESP-BMC
+
+Bislang lief der ESP-IDF-eigene Task-Watchdog-Timer (TWDT) nur mit
+Default-Konfiguration mit: 5s-Timeout, beide Idle-Tasks angemeldet, aber
+`panic=false` - ein haengender Task erzeugt damit nur eine Logzeile,
+kein Reboot. Nach dem Vorbild von ESP-BMCs `watchdog_manager`
+(dortiges Muster: `CONFIG_ESP_TASK_WDT_PANIC=y` + `esp_task_wdt_add`)
+jetzt auch hier scharf geschaltet, aber bewusst NUR der reine
+Watchdog-Mechanismus - keine RGB-LED (kein bestaetigtes adressierbares
+LED auf diesem Board, und ohnehin nicht Teil dieses Backlog-Punkts).
+
+**Framework-Unterschied beachtet**: dieses Projekt laeuft auf
+Arduino-ESP32 2.0.17 (IDF4.4-Basis, siehe `platform = espressif32` in
+`platformio.ini`) - dort ist `esp_task_wdt_init(uint32_t timeout, bool
+panic)` die alte zweiargumentige Signatur (`esp_task_wdt.h`,
+Framework-Paket), die einen bereits laufenden TWDT laut Doku einfach
+umkonfiguriert. Sensormeter PoE (Arduino-ESP32 3.x) braucht dafuer eine
+andere, struct-basierte API - siehe eigener Eintrag dort.
+
+**Timeout bewusst auf 10s statt ESP-BMCs 5s gesetzt**: `loop()` durchlaeuft
+hier synchron sehr viele Manager (u.a. `MqttManager::loop()` mit einem
+alle 5s versuchten `_client.connect()`, dessen TCP-Verbindungsaufbau bei
+einem nicht erreichbaren Broker mehrere Sekunden blockieren kann) - 5s
+waere zu knapp gewesen und haette ohne echten Hang faelschlich einen
+Panic-Reboot ausgeloest.
+
+**Anmeldezeitpunkt**: erst am Ende von `setup()`, nicht ganz am Anfang -
+die vorangehenden `*.begin()`-Aufrufe (v.a. ein etwaiger
+LittleFS-Erststart-Format) sind einmalig und duerfen laenger dauern,
+ohne als Hang gewertet zu werden. Ab `loop()` sind alle Zyklen kurz und
+beschraenkt (bestehende `delay(50)`-Taktung), `esp_task_wdt_reset()`
+wird dort einmal pro Durchlauf aufgerufen. Nur der Haupt-Loop (`loopTask`,
+per `esp_task_wdt_add(NULL)`) ist angemeldet - kein weiterer Task im
+Projekt hat einen kurzen, begrenzten Zyklus.
+
+Verifiziert per `pio run` (sauberer Build, RAM/Flash-Nutzung unveraendert
+gegenueber vorher), noch nicht auf echter Hardware geflasht/getestet.
