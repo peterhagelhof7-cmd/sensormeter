@@ -29,6 +29,8 @@ Hardware getestet.
 
 | Datei | Inhalt |
 |---|---|
+| [Schnellstart](https://github.com/peterhagelhof7-cmd/sensormeter-family/blob/main/docs/schnellstart.pdf) (im `sensormeter-family`-Repo) | Gerät in unter 10 Minuten ans Laufen bringen: Strom, Erststart, Netzwerk, erste Anmeldung — für Sensormeter, Sensormeter WLAN und Sensormeter PoE gemeinsam |
+| [docs/systemuebersicht.pdf](docs/systemuebersicht.pdf) | Familienweite Systemübersicht: Funktionsumfang, Zusammenspiel, Zabbix-Anbindung aller vier Projekte (identisch in allen vier Repos) |
 | [docs/sensormeter-onepager.pdf](docs/sensormeter-onepager.pdf) ([HTML](docs/sensormeter-onepager.html)) | One-Pager: Projektübersicht, Architektur, Kennzahlen auf einer Seite |
 | [docs/projektfamilie.html](docs/projektfamilie.html) | Architekturskizze: wie die vier Sensormeter-Projekte zusammenhängen |
 | [docs/lastenheft.txt](docs/lastenheft.txt) | Fachliche Anforderungen: Webseite, Einstellungen, SNMP-OIDs, Netzwerklogik, Zustandsmodell |
