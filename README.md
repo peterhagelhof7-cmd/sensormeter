@@ -57,6 +57,9 @@ Hardware getestet.
 **Version:** `0.9.0-rc4` (Beta) — Versionsschema siehe
 [docs/entscheidungen.md](docs/entscheidungen.md#versionierung).
 
+Fertiges Binary für das lokale OTA-Update (kein PlatformIO nötig):
+[Releases → v0.9.0-rc4](https://github.com/peterhagelhof7-cmd/sensormeter/releases/tag/v0.9.0-rc4).
+
 Aktueller Stand: **P0–P7 umgesetzt, Board-Bringup abgeschlossen, Qualitätskontrolle läuft**
 (siehe [docs/implementierungsplan.html](docs/implementierungsplan.html)).
 Erstes Gerät läuft stabil auf echter Hardware. Zuletzt (2026-07-18) bei
