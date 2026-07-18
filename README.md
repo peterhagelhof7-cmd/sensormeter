@@ -55,8 +55,15 @@ Hardware getestet.
 **Version:** `0.9.0-rc4` (Beta) — Versionsschema siehe
 [docs/entscheidungen.md](docs/entscheidungen.md#versionierung).
 
-Aktueller Stand: **P7 — Syslog, damit alle Phasen (P0–P7) umgesetzt** (siehe
-[docs/implementierungsplan.html](docs/implementierungsplan.html)).
+Aktueller Stand: **P0–P7 umgesetzt, Board-Bringup abgeschlossen, Qualitätskontrolle läuft**
+(siehe [docs/implementierungsplan.html](docs/implementierungsplan.html)).
+Erstes Gerät läuft stabil auf echter Hardware. Zuletzt (2026-07-18) bei
+einem echten Netzwerk-OTA-Test einen Chunkgrößen-Bug im Marker-Scan
+gefunden und live verifiziert behoben, sowie einen Zeitzonen-Bug
+root-verursacht und gefixt (Uhrzeit zeigte nach einem Software-Reset
+UTC statt Ortszeit) — beide Funde inzwischen auch in die drei
+Schwesterprojekte übertragen, siehe
+[docs/entscheidungen.md](docs/entscheidungen.md).
 
 ```
 cd firmware
