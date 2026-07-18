@@ -2150,3 +2150,48 @@ Byte gegen bis zu 2048 Byte moegliche Chunks) - dort bislang nur
 theoretisch identifiziert, nicht gefixt (siehe Memory-System). Bewusst
 zurueckgestellt, bis dort ebenfalls ein echter Netzwerk-Upload-Test
 moeglich ist.
+
+## 2026-07-18, spaeter am selben Tag — CSS-Layoutfehler: Werksreset-Dropdown bricht aus der Karte aus
+
+Beim visuellen Durchsehen der Einstellungsseite (Screenshot per headless
+Chrome) aufgefallen: das `<select name="scope" id="resetScope">` fuer
+den Werksreset-Umfang lief sichtbar ueber den Rand der
+"KONFIGURATION"-Karte hinaus, nicht mittig zum restlichen Formular.
+Ursache: `input[type=text],input[type=password]` hatte eine
+Breitenbegrenzung (`width:80%`), fuer `select`-Elemente gab es aber gar
+keine CSS-Regel - der Browser rendert ein `<select>` ohne Breitenvorgabe
+so breit wie seine laengste `<option>` ("Nur Konfiguration (LAN, WLAN,
+Passwort, Kalibrierung, Syslog, SNMP, MQTT - Branding bleibt erhalten)"),
+deutlich breiter als das umgebende `label` (`max-width:420px`).
+
+Fix: neue Regel `select{font-size:14px;padding:7px;max-width:100%;...}`
+- bewusst `max-width` statt fester `width:80%` wie bei den Text-Inputs,
+damit kurze Selects (z.B. "Automatisch schalten: Ja/Nein") kompakt
+bleiben und nur lange Options-Texte auf die Kartenbreite gedeckelt
+werden (der Browser kuerzt die Anzeige des gewaehlten Werts dann
+automatisch mit Ellipsis, falls noetig).
+
+Live verifiziert per OTA-Upload + Vorher/Nachher-Screenshot (headless
+Chrome, `--screenshot`): Dropdown bleibt jetzt innerhalb der Karte,
+uebrige (kurze) Selects unveraendert kompakt. Identischer Fund/Fix auch
+in sensormeter-poe und sensormeter-wlan uebernommen (identisches
+CSS-Muster) - sensormeter-display war nicht betroffen, hat dort bereits
+`input,select{width:100%}`.
+
+## 2026-07-18, spaeter am selben Tag — PSRAM-Erkenntnis: intermittierend, nicht build-cache-bedingt (Korrektur)
+
+Nachtrag zur PSRAM-Korrektur bei sensormeter-poe (siehe dessen
+`docs/entscheidungen.md`): beim CSS-Fix-Deploy dort trat der PSRAM-Fehler
+("PSRAM chip is not connected, or wrong PSRAM line mode") ERNEUT auf -
+diesmal nach einem inkrementellen Build (nur `WebServerManager.cpp`
+geaendert, kein Full-Rebuild), was die vorherige "veralteter
+Bootloader-Cache"-Erklaerung widerlegt. Diesmal aber kein Absturz - das
+Geraet bootete trotz der PSRAM-Warnung normal durch (`uptimeSeconds`
+stieg sauber, per HTTP erreichbar). Praezisierte Einordnung: PSRAM-Init
+ist auf mindestens dem sensormeter-poe-Testgeraet **intermittierend
+unzuverlaessig** (mal erfolgreich, mal nicht, gleiche Firmware) - aber
+folgenlos, da kein Anwendungscode PSRAM tatsaechlich nutzt. Der
+vorherige Absturz bei PSRAM-Fehler lag nicht an PSRAM selbst, sondern am
+damals noch ungefixten SNMP-Konstruktor-Absturz, der zufaellig zur
+gleichen Zeit auftrat. Betrifft dieses Projekt (WT32-ETH01, kein PSRAM
+verbaut) nicht direkt, aber relevant fuer die family-weite Doku-Korrektur.
