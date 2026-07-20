@@ -5,7 +5,7 @@ zabbix_export:
       name: 'IoT Sensoren'
   templates:
     - uuid: 1a7aee5aed544e61a8287bda0dfa519c
-      template: 'Sensormeter (WT32-ETH01)'
+      template: 'Sensormeter WT32-ETH01'
       name: 'Sensormeter (WT32-ETH01)'
       description: |
         Template fuer das Sensormeter-Projekt (WT32-ETH01, DHT11 intern +
@@ -208,27 +208,27 @@ zabbix_export:
   triggers:
     - uuid: 099ef4382c984549aca860e4638e3092
       name: 'Temperatur (Sensor 1) zu hoch auf {HOST.NAME}'
-      expression: 'last(/Sensormeter (WT32-ETH01)/sensor1.temperature)>{$TEMP_MAX_C}'
+      expression: 'last(/Sensormeter WT32-ETH01/sensor1.temperature)>{$TEMP_MAX_C}'
       priority: WARNING
     - uuid: 56e253bca87a4c1f90198b0d63dd4852
       name: 'Luftfeuchtigkeit (Sensor 1) zu hoch auf {HOST.NAME}'
-      expression: 'last(/Sensormeter (WT32-ETH01)/sensor1.humidity)>{$HUMIDITY_MAX_PERCENT}'
+      expression: 'last(/Sensormeter WT32-ETH01/sensor1.humidity)>{$HUMIDITY_MAX_PERCENT}'
       priority: WARNING
     - uuid: 7d9bad06b06f4193b2c068830c98d3fe
       name: 'Temperatur (Sensor 2) zu hoch auf {HOST.NAME}'
-      expression: 'last(/Sensormeter (WT32-ETH01)/sensor2.temperature)>{$TEMP_MAX_C}'
+      expression: 'last(/Sensormeter WT32-ETH01/sensor2.temperature)>{$TEMP_MAX_C}'
       priority: WARNING
       description: 'Nur relevant, wenn Sensor 2 (Sensormeter PRO) aktiv ist.'
     - uuid: 331f074f154148e9b737dc3fd353ebe1
       name: 'Luftfeuchtigkeit (Sensor 2) zu hoch auf {HOST.NAME}'
-      expression: 'last(/Sensormeter (WT32-ETH01)/sensor2.humidity)>{$HUMIDITY_MAX_PERCENT}'
+      expression: 'last(/Sensormeter WT32-ETH01/sensor2.humidity)>{$HUMIDITY_MAX_PERCENT}'
       priority: WARNING
       description: 'Nur relevant, wenn Sensor 2 (Sensormeter PRO) aktiv ist.'
     - uuid: 3d0e41bec17b4018a804f26dd4ee5f3e
       name: 'Keine SNMP-Daten von {HOST.NAME} seit 10 Minuten'
-      expression: 'nodata(/Sensormeter (WT32-ETH01)/sensor1.temperature,10m)=1'
+      expression: 'nodata(/Sensormeter WT32-ETH01/sensor1.temperature,10m)=1'
       priority: HIGH
     - uuid: fb53b4ae15f84f7398f00fd367b7a896
       name: 'Freier Heap niedrig auf {HOST.NAME}'
-      expression: 'last(/Sensormeter (WT32-ETH01)/status.freeheap)<{$HEAP_MIN_BYTES}'
+      expression: 'last(/Sensormeter WT32-ETH01/status.freeheap)<{$HEAP_MIN_BYTES}'
       priority: WARNING
