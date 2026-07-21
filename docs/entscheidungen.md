@@ -2195,3 +2195,34 @@ vorherige Absturz bei PSRAM-Fehler lag nicht an PSRAM selbst, sondern am
 damals noch ungefixten SNMP-Konstruktor-Absturz, der zufaellig zur
 gleichen Zeit auftrat. Betrifft dieses Projekt (WT32-ETH01, kein PSRAM
 verbaut) nicht direkt, aber relevant fuer die family-weite Doku-Korrektur.
+
+## 2026-07-21 — Bekanntes Problem (noch nicht gefixt): fehlender I2C-Vorab-Probe bei BEIDEN Displays
+
+Beim Gegenpruefen eines bei sensormeter-poe live gefundenen Log-Problems
+(unnoetige `i2c_master_transmit failed`-Zeilen beim externen SH1107 ohne
+gestecktes Modul, siehe `sensormeter-poe/repo/docs/entscheidungen.md`,
+Eintrag vom selben Tag) festgestellt: **dieses Projekt (sm) hat dasselbe
+Problem zusaetzlich auch beim INTERNEN SSD1306-Display**, nicht nur beim
+externen.
+
+`sensormeter-poe`s `DisplayManager::begin()` wurde bereits frueher gefixt
+(expliziter `Wire.beginTransmission()`/`endTransmission()`-Vorab-Probe vor
+`display.begin()`, um den urspruenglich beobachteten endlosen
+"i2c_master_transmit failed"-Spam in `loop()` bei fehlendem Display zu
+vermeiden - siehe dortiger Eintrag zu diesem Bug). Dieser Fix wurde nie
+auf `sensormeter` (dieses Projekt) zurueckportiert: `DisplayManager.cpp`
+Zeile 33 ruft `display.begin(SSD1306_SWITCHCAPVCC, SSD1306_I2C_ADDRESS)`
+weiterhin direkt auf, ohne Vorab-Probe. Das interne Display ist bei sm
+(anders als bei sm-poe) nicht optional, sondern Standardausstattung -
+betrifft also potenziell den in loop() wiederholten Spam-Fall, nicht nur
+einmaligen Log-Laerm beim Boot, falls das Display aus irgendeinem Grund
+(Wackelkontakt, Defekt) zeitweise nicht antwortet.
+
+`ExternalDisplayManager.cpp` (optionales externes SH1107, 0x3D) hat bei
+sm denselben fehlenden Vorab-Probe wie bei sm-poe - dort aber ohnehin nur
+einmaliger Log-Laerm beim Boot, kein Endlos-Spam-Risiko.
+
+**Auf Nutzerwunsch zurueckgestellt, noch nicht behoben.** Fix: den
+bereits bei sensormeter-poe vorhandenen Vorab-Probe-Code 1:1 nach
+sensormeter uebernehmen (`DisplayManager.cpp`), plus optional analog fuer
+`ExternalDisplayManager.cpp` (dort wie bei sm-poe nur Log-Kosmetik).
