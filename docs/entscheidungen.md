@@ -2242,3 +2242,19 @@ Betriebszustand widerspiegelt. Kein Sicherheitsgewinn (weiterhin
 Community-String im Klartext) - rein pragmatische Umstellung, siehe
 sensormeter-display fuer die vorher geprueften und verworfenen
 SNMPv3-Alternativen.
+
+## 2026-07-21 — I2C-Vorab-Probe fuer beide Displays nachgezogen (Fix umgesetzt)
+
+Der oben als "zurueckgestellt" dokumentierte Fix ist jetzt eingebaut, fuer
+BEIDE Displays: `DisplayManager::begin()` (internes SSD1306) und
+`ExternalDisplayManager::begin()` (externes SH1107) pruefen jetzt per
+`Wire.beginTransmission()`/`endTransmission()` vor, ob am Bus ueberhaupt
+ein Geraet antwortet, bevor die jeweilige `display.begin()` aufgerufen
+wird - identisches Muster wie bei sensormeter-poe (dort bereits nachgezogen,
+siehe eigener Eintrag). Schliesst insbesondere das potenziell ernstere
+Risiko beim internen Display (Standardausstattung, nicht optional).
+
+`pio run -e wt32-eth01` erfolgreich (Flash 61,6%, RAM 19,0%,
+Speicherbedarf praktisch unveraendert). OTA-Bin unter
+`firmware/.pio/build/wt32-eth01/firmware.bin` bereitgestellt - Nutzer
+laedt selbst per OTA hoch, nicht ueber diese Sitzung geflasht/verifiziert.
