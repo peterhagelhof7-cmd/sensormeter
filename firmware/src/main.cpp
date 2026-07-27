@@ -48,6 +48,7 @@
 #include "MqttManager.h"
 #include "NetworkManager.h"
 #include "OtaManager.h"
+#include "RebootManager.h"
 #include "RelayManager.h"
 #include "SNMPManager.h"
 #include "SensorDetector.h"
@@ -99,6 +100,7 @@ WebServerManager webServerManager(dataManager, configManager, networkManager, ot
 SNMPManager snmpManager(dataManager, configManager, networkManager);
 SyslogManager syslogManager(dataManager, configManager, networkManager);
 MqttManager mqttManager(dataManager, configManager, networkManager, relayManager);
+RebootManager rebootManager(dataManager, configManager);
 
 // Serial-Kommandozeile fuer den Fall, dass das Geraet nur per USB, aber
 // nicht per Netzwerk erreichbar ist. Bewusst dasselbe Vertrauensmodell wie
@@ -437,6 +439,7 @@ void loop() {
   snmpManager.loop();
   syslogManager.loop();
   mqttManager.loop();
+  rebootManager.loop();
 
   // Einmaliger mDNS-Start, sobald irgendein Interface eine IP hat (LAN oder
   // WLAN-Fallback) - vor RUN_NORMAL ist noch keine IP vergeben, ein frueherer

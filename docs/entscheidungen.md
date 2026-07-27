@@ -2258,3 +2258,31 @@ Risiko beim internen Display (Standardausstattung, nicht optional).
 Speicherbedarf praktisch unveraendert). OTA-Bin unter
 `firmware/.pio/build/wt32-eth01/firmware.bin` bereitgestellt - Nutzer
 laedt selbst per OTA hoch, nicht ueber diese Sitzung geflasht/verifiziert.
+
+## 2026-07-23 — Taeglicher automatischer Neustart (neues Feature)
+
+Neuer `RebootManager` (analog zu den anderen `xManager.loop()`-Klassen):
+prueft bei jedem `loop()`-Durchlauf, ob `rebootScheduleEnabled` gesetzt
+ist und die aktuelle lokale Uhrzeit (`localtime_r`) mit der konfigurierten
+`rebootHour`/`rebootMinute` uebereinstimmt - falls ja, `ESP.restart()`.
+Ausloesung nur bei per NTP synchronisierter Uhr (`isTimeSynced()` aus
+`TimeUtils.h`, dasselbe Kriterium wie bei `SensorManager`), damit die
+ESP32-RTC kurz nach dem Boot (nahe Unix-Epoche 0) keinen falschen Treffer
+liefert. Bewusst KEIN persistentes "heute schon ausgeloest"-Flag: der
+Neustart selbst beendet `loop()` sofort beim ersten Treffer, und bis zum
+naechsten Treffer derselben Uhrzeit vergehen danach rund 24h - ein
+Mehrfachausloesen innerhalb derselben Minute ist damit strukturell
+ausgeschlossen, ohne zusaetzlichen Zustand.
+
+Konfiguration ueber die bestehende Einstellungsseite (neuer Block
+"Automatischer Neustart" im selben Formular wie die uebrigen
+Einstellungen, `<input type="time">` fuer die Uhrzeit) sowie
+`/api/config` GET/POST, neues `<reboot enabled="" hour="" minute=""/>`
+-Element in `config.xml` (Default: aus, 03:00). Kein neuer eigener
+API-Endpunkt - folgt demselben Muster wie die uebrigen Einstellungsbloecke
+(ein gemeinsames Speichern-Formular), nicht dem separaten sofortigen
+`/api/reboot`-Button (der bleibt fuer manuelle Neustarts unveraendert
+bestehen).
+
+`pio run -e wt32-eth01` erfolgreich (Flash 61,8%, RAM 19,0%). Noch nicht
+per OTA auf echte Hardware ausgerollt/verifiziert.

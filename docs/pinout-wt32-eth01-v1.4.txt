@@ -1,86 +1,99 @@
 =================================================
-ESP32-ETH01 V1.4 PINOUT
+WT32-ETH01 V1.4 PINOUT
 =================================================
+Korrigiert 2026-07-22: gegen echtes Boardfoto (WT32-ETH01-back.png,
+Ethernet-Buchse unten) UND das offizielle Datenblatt
+(sm-adapterplatine/referenzen/wt32-eth01/WT32-ETH01-datasheet-v1.4-en.pdf,
+Kapitel 3.3 "Pin Descriptions", Tabelle 1+2) abgeglichen. Die vorherige
+Fassung dieser Datei hatte zwei Fehler: eine erfundene dritte Stiftleiste
+("LINK/RJ45-Seite rechts") mit teils falschen GPIO-Nummern, und eine
+"Untere Reihe" mit unmoeglichen GPIO-Nummern (IO101/IO102/IO103 - ESP32
+geht nur bis GPIO39). Das Board hat tatsaechlich nur ZWEI seitliche
+13-Pin-Stiftleisten, siehe unten.
 
---- LINK / RJ45 (Ethernet) Seite (Rechts) ---
-(Befindet sich direkt neben der Ethernet-Buchse am Rand)
+--- Linke Stiftleiste (von oben nach unten) ---
 
-1. GND
-2. 5V
-3. 3V3
+1. TXO      (Silkscreen; Datenblatt Tabelle 1 Pin 4 = IO1, TXD0 - Debug/Burn-Interface)
+2. RXO      (Silkscreen; Datenblatt Tabelle 1 Pin 5 = IO3, RXD0 - Debug/Burn-Interface)
+3. IO0      (Datenblatt Tabelle 1 Pin 6 - Debug/Burn-Interface, LOW beim Boot = Download-Modus)
 4. GND
-5. IO2
-6. IO4
-7. IO5
-8. IO13
-9. IO14
-10. IO15
-11. IO16
-12. IO17
+5. IO39     (Input-only, ADC)
+6. IO36     (Input-only, ADC)
+7. IO15
+8. IO14
+9. IO12     (Boot-Strapping-Pin, muss beim Start LOW sein - siehe docs/entscheidungen.md)
+10. IO35    (Input-only, ADC)
+11. IO4
+12. IO2
+13. GND
 
----
---- Obere Reihe (von Links nach Rechts) ---
+--- Rechte Stiftleiste (von oben nach unten) ---
 
-EN      (Enable / Reset Pin)
-GND
-3V3
-EN      (Doppelter EN-Pin)
-CFG     (Meist GPIO0, zum Bootloader-Modus halten)
-485_EN  (RS485 Enable, falls verwendet)
-RXD     (UART RX / GPIO3)
-TXD     (UART TX / GPIO1)
-GND
-3V3
-GND
-5V      (5V Spannungseingang)
-LINK    (LINK-LED Signal / Meist GPIO27 oder GPIO21)
-
----
---- Untere Reihe (von Links nach Rechts) ---
-
-TXD     (UART TX / GPIO1 - Duplikat)
-RXD     (UART RX / GPIO3 - Duplikat)
-IO0     (GPIO0 - Wichtig: Low beim Start = Bootloader Mode)
-GND
-IO19    (GPIO19)
-IO18    (GPIO18)
-IO103   (GPIO103 / Meist als MOSI / SDO genutzt)
-IO101   (GPIO101 / Meist als MISO / SDI genutzt)
-IO102   (GPIO102 / Meist als SCK genutzt)
-IO23    (GPIO23)
-IO22    (GPIO22)
-IO21    (GPIO21)
-GND
+1. EN       (Datenblatt Tabelle 2 Pin 1 - Hauptleiste)
+2. GND      (Datenblatt Tabelle 1 Pin 2 - Debug/Burn-Interface)
+3. 3V3      (Datenblatt Tabelle 1 Pin 3 - Debug/Burn-Interface)
+4. EN       (Datenblatt Tabelle 1 Pin 1 - eigener, zweiter EN-Pin am Debug/Burn-Interface)
+5. CFG      (= IO32, Datenblatt Tabelle 2 Pin 2)
+6. 485_EN   (= IO33, RS485 Enable, Datenblatt Tabelle 2 Pin 3)
+7. RXD      (= IO5, RXD2 - zweiter Hardware-UART, NICHT identisch mit RXO/IO3 oben. Datenblatt Tabelle 2 Pin 4)
+8. TXD      (= IO17, TXD2. Datenblatt Tabelle 2 Pin 5)
+9. GND
+10. 3V3     (Versorgung)
+11. GND
+12. 5V      (Versorgung)
+13. LINK    (Netzwerk-Verbindungsanzeige)
 
 =================================================
+SILKSCREEN -> GPIO AUFLOESUNG (aus dem Datenblatt)
+=================================================
+Mehrere Pins tragen auf der Platine einen Sonderfunktionsnamen statt der
+GPIO-Nummer. Wer die Platine nur ansieht, findet "IO5" oder "IO32"
+nirgends aufgedruckt - das ist kein Fehler, sondern Absicht:
+
+  Silkscreen   GPIO         Hinweis
+  ----------   ----         -------
+  TXO          IO1  (TXD0)  Debug/Burn-Interface, linke Leiste oben
+  RXO          IO3  (RXD0)  Debug/Burn-Interface, linke Leiste oben
+  CFG          IO32         I2C SCL in diesem Projekt (siehe entscheidungen.md)
+  485_EN       IO33         I2C SDA in diesem Projekt
+  RXD          IO5  (RXD2)  zweiter Hardware-UART RX - in diesem Projekt: Relais-Steuersignal (RJ45 Pin 6)
+  TXD          IO17 (TXD2)  zweiter Hardware-UART TX - in diesem Projekt ungenutzt
+
+Wichtig: "RXO" (linke Leiste, = IO3/RXD0) und "RXD" (rechte Leiste, =
+IO5/RXD2) sehen im Silkscreen aehnlich aus, sind aber zwei komplett
+verschiedene GPIOs an zwei verschiedenen Hardware-UARTs. Gleiches gilt
+fuer TXO (IO1) vs. TXD (IO17).
+
+---
 WICHTIGE HINWEISE FÜR DIE VERKABELUNG:
-=================================================
+---
 
 1. Ethernet-Chip (LAN8720) Verbindungen:
-   Dieses Board nutzt meist den LAN8720 Chip. Die folgenden GPIOs sind 
+   Dieses Board nutzt den LAN8720 Chip. Die folgenden GPIOs sind
    intern fest verdrahtet und sollten NICHT für andere Zwecke genutzt werden:
    - GPIO0 (Boot-Mode, Vorsicht!)
    - GPIO12 (Power-On Reset, nicht auf Low ziehen)
-   - GPIO15
-   - GPIO16
-   - GPIO17
-   - GPIO18 (ETH_CLK)
+   - GPIO16 (ETH_PHY_POWER)
+   - GPIO17 (ETH_CLK_MODE bei manchen Boardvarianten - hier als TXD/IO17 nutzbar, siehe pins.h)
+   - GPIO18 (ETH_MDIO)
    - GPIO19 (ETH_TX0)
    - GPIO21 (ETH_TX_EN)
    - GPIO22 (ETH_TXD1)
-   - GPIO23 (ETH_RXD0)
+   - GPIO23 (ETH_MDC)
    - GPIO25 (ETH_RXD1)
    - GPIO26 (ETH_CRS_DV)
-   - GPIO27 (ETH_RX_ER / oft auch "LINK" LED)
+   - GPIO27 (ETH_RX_ER)
 
 2. Stromversorgung:
    - 5V: Zum Betreiben des Boards über USB oder externe 5V Quelle.
    - 3V3: Ausgang für externe Sensoren (max. ~500mA beachten).
 
 3. Pin 485_EN:
-   Dieser Pin ist meist nicht standardmäßig belegt. Er dient dazu, einen 
-   RS485-Treiberbaustein (falls nachgerüstet) ein- oder auszuschalten.
+   Dient dazu, einen RS485-Treiberbaustein (falls bestückt) ein- oder
+   auszuschalten. Ob auf diesem konkreten Board ein RS485-Chip bestückt
+   ist, ist separat zu prüfen (Sichtprüfung), bevor der Pin anderweitig
+   (I2C SDA) genutzt wird.
 
 4. CFG / IO0:
-   Wenn das Board nicht bootet oder im Download-Modus stecken bleibt, 
+   Wenn das Board nicht bootet oder im Download-Modus stecken bleibt,
    prüfe, ob IO0 auf GND liegt (z.B. durch einen Taster oder Jumper).

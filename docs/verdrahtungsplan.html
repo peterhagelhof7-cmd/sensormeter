@@ -82,7 +82,7 @@
   <div class="badges">
     <span class="badge badge-orange">IO4 · DHT-11 intern</span>
     <span class="badge">CFG/485_EN (IO32/IO33) · I2C Display + RJ45</span>
-    <span class="badge">IO15/5/14 · RJ45-Modul</span>
+    <span class="badge">IO15/RXD(5)/IO14 · RJ45-Modul</span>
     <span class="badge badge-orange">5V · RJ45 Pin 8</span>
     <span class="badge">github.com/peterhagelhof7-cmd/sensormeter</span>
   </div>
@@ -151,6 +151,16 @@
     („Module IO Description"), der andere zur separaten 6-poligen
     Debug-Burning-Schnittstelle (dort sitzen auch <code>TXO</code>/
     <code>RXO</code> = <code>IO1</code>/<code>IO3</code>, TXD0/RXD0).</li>
+    <li><b>2026-07-22 nachgetragen: das für das Relais genutzte
+    <code>IO5</code> trägt auf dem Silkscreen den Namen <code>RXD</code>
+    (rechte Spalte) - bestätigt durch Datenblatt Tabelle 2, Pin 4:
+    „RXD | IO5, RXD2". Nicht zu verwechseln mit <code>RXO</code> (linke
+    Spalte, = <code>IO3</code>/RXD0, Debug/Burn-Interface) - zwei
+    ähnlich aussehende Beschriftungen, zwei komplett verschiedene GPIOs
+    an zwei verschiedenen Hardware-UARTs. <code>docs/pinout-wt32-eth01-v1.4.txt</code>
+    wurde entsprechend korrigiert (die dort vorher gelistete dritte,
+    erfundene Stiftleiste mit teils falschen GPIO-Nummern existiert
+    nicht - das Board hat nur die zwei hier gezeigten Leisten).</li>
   </ul>
 </div>
 
@@ -172,7 +182,7 @@
   <tr><td><code>CFG</code> <span style="color:#6b7280;">(Silkscreen-Name, = GPIO <code>IO32</code>)</span></td><td>OLED SCL <b>und</b> RJ45 Pin 3</td><td><span class="dot" style="background:#c8622a;"></span>I2C-Taktleitung, gemeinsamer Bus (Display + externer I2C-Sensor)</td></tr>
   <tr><td><code>485_EN</code> <span style="color:#6b7280;">(Silkscreen-Name, = GPIO <code>IO33</code>)</span></td><td>OLED SDA <b>und</b> RJ45 Pin 4</td><td><span class="dot" style="background:#5c9e6c;"></span>I2C-Datenleitung, gemeinsamer Bus</td></tr>
   <tr><td><code>IO15</code></td><td>RJ45 Pin 5</td><td><span class="dot" style="background:#7a5cad;"></span>Reserve / externer DHT-Sensor-DATA</td></tr>
-  <tr><td><code>IO5</code></td><td>RJ45 Pin 6</td><td><span class="dot" style="background:#a63d2e;"></span>Relais-Steuersignal, active LOW</td></tr>
+  <tr><td><code>RXD</code> <span style="color:#6b7280;">(Silkscreen-Name, = GPIO <code>IO5</code>)</span></td><td>RJ45 Pin 6</td><td><span class="dot" style="background:#a63d2e;"></span>Relais-Steuersignal, active LOW</td></tr>
   <tr><td><code>IO14</code></td><td>RJ45 Pin 7</td><td><span class="dot" style="background:#c9a227;"></span>Relais-Status-Feedback (optional)</td></tr>
   <tr><td><code>5V</code></td><td>RJ45 Pin 8</td><td><span class="dot" style="background:#d6553f;"></span>5V-Versorgung für Module, die mehr als 3,3V brauchen (Board-Eingang, kein GPIO)</td></tr>
 </table>
@@ -204,7 +214,7 @@ gesteckten Modul. Siehe <code>docs/entscheidungen.md</code> „RJ45 Pin 8:
     <text x="25" y="181" text-anchor="end" font-size="7.5" font-weight="700" fill="#5c9e6c">485_EN</text>
     <text x="25" y="189" text-anchor="end" font-size="6" fill="#8a93a3">(IO33)</text>
     <text x="25" y="207" text-anchor="end" font-weight="700" fill="#7a5cad">IO15</text>
-    <text x="25" y="231" text-anchor="end" font-weight="700" fill="#a63d2e">IO5</text>
+    <text x="25" y="231" text-anchor="end" font-weight="700" fill="#a63d2e">RXD <tspan font-size="6" fill="#8a93a3">(IO5)</tspan></text>
     <text x="25" y="255" text-anchor="end" font-weight="700" fill="#c9a227">IO14</text>
     <text x="25" y="279" text-anchor="end" font-weight="700" fill="#d6553f">5V</text>
   </g>
@@ -285,9 +295,9 @@ gesteckten Modul. Siehe <code>docs/entscheidungen.md</code> „RJ45 Pin 8:
   <!-- Wire: IO15 -> RJ45 Pin5 (purple) -->
   <path class="wire-hit" data-wire="w12" d="M30,203 C 400,203 400,380 610,380"/>
   <path class="wire" data-wire="w12" data-from="IO15" data-to="RJ45 Pin 5 (Reserve / externer DHT-Sensor)" d="M30,203 C 400,203 400,380 610,380" fill="none" stroke="#7a5cad" stroke-width="1.6"/>
-  <!-- Wire: IO5 -> RJ45 Pin6 (dark red) -->
+  <!-- Wire: RXD/IO5 -> RJ45 Pin6 (dark red) -->
   <path class="wire-hit" data-wire="w13" d="M30,227 C 420,227 420,393 610,393"/>
-  <path class="wire" data-wire="w13" data-from="IO5" data-to="RJ45 Pin 6 (Relais-Steuerung, active LOW)" d="M30,227 C 420,227 420,393 610,393" fill="none" stroke="#a63d2e" stroke-width="1.6"/>
+  <path class="wire" data-wire="w13" data-from="RXD (Silkscreen-Name, GPIO IO5)" data-to="RJ45 Pin 6 (Relais-Steuerung, active LOW)" d="M30,227 C 420,227 420,393 610,393" fill="none" stroke="#a63d2e" stroke-width="1.6"/>
   <!-- Wire: IO14 -> RJ45 Pin7 (yellow) -->
   <path class="wire-hit" data-wire="w14" d="M30,251 C 440,251 440,406 610,406"/>
   <path class="wire" data-wire="w14" data-from="IO14" data-to="RJ45 Pin 7 (Relais-Feedback, optional)" d="M30,251 C 440,251 440,406 610,406" fill="none" stroke="#c9a227" stroke-width="1.6"/>
@@ -343,7 +353,7 @@ unterscheiden sich (anderer Chip/Board). Siehe
   <tr><td>3</td><td>I2C SCL (gemeinsamer Bus mit Display)</td><td><code>CFG</code> <span style="color:#6b7280;">(IO32)</span></td></tr>
   <tr><td>4</td><td>I2C SDA (gemeinsamer Bus mit Display)</td><td><code>485_EN</code> <span style="color:#6b7280;">(IO33)</span></td></tr>
   <tr><td>5</td><td>GPIO Reserve / externer DHT-Sensor, DATA</td><td><code>IO15</code></td></tr>
-  <tr><td>6</td><td>Relais-Steuerung, active LOW</td><td><code>IO5</code></td></tr>
+  <tr><td>6</td><td>Relais-Steuerung, active LOW</td><td><code>RXD</code> <span style="color:#6b7280;">(IO5)</span></td></tr>
   <tr><td>7</td><td>Relais-Feedback / Interrupt</td><td><code>IO14</code></td></tr>
   <tr><td>8</td><td>5V-Versorgung (Board-Eingang, kein GPIO)</td><td><code>5V</code></td></tr>
 </table>
@@ -436,7 +446,7 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <text x="490" y="163" fill="#6b7280">EN <tspan font-size="8.5" fill="#9aa2b0">(Debug-Iface)</tspan></text>
     <text x="490" y="198" font-weight="700" fill="#c8622a">CFG <tspan font-size="8.5" font-weight="400" fill="#9aa2b0">(IO32, I2C SCL)</tspan></text>
     <text x="490" y="233" font-weight="700" fill="#5c9e6c">485_EN <tspan font-size="8.5" font-weight="400" fill="#9aa2b0">(IO33, I2C SDA)</tspan></text>
-    <text x="490" y="268" fill="#6b7280">RXD</text>
+    <text x="490" y="268" font-weight="700" fill="#a63d2e">RXD <tspan font-size="8.5" font-weight="400" fill="#9aa2b0">(IO5, Relais-Steuerung)</tspan></text>
     <text x="490" y="303" fill="#6b7280">TXD</text>
     <text x="490" y="338" font-weight="700" fill="#1c2430">GND</text>
     <text x="490" y="373" font-weight="700" fill="#c0392b">3V3</text>
@@ -451,7 +461,7 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <circle cx="480" cy="159" r="2.5" fill="#8a93a3"/>
     <circle cx="480" cy="194" r="2.5" fill="#c8622a"/>
     <circle cx="480" cy="229" r="2.5" fill="#5c9e6c"/>
-    <circle cx="480" cy="264" r="2.5" fill="#8a93a3"/>
+    <circle cx="480" cy="264" r="2.5" fill="#a63d2e"/>
     <circle cx="480" cy="299" r="2.5" fill="#8a93a3"/>
     <circle cx="480" cy="334" r="2.5" fill="#1c2430"/>
     <circle cx="480" cy="369" r="2.5" fill="#c0392b"/>
@@ -460,7 +470,7 @@ aber ohne aktuelle Verwendung in diesem Projekt.</p>
     <circle cx="480" cy="474" r="2.5" fill="#8a93a3"/>
   </g>
 
-  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">Beschriftung 1:1 vom Silkscreen. CFG/485_EN sind die real genutzten I2C-Pins (GPIO-Zuordnung bestaetigt, siehe Callout oben) - RXD/TXD bleiben ungenutzt.</text>
+  <text x="380" y="590" text-anchor="middle" font-size="9" fill="#6b7280">Beschriftung 1:1 vom Silkscreen. CFG/485_EN sind die real genutzten I2C-Pins, RXD (=IO5) das Relais-Steuersignal (GPIO-Zuordnung bestaetigt, siehe Callout oben) - nur TXD (=IO17) bleibt ungenutzt.</text>
 </svg>
 <p style="font-size:10.5px;color:#6b7280;"><code>TXO</code>/<code>RXO</code> (linke Spalte, oben) sowie die zweite
 <code>EN</code>-Beschriftung (rechte Spalte, Position 4) gehören zur
@@ -485,6 +495,13 @@ Callout oben). Einzige noch offene Detailfrage: ob auf diesem Board
 tatsächlich ein RS485-Transceiver an <code>485_EN</code> hängt (Silkscreen
 beweist das allein nicht) - falls ja, dessen Enable-Eingang vor dem
 I2C-Bestücken per Sichtprüfung von der SDA-Leitung ausschließen.</p>
+<p>Ebenso <code>IO5</code> (Relais-Steuersignal, RJ45 Pin 6): trägt auf
+dem Silkscreen den Namen <code>RXD</code> (rechte Spalte, zweiter
+Hardware-UART/RXD2) - bestätigt durch Datenblatt Tabelle 2, Pin 4.
+Nicht zu verwechseln mit <code>RXO</code> (linke Spalte, = <code>IO3</code>/RXD0,
+gehört zum separaten Debug/Burn-Interface) - beide Beschriftungen sehen
+ähnlich aus, sind aber unterschiedliche GPIOs an unterschiedlichen
+UARTs.</p>
 
 <footer>
   Sensormeter — Verdrahtungsplan (interaktive Kurzfassung von verdrahtungsschema-v1.2.pdf) · github.com/peterhagelhof7-cmd/sensormeter ·

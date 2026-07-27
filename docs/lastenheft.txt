@@ -82,6 +82,7 @@ System:
 - Systemname
 - Passwort ändern
 - Reboot
+- Automatischer taeglicher Neustart zu fester Uhrzeit (optional, aktivier-/deaktivierbar)
 
 Netzwerk:
 - LAN DHCP / static IP
