@@ -424,6 +424,10 @@ void setup() {
   // kurzen, begrenzten Zyklus.
   esp_task_wdt_init(10, true);
   esp_task_wdt_add(NULL);
+  // s. OtaManager.cpp: damit ein OTA-Upload den Haupt-Loop-Task gezielt aus
+  // diesem Watchdog aus-/eintragen kann, statt ihn faelschlich panic'en zu
+  // lassen, obwohl nur Update.write() (im AsyncTCP-Task) blockiert.
+  otaManager.setMainLoopTaskHandle(xTaskGetCurrentTaskHandle());
 }
 
 void loop() {
@@ -457,6 +461,7 @@ void loop() {
     mdnsStarted = true;
   }
 
+  otaManager.checkStalled();
   esp_task_wdt_reset();
   delay(50);
 }
