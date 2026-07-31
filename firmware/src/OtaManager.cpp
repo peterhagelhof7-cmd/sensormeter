@@ -16,10 +16,13 @@
 // hintereinander (>1 MB .bin) kann das den Haupt-Loop-Task lange genug vom
 // Scheduler fernhalten, dass er esp_task_wdt_reset() nicht innerhalb von
 // 10s erreicht -> Panic-Reboot, obwohl das Geraet gar nicht wirklich haengt.
-// Fix: waehrend eines aktiven Uploads wird GENAU der Haupt-Loop-Task aus dem
-// Watchdog ausgetragen (nicht der TWDT insgesamt deaktiviert) und danach
-// wieder eingetragen - mit Stall-Sicherung in checkStalled() fuer den Fall,
-// dass endLocalUpdate() wegen eines Verbindungsabbruchs nie aufgerufen wird.
+// Fix: waehrend eines aktiven Uploads wird der Haupt-Loop-Task aus dem TWDT
+// ausgetragen UND zusaetzlich die IDLE-Task-Watchdogs beider Kerne
+// deaktiviert (disableCore0WDT()/disableCore1WDT() - ein erster Fix, der nur
+// den Haupt-Loop-Task austrug, reichte auf echter Hardware trotzdem nicht),
+// danach beides wieder aktiviert - mit Stall-Sicherung in checkStalled()
+// fuer den Fall, dass endLocalUpdate() wegen eines Verbindungsabbruchs nie
+// aufgerufen wird.
 
 #if __has_include("config.h")
 #include "config.h"
@@ -89,14 +92,30 @@ int findBytes(const uint8_t* haystack, size_t haystackLen, const char* needle, s
 }  // namespace
 
 void OtaManager::disableMainLoopWatchdog() {
-  if (_watchdogDisabledForUpload || _mainLoopTaskHandle == nullptr) return;
-  esp_task_wdt_delete(_mainLoopTaskHandle);
+  if (_watchdogDisabledForUpload) return;
+  if (_mainLoopTaskHandle != nullptr) {
+    esp_task_wdt_delete(_mainLoopTaskHandle);
+  }
+  // Zusaetzlich zur Haupt-Loop-Task-Registrierung ueberwacht ESP-IDF per
+  // Default AUCH die IDLE-Tasks beider Kerne separat (esp32-hal.h) - ein
+  // erster Fix, der nur den Haupt-Loop-Task austraegt, hat auf echter
+  // Hardware (sensormeter, Ethernet) trotzdem noch zum Reboot gefuehrt.
+  disableCore0WDT();
+#ifndef CONFIG_FREERTOS_UNICORE
+  disableCore1WDT();
+#endif
   _watchdogDisabledForUpload = true;
 }
 
 void OtaManager::enableMainLoopWatchdog() {
-  if (!_watchdogDisabledForUpload || _mainLoopTaskHandle == nullptr) return;
-  esp_task_wdt_add(_mainLoopTaskHandle);
+  if (!_watchdogDisabledForUpload) return;
+  if (_mainLoopTaskHandle != nullptr) {
+    esp_task_wdt_add(_mainLoopTaskHandle);
+  }
+  enableCore0WDT();
+#ifndef CONFIG_FREERTOS_UNICORE
+  enableCore1WDT();
+#endif
   _watchdogDisabledForUpload = false;
 }
 
