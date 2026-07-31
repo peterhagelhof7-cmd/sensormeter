@@ -55,21 +55,26 @@ Hardware getestet.
 
 `firmware/` ist ein PlatformIO-Projekt (Board `esp32dev`, Framework Arduino).
 
-**Version:** `0.9.0-rc4` (Beta) — Versionsschema siehe
+**Version:** `0.9.5` (Beta) — Versionsschema siehe
 [docs/entscheidungen.md](docs/entscheidungen.md#versionierung).
 
 Fertiges Binary für das lokale OTA-Update (kein PlatformIO nötig):
-[Releases → v0.9.0-rc4](https://github.com/peterhagelhof7-cmd/sensormeter/releases/tag/v0.9.0-rc4).
+[Releases → v0.9.5](https://github.com/peterhagelhof7-cmd/sensormeter/releases/tag/v0.9.5).
 
 Aktueller Stand: **P0–P7 umgesetzt, Board-Bringup abgeschlossen, Qualitätskontrolle läuft**
 (siehe [docs/implementierungsplan.html](docs/implementierungsplan.html)).
-Erstes Gerät läuft stabil auf echter Hardware. Zuletzt (2026-07-18) bei
-einem echten Netzwerk-OTA-Test einen Chunkgrößen-Bug im Marker-Scan
-gefunden und live verifiziert behoben, sowie einen Zeitzonen-Bug
-root-verursacht und gefixt (Uhrzeit zeigte nach einem Software-Reset
-UTC statt Ortszeit) — beide Funde inzwischen auch in die drei
-Schwesterprojekte übertragen, siehe
-[docs/entscheidungen.md](docs/entscheidungen.md).
+Erstes Gerät läuft stabil auf echter Hardware. Zuletzt (2026-07-31)
+einen OTA-Update-Bug gefunden und behoben: Uploads konnten mitten im
+Transfer zu einem harten Reboot führen (Task-Watchdog-Starvation
+während der Flash-Schreibvorgänge), live per Browser-Upload
+verifiziert; außerdem den Startseiten-Graph auf einen lesbaren
+3-Tage-Ausschnitt (4 Messpunkte/Tag, Wochentag-Beschriftung statt nur
+Uhrzeit) umgestellt. Davor (2026-07-18) bei einem echten
+Netzwerk-OTA-Test einen Chunkgrößen-Bug im Marker-Scan gefunden und
+live verifiziert behoben, sowie einen Zeitzonen-Bug root-verursacht
+und gefixt (Uhrzeit zeigte nach einem Software-Reset UTC statt
+Ortszeit) — alle Funde inzwischen auch in die Schwesterprojekte
+übertragen, siehe [docs/entscheidungen.md](docs/entscheidungen.md).
 
 ```
 cd firmware
